@@ -1,4 +1,4 @@
-import ExcelJS from 'exceljs'
+import * as ExcelJS from 'exceljs'
 
 interface ReportData {
   projects?: any[]
@@ -40,7 +40,7 @@ export const exportToExcel = async (
   reportType: 'company' | 'project' | 'academician' | 'payments',
   dateRange?: { start_date?: string; end_date?: string }
 ) => {
-  const workbook = new ExcelJS.Workbook()
+  const workbook = new (ExcelJS as any).Workbook()
   workbook.creator = 'Muhasebe Yazılımı'
   workbook.created = new Date()
 
