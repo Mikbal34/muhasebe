@@ -315,16 +315,11 @@ export const exportToExcel = async (
     })
   }
 
-  // Auto-fit columns
-  worksheet.columns.forEach(column => {
-    let maxLength = 0 as any
-    (column as any).eachCell({ includeEmpty: true }, (cell: any) => {
-      const columnLength = cell.value ? cell.value.toString().length : 10
-      if (columnLength > maxLength) {
-        maxLength = columnLength
-      }
-    })
-    (column as any).width = maxLength < 10 ? 10 : maxLength + 2
+  // Set fixed column widths (auto-fit causes issues in production)
+  worksheet.columns.forEach((column, index) => {
+    if (column) {
+      (column as any).width = 15 // Fixed width for all columns
+    }
   })
 
   // Generate buffer and download
