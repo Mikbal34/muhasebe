@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
           .eq('user_id', ctx.user.id)
 
         if (representativeProjects && representativeProjects.length > 0) {
-          const projectIds = representativeProjects.map(p => p.project_id)
+          const projectIds = representativeProjects.map((p: any) => p.project_id)
           query = query.in('project_id', projectIds)
         } else {
           // No projects, return empty result

@@ -47,7 +47,7 @@ export async function GET(
         const { data: representative } = await ctx.supabase
           .from('project_representatives')
           .select('id')
-          .eq('project_id', income.project_id)
+          .eq('project_id', (income as any).project_id)
           .eq('user_id', ctx.user.id)
           .single()
 

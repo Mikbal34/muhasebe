@@ -45,7 +45,7 @@ export async function PATCH(request: NextRequest) {
         return apiResponse.error('Invalid request', 'No valid fields provided for update', 400)
       }
 
-      const { data: updatedUser, error } = await ctx.supabase
+      const { data: updatedUser, error } = await (ctx.supabase as any)
         .from('users')
         .update(updates)
         .eq('id', ctx.user.id)

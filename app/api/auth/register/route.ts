@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     await new Promise(resolve => setTimeout(resolve, 500))
 
     try {
-      const { error: profileError } = await supabase
+      const { error: profileError } = await (supabase as any)
         .from('users')
         .insert({
           id: authData.user.id,
