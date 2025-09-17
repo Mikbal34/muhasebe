@@ -53,13 +53,13 @@ export async function POST(request: NextRequest) {
     return apiResponse.success(
       {
         user: {
-          id: profile.id,
-          email: profile.email,
-          full_name: profile.full_name,
-          role: profile.role,
-          phone: profile.phone,
-          iban: profile.iban,
-          is_active: profile.is_active,
+          id: (profile as any).id,
+          email: (profile as any).email,
+          full_name: (profile as any).full_name,
+          role: (profile as any).role,
+          phone: (profile as any).phone,
+          iban: (profile as any).iban,
+          is_active: (profile as any).is_active,
         },
         session: authData.session,
       },
