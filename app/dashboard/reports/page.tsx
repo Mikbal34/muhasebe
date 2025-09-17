@@ -16,7 +16,6 @@ import {
   Filter,
   RefreshCw
 } from 'lucide-react'
-import { exportToExcel } from '@/lib/utils/excel'
 
 interface User {
   id: string
@@ -415,7 +414,50 @@ export default function ReportsPage() {
                     onClick={async () => {
                       try {
                         console.log('Excel export started...')
-                        await exportToExcel(reportData, reportType, dateRange)
+                        const token = localStorage.getItem('token')
+                        if (!token) {
+                          alert('Oturum süresi dolmuş, lütfen tekrar giriş yapın.')
+                          return
+                        }
+
+                        const response = await fetch('/api/reports/export', {
+                          method: 'POST',
+                          headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                          },
+                          body: JSON.stringify({
+                            data: reportData,
+                            reportType,
+                            dateRange
+                          })
+                        })
+
+                        if (!response.ok) {
+                          throw new Error('Excel export failed')
+                        }
+
+                        // Get the filename from the response headers
+                        const contentDisposition = response.headers.get('content-disposition')
+                        let filename = 'rapor.xlsx'
+                        if (contentDisposition) {
+                          const filenameMatch = contentDisposition.match(/filename="(.+)"/)
+                          if (filenameMatch) {
+                            filename = filenameMatch[1]
+                          }
+                        }
+
+                        // Create blob and download
+                        const blob = await response.blob()
+                        const url = window.URL.createObjectURL(blob)
+                        const anchor = document.createElement('a')
+                        anchor.href = url
+                        anchor.download = filename
+                        document.body.appendChild(anchor)
+                        anchor.click()
+                        document.body.removeChild(anchor)
+                        window.URL.revokeObjectURL(url)
+
                         console.log('Excel export completed!')
                       } catch (error) {
                         console.error('Excel export failed:', error)
