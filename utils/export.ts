@@ -107,60 +107,10 @@ export function exportToCSV(options: ExportOptions): void {
   downloadFile(csv, `${options.filename}.csv`, 'text/csv;charset=utf-8;')
 }
 
-// Export to Excel (using HTML table method for better compatibility)
+// Export to Excel - DEPRECATED: Use server-side API instead
 export function exportToExcel(options: ExportOptions): void {
-  const { columns, data, title, subtitle, filename } = options
-
-  let html = `
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <style>
-          table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; }
-          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-          th { background-color: #f2f2f2; font-weight: bold; }
-          .title { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
-          .subtitle { font-size: 14px; color: #666; margin-bottom: 20px; }
-          .currency { text-align: right; }
-          .number { text-align: right; }
-          .percentage { text-align: right; }
-          .date { text-align: center; }
-        </style>
-      </head>
-      <body>
-  `
-
-  if (title) {
-    html += `<div class="title">${title}</div>`
-  }
-  if (subtitle) {
-    html += `<div class="subtitle">${subtitle}</div>`
-  }
-
-  html += '<table>'
-
-  // Headers
-  html += '<thead><tr>'
-  columns.forEach(col => {
-    html += `<th>${col.header}</th>`
-  })
-  html += '</tr></thead>'
-
-  // Data
-  html += '<tbody>'
-  data.forEach(row => {
-    html += '<tr>'
-    columns.forEach(col => {
-      const value = getNestedValue(row, col.key)
-      const formatted = formatCellData(value, col.format)
-      const className = col.format || 'text'
-      html += `<td class="${className}">${formatted}</td>`
-    })
-    html += '</tr>'
-  })
-  html += '</tbody></table></body></html>'
-
-  downloadFile(html, `${filename}.xls`, 'application/vnd.ms-excel')
+  alert('Excel export fonksiyonu güncellendi. Lütfen raporlar sayfasından Excel indirin.')
+  throw new Error('Excel export deprecated. Use server-side API endpoint instead.')
 }
 
 // Project export configurations
