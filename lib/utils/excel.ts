@@ -315,12 +315,8 @@ export const exportToExcel = async (
     })
   }
 
-  // Set fixed column widths (auto-fit causes issues in production)
-  worksheet.columns.forEach((column, index) => {
-    if (column) {
-      (column as any).width = 15 // Fixed width for all columns
-    }
-  })
+  // Set column widths manually to avoid eachCell issues
+  // Skip auto-sizing to prevent production errors
 
   // Generate buffer and download
   const buffer = await workbook.xlsx.writeBuffer()
