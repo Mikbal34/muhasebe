@@ -376,7 +376,7 @@ export default function PaymentsPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-2">
                           <Link
-                            href={`/dashboard/payments/${payment.id}`}
+                            href={`/dashboard/payments/${payment.id}` as any}
                             className="p-1 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
                             title="Görüntüle"
                           >

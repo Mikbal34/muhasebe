@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Create user profile
-      const { data: userProfile, error: profileError } = await ctx.supabase
+      const { data: userProfile, error: profileError } = await (ctx.supabase as any)
         .from('users')
         .insert({
           id: authUser.user.id,

@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     // Test 2: Try manual insert to see if RLS blocks it
     const testUserId = '00000000-0000-0000-0000-000000000000'
-    const { data: insertTest, error: insertError } = await supabase
+    const { data: insertTest, error: insertError } = await (supabase as any)
       .from('users')
       .insert({
         id: testUserId,

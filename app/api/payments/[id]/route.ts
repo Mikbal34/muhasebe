@@ -107,9 +107,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
           'rejected': ['pending'] // Can reopen rejected payments
         }
 
-        if (!allowedTransitions[existingPayment.status]?.includes(body.status)) {
+        if (!allowedTransitions[(existingPayment as any).status]?.includes(body.status)) {
           return apiResponse.error('Invalid status transition',
-            `Cannot change status from ${existingPayment.status} to ${body.status}`, 400)
+            `Cannot change status from ${(existingPayment as any).status} to ${body.status}`, 400)
         }
 
         updateData.status = body.status
@@ -125,7 +125,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         updateData.notes = body.notes
       }
 
-      const { data: updatedPayment, error: updateError } = await ctx.supabase
+      const { data: updatedPayment, error: updateError } = await (ctx.supabase as any)
         .from('payment_instructions')
         .update(updateData)
         .eq('id', id)
@@ -192,7 +192,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       }
 
       // Don't allow deletion of completed payments
-      if (payment.status === 'completed') {
+      if ((payment as any).status === 'completed') {
         return apiResponse.error('Cannot delete payment', 'Completed payment instructions cannot be deleted', 400)
       }
 

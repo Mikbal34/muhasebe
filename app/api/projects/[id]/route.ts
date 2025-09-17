@@ -92,7 +92,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
 
       // Prevent editing completed projects
-      if (existingProject.status !== 'active') {
+      if ((existingProject as any).status !== 'active') {
         return apiResponse.error('Cannot edit project', 'Completed or cancelled projects cannot be edited', 400)
       }
 
@@ -106,7 +106,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       if (body.end_date !== undefined) updateData.end_date = body.end_date
       if (body.status !== undefined) updateData.status = body.status
 
-      const { data: updatedProject, error: updateError } = await ctx.supabase
+      const { data: updatedProject, error: updateError } = await (ctx.supabase as any)
         .from('projects')
         .update(updateData)
         .eq('id', id)

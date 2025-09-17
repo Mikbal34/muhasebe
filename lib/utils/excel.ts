@@ -180,7 +180,7 @@ export const exportToExcel = async (
     incomeHeaders.forEach((header, index) => {
       const cell = worksheet.getCell(`${String.fromCharCode(65 + index)}${currentRow}`)
       cell.value = header
-      cell.style = headerStyle
+      cell.style = headerStyle as any
     })
     currentRow++
 
@@ -196,7 +196,7 @@ export const exportToExcel = async (
 
       // Apply border style
       for (let col = 0; col < 6; col++) {
-        worksheet.getCell(`${String.fromCharCode(65 + col)}${row}`).style = dataStyle
+        worksheet.getCell(`${String.fromCharCode(65 + col)}${row}`).style = dataStyle as any
       }
     })
     currentRow += data.incomes.length
@@ -216,7 +216,7 @@ export const exportToExcel = async (
     paymentHeaders.forEach((header, index) => {
       const cell = worksheet.getCell(`${String.fromCharCode(65 + index)}${currentRow}`)
       cell.value = header
-      cell.style = headerStyle
+      cell.style = headerStyle as any
     })
     currentRow++
 
@@ -234,7 +234,7 @@ export const exportToExcel = async (
 
       // Apply border style
       for (let col = 0; col < 6; col++) {
-        worksheet.getCell(`${String.fromCharCode(65 + col)}${row}`).style = dataStyle
+        worksheet.getCell(`${String.fromCharCode(65 + col)}${row}`).style = dataStyle as any
       }
     })
   }
@@ -253,7 +253,7 @@ export const exportToExcel = async (
     projectHeaders.forEach((header, index) => {
       const cell = worksheet.getCell(`${String.fromCharCode(65 + index)}${currentRow}`)
       cell.value = header
-      cell.style = headerStyle
+      cell.style = headerStyle as any
     })
     currentRow++
 
@@ -272,7 +272,7 @@ export const exportToExcel = async (
 
       // Apply border style
       for (let col = 0; col < 7; col++) {
-        worksheet.getCell(`${String.fromCharCode(65 + col)}${row}`).style = dataStyle
+        worksheet.getCell(`${String.fromCharCode(65 + col)}${row}`).style = dataStyle as any
       }
     })
     currentRow += data.projects.length
@@ -292,7 +292,7 @@ export const exportToExcel = async (
     academicianHeaders.forEach((header, index) => {
       const cell = worksheet.getCell(`${String.fromCharCode(65 + index)}${currentRow}`)
       cell.value = header
-      cell.style = headerStyle
+      cell.style = headerStyle as any
     })
     currentRow++
 
@@ -310,21 +310,21 @@ export const exportToExcel = async (
 
       // Apply border style
       for (let col = 0; col < 6; col++) {
-        worksheet.getCell(`${String.fromCharCode(65 + col)}${row}`).style = dataStyle
+        worksheet.getCell(`${String.fromCharCode(65 + col)}${row}`).style = dataStyle as any
       }
     })
   }
 
   // Auto-fit columns
   worksheet.columns.forEach(column => {
-    let maxLength = 0
-    column.eachCell({ includeEmpty: true }, (cell) => {
+    let maxLength = 0 as any
+    (column as any).eachCell({ includeEmpty: true }, (cell: any) => {
       const columnLength = cell.value ? cell.value.toString().length : 10
       if (columnLength > maxLength) {
         maxLength = columnLength
       }
     })
-    column.width = maxLength < 10 ? 10 : maxLength + 2
+    (column as any).width = maxLength < 10 ? 10 : maxLength + 2
   })
 
   // Generate buffer and download

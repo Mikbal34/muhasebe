@@ -217,7 +217,7 @@ export default function EditPaymentPage({ params }: { params: { id: string } }) 
           )
         }
 
-        router.push(`/dashboard/payments/${params.id}`)
+        router.push(`/dashboard/payments/${params.id}` as any)
       } else {
         setErrors({ submit: data.error || 'Ödeme talimatı güncellenemedi' })
       }
@@ -257,7 +257,7 @@ export default function EditPaymentPage({ params }: { params: { id: string } }) 
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <Link
-              href={`/dashboard/payments/${params.id}`}
+              href={`/dashboard/payments/${params.id}` as any}
               className="p-2 hover:bg-gray-100 rounded-lg"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -407,7 +407,7 @@ export default function EditPaymentPage({ params }: { params: { id: string } }) 
           {/* Submit */}
           <div className="flex justify-end space-x-3">
             <Link
-              href={`/dashboard/payments/${params.id}`}
+              href={`/dashboard/payments/${params.id}` as any}
               className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
             >
               İptal

@@ -101,7 +101,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       if (body.phone !== undefined) updateData.phone = body.phone
       if (body.iban !== undefined) updateData.iban = body.iban
 
-      const { data: updatedUser, error: updateError } = await ctx.supabase
+      const { data: updatedUser, error: updateError } = await (ctx.supabase as any)
         .from('users')
         .update(updateData)
         .eq('id', id)

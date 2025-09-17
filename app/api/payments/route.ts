@@ -126,11 +126,11 @@ export async function POST(request: NextRequest) {
         return apiResponse.error('Failed to check user', userError.message, 500)
       }
 
-      if (!user.is_active) {
+      if (!(user as any).is_active) {
         return apiResponse.error('Invalid user', 'Cannot create payment instruction for inactive user', 400)
       }
 
-      if (!user.iban) {
+      if (!(user as any).iban) {
         return apiResponse.error('Invalid user', 'User must have an IBAN to receive payments', 400)
       }
 
@@ -157,8 +157,8 @@ export async function POST(request: NextRequest) {
           }
 
           // Check if the item amount doesn't exceed the distribution amount
-          if (item.amount > distribution.amount) {
-            return apiResponse.error('Invalid amount', `Payment amount cannot exceed distribution amount (${distribution.amount})`, 400)
+          if (item.amount > (distribution as any).amount) {
+            return apiResponse.error('Invalid amount', `Payment amount cannot exceed distribution amount (${(distribution as any).amount})`, 400)
           }
         }
       }
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Create payment instruction
-      const { data: payment, error: paymentError } = await ctx.supabase
+      const { data: payment, error: paymentError } = await (ctx.supabase as any)
         .from('payment_instructions')
         .insert({
           user_id,
@@ -195,7 +195,7 @@ export async function POST(request: NextRequest) {
         description: item.description
       }))
 
-      const { error: itemsError } = await ctx.supabase
+      const { error: itemsError } = await (ctx.supabase as any)
         .from('payment_instruction_items')
         .insert(itemsData)
 
@@ -237,7 +237,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Create notification for the user
-      await ctx.supabase.rpc('create_notification', {
+      await (ctx.supabase as any).rpc('create_notification', {
         p_user_id: user_id,
         p_type: 'info',
         p_title: 'Yeni Ödeme Talimatı',
@@ -247,7 +247,7 @@ export async function POST(request: NextRequest) {
         p_action_label: 'Görüntüle',
         p_action_url: '/dashboard/payments',
         p_reference_type: 'payment_instruction',
-        p_reference_id: payment.id
+        p_reference_id: (payment as any).id
       })
 
       return apiResponse.success(

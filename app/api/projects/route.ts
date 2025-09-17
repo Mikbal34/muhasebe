@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
           .select('project_id')
           .eq('user_id', ctx.user.id)
 
-        const projectIds = userProjects?.map(up => up.project_id) || []
+        const projectIds = userProjects?.map(up => (up as any).project_id) || []
         if (projectIds.length === 0) {
           // If user has no projects, return empty result
           return apiResponse.success({
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
 
     try {
       // Start transaction
-      const { data: project, error: projectError } = await ctx.supabase
+      const { data: project, error: projectError } = await (ctx.supabase as any)
         .from('projects')
         .insert({
           name,
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
         is_lead: rep.is_lead
       }))
 
-      const { error: repError } = await ctx.supabase
+      const { error: repError } = await (ctx.supabase as any)
         .from('project_representatives')
         .insert(representativeData)
 
@@ -173,34 +173,34 @@ export async function POST(request: NextRequest) {
 
       // Create notifications for all project representatives
       for (const rep of representatives) {
-        await ctx.supabase.rpc('create_notification', {
+        await (ctx.supabase as any).rpc('create_notification', {
           p_user_id: rep.user_id,
           p_type: 'success',
           p_title: 'Yeni Proje',
-          p_message: `${project.code} - ${name} projesine temsilci olarak atandınız.`,
+          p_message: `${(project as any).code} - ${name} projesine temsilci olarak atandınız.`,
           p_auto_hide: true,
           p_duration: 8000,
           p_action_label: 'Görüntüle',
           p_action_url: '/dashboard/projects',
           p_reference_type: 'project',
-          p_reference_id: project.id
+          p_reference_id: (project as any).id
         })
       }
 
       // Also notify the creator (admin/finance officer) if not already a representative
       const creatorIsRepresentative = representatives.some(rep => rep.user_id === ctx.user.id)
       if (!creatorIsRepresentative) {
-        await ctx.supabase.rpc('create_notification', {
+        await (ctx.supabase as any).rpc('create_notification', {
           p_user_id: ctx.user.id,
           p_type: 'success',
           p_title: 'Proje Oluşturuldu',
-          p_message: `${project.code} - ${name} projesi başarıyla oluşturuldu.`,
+          p_message: `${(project as any).code} - ${name} projesi başarıyla oluşturuldu.`,
           p_auto_hide: true,
           p_duration: 8000,
           p_action_label: 'Görüntüle',
           p_action_url: '/dashboard/projects',
           p_reference_type: 'project',
-          p_reference_id: project.id
+          p_reference_id: (project as any).id
         })
       }
 

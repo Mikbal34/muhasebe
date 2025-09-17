@@ -301,7 +301,7 @@ export default function ProjectDetailPage() {
                       <p className="font-medium text-gray-900 flex items-center">
                         {rep.user.full_name}
                         {rep.is_lead && (
-                          <Crown className="h-4 w-4 text-yellow-500 ml-1" title="Proje Lideri" />
+                          <Crown className="h-4 w-4 text-yellow-500 ml-1" />
                         )}
                       </p>
                       <p className="text-sm text-gray-600">{rep.user.email}</p>

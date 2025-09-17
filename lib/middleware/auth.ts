@@ -56,7 +56,7 @@ export async function withAuth(
       }
 
       // Check if user is active
-      if (!user.is_active) {
+      if (!(user as any).is_active) {
         return NextResponse.json(
           { error: 'Account disabled', message: 'Your account has been disabled' },
           { status: 403 }
@@ -93,7 +93,7 @@ export async function withAuth(
     }
 
     // Check if user is active
-    if (!user.is_active) {
+    if (!(user as any).is_active) {
       return NextResponse.json(
         { error: 'Account disabled', message: 'Your account has been disabled' },
         { status: 403 }

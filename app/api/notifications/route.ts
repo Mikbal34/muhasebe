@@ -31,12 +31,12 @@ export async function GET(request: NextRequest) {
       // Filter out notifications that have user_settings.hidden = true
       const notifications = rawNotifications?.filter(n => {
         // If user_settings exists and has a hidden entry, filter it out
-        if (n.user_settings && Array.isArray(n.user_settings)) {
-          return !n.user_settings.some((setting: any) => setting.hidden === true)
+        if ((n as any).user_settings && Array.isArray((n as any).user_settings)) {
+          return !(n as any).user_settings.some((setting: any) => setting.hidden === true)
         }
         // If user_settings is a single object (left join result)
-        if (n.user_settings && !Array.isArray(n.user_settings)) {
-          return n.user_settings.hidden !== true
+        if ((n as any).user_settings && !Array.isArray((n as any).user_settings)) {
+          return (n as any).user_settings.hidden !== true
         }
         // No settings means not hidden
         return true
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
         return apiResponse.error('Missing required fields', undefined, 400)
       }
 
-      const { data: notification, error } = await ctx.supabase
+      const { data: notification, error } = await (ctx.supabase as any)
         .from('notifications')
         .insert({
           user_id,
@@ -143,7 +143,7 @@ export async function PATCH(request: NextRequest) {
 
         // Insert or update notification_user_settings to hide
         for (const notificationId of notification_ids) {
-          const { error } = await ctx.supabase
+          const { error } = await (ctx.supabase as any)
             .from('notification_user_settings')
             .upsert({
               notification_id: notificationId,
@@ -165,7 +165,7 @@ export async function PATCH(request: NextRequest) {
           read_at: new Date().toISOString()
         }
 
-        let query = ctx.supabase
+        let query = (ctx.supabase as any)
           .from('notifications')
           .update(updateData)
           .eq('user_id', ctx.user.id)

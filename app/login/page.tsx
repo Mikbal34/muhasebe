@@ -57,7 +57,7 @@ export default function LoginPage() {
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
           Henüz hesabınız yok mu?{' '}
-          <Link href="/register" className="font-medium text-blue-600 hover:text-blue-500">
+          <Link href={"/register" as any} className="font-medium text-blue-600 hover:text-blue-500">
             Kayıt olun
           </Link>
         </p>

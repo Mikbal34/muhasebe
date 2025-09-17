@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
         return apiResponse.error('Failed to check project', projectError.message, 500)
       }
 
-      if (project.status !== 'active') {
+      if ((project as any).status !== 'active') {
         return apiResponse.error('Invalid project', 'Cannot add income to inactive project', 400)
       }
 
@@ -144,13 +144,13 @@ export async function POST(request: NextRequest) {
         return apiResponse.error('Failed to check existing incomes', incomesError.message, 500)
       }
 
-      const totalExistingIncomes = existingIncomes?.reduce((sum, income) => sum + income.gross_amount, 0) || 0
+      const totalExistingIncomes = existingIncomes?.reduce((sum, income: any) => sum + income.gross_amount, 0) || 0
       const totalWithNewIncome = totalExistingIncomes + gross_amount
 
-      if (totalWithNewIncome > project.budget) {
+      if (totalWithNewIncome > (project as any).budget) {
         return apiResponse.error(
           'Bütçe Aşımı',
-          `Bu gelir kaydı proje bütçesini aşıyor. Proje bütçesi: ₺${project.budget.toLocaleString('tr-TR')}, Mevcut gelirler: ₺${totalExistingIncomes.toLocaleString('tr-TR')}, Eklenmeye çalışılan: ₺${gross_amount.toLocaleString('tr-TR')}`,
+          `Bu gelir kaydı proje bütçesini aşıyor. Proje bütçesi: ₺${(project as any).budget.toLocaleString('tr-TR')}, Mevcut gelirler: ₺${totalExistingIncomes.toLocaleString('tr-TR')}, Eklenmeye çalışılan: ₺${gross_amount.toLocaleString('tr-TR')}`,
           400
         )
       }
@@ -162,7 +162,7 @@ export async function POST(request: NextRequest) {
       // We don't calculate here to avoid conflicts
 
       // Create income record (trigger will calculate amounts)
-      const { data: income, error: incomeError } = await ctx.supabase
+      const { data: income, error: incomeError } = await (ctx.supabase as any)
         .from('incomes')
         .insert({
           project_id,
@@ -208,35 +208,35 @@ export async function POST(request: NextRequest) {
       }
 
       // Create notifications for all project representatives
-      for (const rep of project.representatives) {
-        await ctx.supabase.rpc('create_notification', {
+      for (const rep of (project as any).representatives) {
+        await (ctx.supabase as any).rpc('create_notification', {
           p_user_id: rep.user_id,
           p_type: 'success',
           p_title: 'Yeni Gelir Kaydı',
-          p_message: `${project.name} projesi için ₺${completeIncome.net_amount.toLocaleString('tr-TR')} net gelir dağıtımı yapıldı.`,
+          p_message: `${(project as any).name} projesi için ₺${(completeIncome as any).net_amount.toLocaleString('tr-TR')} net gelir dağıtımı yapıldı.`,
           p_auto_hide: true,
           p_duration: 8000,
           p_action_label: 'Görüntüle',
           p_action_url: '/dashboard/incomes',
           p_reference_type: 'income',
-          p_reference_id: income.id
+          p_reference_id: (income as any).id
         })
       }
 
       // Also notify the creator (admin/finance officer) if not already a representative
-      const creatorIsRepresentative = project.representatives.some((rep: any) => rep.user_id === ctx.user.id)
+      const creatorIsRepresentative = (project as any).representatives.some((rep: any) => rep.user_id === ctx.user.id)
       if (!creatorIsRepresentative) {
-        await ctx.supabase.rpc('create_notification', {
+        await (ctx.supabase as any).rpc('create_notification', {
           p_user_id: ctx.user.id,
           p_type: 'success',
           p_title: 'Gelir Kaydı Oluşturuldu',
-          p_message: `${project.name} projesi için ₺${completeIncome.gross_amount.toLocaleString('tr-TR')} brüt, ₺${completeIncome.net_amount.toLocaleString('tr-TR')} net gelir kaydı oluşturuldu.`,
+          p_message: `${(project as any).name} projesi için ₺${(completeIncome as any).gross_amount.toLocaleString('tr-TR')} brüt, ₺${(completeIncome as any).net_amount.toLocaleString('tr-TR')} net gelir kaydı oluşturuldu.`,
           p_auto_hide: true,
           p_duration: 8000,
           p_action_label: 'Görüntüle',
           p_action_url: '/dashboard/incomes',
           p_reference_type: 'income',
-          p_reference_id: income.id
+          p_reference_id: (income as any).id
         })
       }
 

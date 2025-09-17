@@ -258,7 +258,7 @@ export function NotificationToast() {
             setShownNotifications(prev => {
               const newSet = new Set(prev)
               newSet.add(id)
-              localStorage.setItem('shownNotifications', JSON.stringify([...newSet]))
+              localStorage.setItem('shownNotifications', JSON.stringify(Array.from(newSet)))
               return newSet
             })
           }}

@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Create report record
-      const { data: report, error: reportError } = await ctx.supabase
+      const { data: report, error: reportError } = await (ctx.supabase as any)
         .from('reports')
         .insert({
           type,

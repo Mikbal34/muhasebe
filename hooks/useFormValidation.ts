@@ -9,7 +9,7 @@ export interface UseFormValidationOptions<T> {
 
 export function useFormValidation<T extends Record<string, any>>({
   initialValues,
-  validationRules = {},
+  validationRules = {} as Record<keyof T, FormField['rules']>,
   onSubmit
 }: UseFormValidationOptions<T>) {
   const [values, setValues] = useState<T>(initialValues)
@@ -69,12 +69,12 @@ export function useFormValidation<T extends Record<string, any>>({
   }, [errors, submitError])
 
   // Update multiple values
-  const setValues = useCallback((newValues: Partial<T>) => {
+  const setMultipleValues = useCallback((newValues: Partial<T>) => {
     setValues(prev => ({ ...prev, ...newValues }))
   }, [])
 
   // Mark field as touched
-  const setTouched = useCallback((fieldName: keyof T, isTouched = true) => {
+  const setFieldTouched = useCallback((fieldName: keyof T, isTouched = true) => {
     setTouched(prev => ({ ...prev, [fieldName]: isTouched }))
   }, [])
 
@@ -176,8 +176,8 @@ export function useFormValidation<T extends Record<string, any>>({
 
     // Form actions
     setValue,
-    setValues,
-    setTouched,
+    setValues: setMultipleValues,
+    setTouched: setFieldTouched,
     handleBlur,
     handleSubmit,
     reset,

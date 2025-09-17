@@ -430,11 +430,11 @@ export default function ReportsPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {reportType === 'company' && reportData.incomes && (
+                    {reportType === 'company' && (reportData as any).incomes && (
                       <div>
                         <h3 className="text-md font-medium text-gray-900 mb-3">Son Gelirler</h3>
                         <div className="space-y-2">
-                          {reportData.incomes.slice(0, 10).map((income: any, index: number) => (
+                          {(reportData as any).incomes.slice(0, 10).map((income: any, index: number) => (
                             <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                               <div>
                                 <p className="font-medium text-gray-900">{income.project?.name || 'Proje'}</p>
@@ -502,11 +502,11 @@ export default function ReportsPage() {
                       </div>
                     )}
 
-                    {reportType === 'payments' && reportData.paymentInstructions && (
+                    {reportType === 'payments' && (reportData as any).paymentInstructions && (
                       <div>
                         <h3 className="text-md font-medium text-gray-900 mb-3">Ödeme Talimatları</h3>
                         <div className="space-y-2">
-                          {reportData.paymentInstructions.slice(0, 10).map((payment: any, index: number) => (
+                          {(reportData as any).paymentInstructions.slice(0, 10).map((payment: any, index: number) => (
                             <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                               <div>
                                 <p className="font-medium text-gray-900">{payment.user?.full_name}</p>
