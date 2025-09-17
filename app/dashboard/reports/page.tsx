@@ -412,8 +412,15 @@ export default function ReportsPage() {
                   </h2>
                   <button
                     className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                    onClick={() => {
-                      exportToExcel(reportData, reportType, dateRange)
+                    onClick={async () => {
+                      try {
+                        console.log('Excel export started...')
+                        await exportToExcel(reportData, reportType, dateRange)
+                        console.log('Excel export completed!')
+                      } catch (error) {
+                        console.error('Excel export failed:', error)
+                        alert('Excel indirme başarısız: ' + (error as any).message)
+                      }
                     }}
                   >
                     <Download className="h-4 w-4 mr-2" />
