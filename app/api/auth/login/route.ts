@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user is active
-    if (!profile.is_active) {
+    if (!(profile as any).is_active) {
       // Sign out the user
       await supabase.auth.signOut()
       return apiResponse.error('Account disabled', 'Your account has been disabled', 403)
