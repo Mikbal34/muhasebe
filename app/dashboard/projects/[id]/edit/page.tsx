@@ -136,7 +136,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
 
         // Check if project is completed
         if (projectData.status !== 'active') {
-          router.push(`/dashboard/projects/${params.id}`)
+          router.push(`/dashboard/projects/${params.id}` as any)
           return
         }
 

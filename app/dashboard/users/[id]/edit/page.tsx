@@ -175,7 +175,7 @@ export default function EditUserPage() {
       if (response.ok) {
         setSuccessMessage('Kullanıcı başarıyla güncellendi!')
         setTimeout(() => {
-          router.push(`/dashboard/users/${userId}`)
+          router.push(`/dashboard/users/${userId}` as any)
         }, 1500)
       } else {
         setErrors({ submit: data.message || 'Kullanıcı güncellenirken hata oluştu' })

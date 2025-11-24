@@ -219,7 +219,7 @@ export default function EditIncomePage({ params }: { params: { id: string } }) {
       const data = await response.json()
 
       if (data.success) {
-        router.push(`/dashboard/incomes/${params.id}`)
+        router.push(`/dashboard/incomes/${params.id}` as any)
       } else {
         setErrors({ submit: data.error || 'Gelir kaydı güncellenemedi' })
       }
