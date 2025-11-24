@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import Link from 'next/link'
@@ -53,7 +53,7 @@ interface FinancialSummary {
   remaining_amount: number
 }
 
-export default function ManualBalanceAllocationPage() {
+function ManualBalanceAllocationPageContent() {
   const [user, setUser] = useState<User | null>(null)
   const [projects, setProjects] = useState<Project[]>([])
   const [selectedProjectId, setSelectedProjectId] = useState<string>('')
@@ -511,5 +511,20 @@ export default function ManualBalanceAllocationPage() {
         )}
       </div>
     </DashboardLayout>
+  )
+}
+
+export default function ManualBalanceAllocationPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Yükleniyor...</p>
+        </div>
+      </div>
+    }>
+      <ManualBalanceAllocationPageContent />
+    </Suspense>
   )
 }
