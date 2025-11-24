@@ -334,7 +334,7 @@ export default function EditPersonnelPage({ params }: { params: { id: string } }
           {/* Actions */}
           <div className="flex justify-end space-x-3 pt-6 border-t">
             <Link
-              href={`/dashboard/personnel/${params.id}`}
+              href={`/dashboard/personnel/${params.id}` as any}
               className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
             >
               İptal

@@ -419,7 +419,7 @@ export default function PaymentsPage() {
                           {(user.role === 'admin' || user.role === 'manager') && (
                             <>
                               <Link
-                                href={`/dashboard/payments/${payment.id}/edit`}
+                                href={`/dashboard/payments/${payment.id}/edit` as any}
                                 className="p-1 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded"
                                 title="Düzenle"
                               >

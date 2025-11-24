@@ -180,7 +180,7 @@ export default function IncomeDetailPage() {
           {user && (user.role === 'admin' || user.role === 'manager') && (
             <div className="flex gap-2">
               <Link
-                href={`/dashboard/incomes/${id}/edit`}
+                href={`/dashboard/incomes/${id}/edit` as any}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
               >
                 <Edit className="h-4 w-4" />
