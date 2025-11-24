@@ -243,7 +243,7 @@ export default function ProjectDetailPage() {
 
             {(user.role === 'admin' || user.role === 'manager') && project.status === 'active' && (
               <Link
-                href={`/dashboard/projects/${project.id}/edit`}
+                href={`/dashboard/projects/${project.id}/edit` as any}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
               >
                 <Edit className="h-4 w-4 mr-2" />
@@ -482,7 +482,7 @@ export default function ProjectDetailPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Son Gelirler</h2>
             <Link
-              href={`/dashboard/incomes?project_id=${project.id}`}
+              href={`/dashboard/incomes?project_id=${project.id}` as any}
               className="text-sm text-blue-600 hover:text-blue-500"
             >
               Tümünü gör

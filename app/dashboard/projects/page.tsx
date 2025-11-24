@@ -406,7 +406,7 @@ export default function ProjectsPage() {
                   {/* Actions */}
                   <div className="flex justify-end space-x-2">
                     <Link
-                      href={`/dashboard/projects/${project.id}`}
+                      href={`/dashboard/projects/${project.id}` as any}
                       className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
                       title="Görüntüle"
                     >
@@ -417,7 +417,7 @@ export default function ProjectsPage() {
                       <>
                         {project.status === 'active' ? (
                           <Link
-                            href={`/dashboard/projects/${project.id}/edit`}
+                            href={`/dashboard/projects/${project.id}/edit` as any}
                             className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
                             title="Düzenle"
                           >
@@ -531,7 +531,7 @@ export default function ProjectsPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-2">
                           <Link
-                            href={`/dashboard/projects/${project.id}`}
+                            href={`/dashboard/projects/${project.id}` as any}
                             className="text-blue-600 hover:text-blue-900"
                             title="Görüntüle"
                           >
@@ -542,7 +542,7 @@ export default function ProjectsPage() {
                             <>
                               {project.status === 'active' ? (
                                 <Link
-                                  href={`/dashboard/projects/${project.id}/edit`}
+                                  href={`/dashboard/projects/${project.id}/edit` as any}
                                   className="text-green-600 hover:text-green-900"
                                   title="Düzenle"
                                 >

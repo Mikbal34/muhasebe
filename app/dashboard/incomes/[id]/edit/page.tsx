@@ -250,7 +250,7 @@ export default function EditIncomePage({ params }: { params: { id: string } }) {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <Link
-              href={`/dashboard/incomes/${params.id}`}
+              href={`/dashboard/incomes/${params.id}` as any}
               className="p-2 hover:bg-gray-100 rounded-lg"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -462,7 +462,7 @@ export default function EditIncomePage({ params }: { params: { id: string } }) {
           {/* Submit */}
           <div className="flex justify-end space-x-3">
             <Link
-              href={`/dashboard/incomes/${params.id}`}
+              href={`/dashboard/incomes/${params.id}` as any}
               className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
             >
               İptal

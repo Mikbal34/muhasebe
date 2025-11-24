@@ -185,7 +185,7 @@ export default function EditPersonnelPage({ params }: { params: { id: string } }
         {/* Header */}
         <div className="mb-6">
           <Link
-            href={`/dashboard/personnel/${params.id}`}
+            href={`/dashboard/personnel/${params.id}` as any}
             className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
