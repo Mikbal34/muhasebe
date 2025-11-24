@@ -55,11 +55,18 @@ interface Project {
   representatives: Array<{
     id: string
     role: 'project_leader' | 'researcher'
-    user: {
+    user_id?: string | null
+    personnel_id?: string | null
+    user?: {
       id: string
       full_name: string
       email: string
-    }
+    } | null
+    personnel?: {
+      id: string
+      full_name: string
+      email: string
+    } | null
   }>
   incomes?: Array<{
     id: string
