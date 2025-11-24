@@ -283,7 +283,7 @@ export default function NewPaymentPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto"></div>
           <p className="mt-2 text-gray-600">Yükleniyor...</p>
         </div>
       </div>
@@ -295,28 +295,27 @@ export default function NewPaymentPage() {
 
   return (
     <DashboardLayout user={user}>
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
+          <div className="flex items-center gap-3">
             <Link
               href="/dashboard/payments"
-              className="p-2 hover:bg-gray-100 rounded-lg"
+              className="p-2 hover:bg-slate-100 rounded transition-colors text-slate-600 hover:text-slate-900"
             >
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Yeni Ödeme Talimatı</h1>
-              <p className="text-gray-600">Yeni bir ödeme talimatı oluşturun</p>
+              <h1 className="text-xl font-bold text-slate-900">Yeni Ödeme Talimatı</h1>
+              <p className="text-sm text-slate-600">Yeni bir ödeme talimatı oluşturun</p>
             </div>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Recipient Selection */}
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <User className="h-5 w-5 mr-2" />
+          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+            <h2 className="text-base font-semibold text-gray-900 mb-4">
               Alıcı Bilgileri
             </h2>
 
@@ -336,7 +335,7 @@ export default function NewPaymentPage() {
                       person_type: person?.type || ''
                     })
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
                 >
                   <option value="">Alıcı seçiniz...</option>
                   {people.map(person => (
@@ -385,9 +384,8 @@ export default function NewPaymentPage() {
 
           {/* Available Distributions */}
           {availableDistributions.length > 0 && (
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <Wallet className="h-5 w-5 mr-2" />
+            <div className="bg-white rounded-lg shadow-sm border p-4">
+              <h2 className="text-base font-semibold text-gray-900 mb-4">
                 Mevcut Gelir Dağıtımları
               </h2>
 
@@ -400,7 +398,7 @@ export default function NewPaymentPage() {
                     <div
                       key={distribution.id}
                       className={`border rounded-lg p-4 transition-all ${
-                        isSelected ? 'border-purple-300 bg-purple-50' : 'border-gray-200'
+                        isSelected ? 'border-teal-300 bg-teal-50' : 'border-gray-200'
                       }`}
                     >
                       <div className="flex items-center justify-between">
@@ -409,7 +407,7 @@ export default function NewPaymentPage() {
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => toggleDistributionSelection(distribution)}
-                            className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                            className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
                           />
                           <div>
                             <div className="flex items-center space-x-2">
@@ -434,7 +432,7 @@ export default function NewPaymentPage() {
                       </div>
 
                       {isSelected && selectedItem && (
-                        <div className="mt-4 pt-4 border-t border-purple-200 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="mt-4 pt-4 border-t border-teal-200 grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
                               Ödenecek Tutar (₺)
@@ -446,7 +444,7 @@ export default function NewPaymentPage() {
                               step="0.01"
                               value={selectedItem.amount}
                               onChange={(e) => updateItemAmount(selectedItems.indexOf(selectedItem), parseFloat(e.target.value) || 0)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
                             />
                             {errors[`item_${selectedItems.indexOf(selectedItem)}`] && (
                               <p className="mt-1 text-sm text-red-600">
@@ -462,7 +460,7 @@ export default function NewPaymentPage() {
                               type="text"
                               value={selectedItem.description}
                               onChange={(e) => updateItemDescription(selectedItems.indexOf(selectedItem), e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
                               placeholder="Ödeme açıklaması"
                             />
                           </div>
@@ -479,16 +477,15 @@ export default function NewPaymentPage() {
 
           {/* Manual Payment Items */}
           {formData.person_id && (
-            <div className="bg-white rounded-lg shadow-sm border p-6">
+            <div className="bg-white rounded-lg shadow-sm border p-4">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-                  <Plus className="h-5 w-5 mr-2" />
+                <h2 className="text-base font-semibold text-gray-900">
                   Manuel Ödeme
                 </h2>
                 <button
                   type="button"
                   onClick={addManualItem}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                  className="px-3 py-2 bg-green-600 text-white text-sm font-semibold rounded hover:bg-green-700 transition-colors flex items-center gap-2"
                 >
                   <Plus className="h-4 w-4" />
                   Manuel Ödeme Ekle
@@ -550,9 +547,8 @@ export default function NewPaymentPage() {
 
           {/* Payment Summary */}
           {selectedItems.length > 0 && (
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <DollarSign className="h-5 w-5 mr-2" />
+            <div className="bg-white rounded-lg shadow-sm border p-4">
+              <h2 className="text-base font-semibold text-gray-900 mb-4">
                 Ödeme Özeti
               </h2>
 
@@ -583,8 +579,8 @@ export default function NewPaymentPage() {
 
               <div className="mt-4 pt-4 border-t border-gray-200">
                 <div className="flex justify-between items-center">
-                  <span className="text-lg font-semibold text-gray-900">Toplam Tutar:</span>
-                  <span className="text-xl font-bold text-purple-600">
+                  <span className="text-base font-semibold text-gray-900">Toplam Tutar:</span>
+                  <span className="text-lg font-bold text-teal-600">
                     ₺{totalAmount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
                   </span>
                 </div>
@@ -593,9 +589,8 @@ export default function NewPaymentPage() {
           )}
 
           {/* Notes */}
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <FileText className="h-5 w-5 mr-2" />
+          <div className="bg-white rounded-lg shadow-sm border p-4">
+            <h2 className="text-base font-semibold text-gray-900 mb-4">
               Ek Notlar
             </h2>
 
@@ -603,7 +598,7 @@ export default function NewPaymentPage() {
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
               placeholder="Ödeme talimatı ile ilgili notlar..."
             />
           </div>
@@ -612,14 +607,14 @@ export default function NewPaymentPage() {
           <div className="flex justify-end space-x-3">
             <Link
               href="/dashboard/payments"
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              className="px-3 py-2 border border-gray-300 text-sm font-semibold rounded text-gray-700 hover:bg-gray-50 transition-colors"
             >
               İptal
             </Link>
             <button
               type="submit"
               disabled={loading || selectedItems.length === 0}
-              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50"
+              className="px-3 py-2 bg-teal-600 text-white text-sm font-semibold rounded hover:bg-teal-700 disabled:opacity-50 transition-colors"
             >
               {loading ? 'Oluşturuluyor...' : 'Ödeme Talimatı Oluştur'}
             </button>

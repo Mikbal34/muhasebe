@@ -85,11 +85,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       // Only allow status updates for now
       const updateData: any = {}
       if (body.status !== undefined) {
-        // Validate status transitions
+        // Validate status transitions (simplified flow: pending → completed/rejected)
         const allowedTransitions: Record<string, string[]> = {
-          'pending': ['approved', 'rejected'],
-          'approved': ['processing', 'rejected'],
-          'processing': ['completed', 'rejected'],
+          'pending': ['completed', 'rejected'],
           'completed': [], // Cannot change from completed
           'rejected': ['pending'] // Can reopen rejected payments
         }
@@ -101,9 +99,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
         updateData.status = body.status
 
-        // If approving or completing, update user balance
-        if (body.status === 'approved' || body.status === 'completed') {
-          // This will be handled by database triggers
+        // If completing, update timestamp
+        if (body.status === 'completed') {
           updateData.approved_at = new Date().toISOString()
         }
       }

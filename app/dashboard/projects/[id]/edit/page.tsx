@@ -98,6 +98,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
   const [contractFile, setContractFile] = useState<File | null>(null)
   const [assignmentFile, setAssignmentFile] = useState<File | null>(null)
   const [uploadingContract, setUploadingContract] = useState(false)
+  const [selectedPersonId, setSelectedPersonId] = useState('')
   const [uploadingAssignment, setUploadingAssignment] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -149,7 +150,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
           description: projectData.description || '',
           budget: projectData.budget.toString(),
           start_date: projectData.start_date.split('T')[0],
-          end_date: projectData.end_date.split('T')[0],
+          end_date: projectData.end_date ? projectData.end_date.split('T')[0] : '',
           company_rate: projectData.company_rate.toString(),
           vat_rate: projectData.vat_rate.toString(),
           referee_payment: (projectData.referee_payment || 0).toString(),
@@ -177,16 +178,19 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
               email: person.email,
               phone: person.phone,
               iban: person.iban,
-              user_role: person.role || null,
-              tc_no: person.tc_no || null,
+              user_role: isUser ? person.role : null,
+              tc_no: isUser ? null : (person.tc_no || null),
             }
           }
         }))
       } else {
+        console.error('Project not found or failed to load:', data)
+        alert('Proje yüklenirken bir hata oluştu: ' + (data.error || 'Bilinmeyen hata'))
         router.push('/dashboard/projects')
       }
     } catch (err) {
       console.error('Failed to fetch project:', err)
+      alert('Proje yüklenirken bir hata oluştu. Lütfen konsolu kontrol edin.')
       router.push('/dashboard/projects')
     } finally {
       setLoading(false)
@@ -384,34 +388,31 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
     )
   }
 
-  // State for PersonPicker
-  const [selectedPersonId, setSelectedPersonId] = useState('')
   const excludedPersonIds = representatives.map(rep => rep.id)
 
   return (
     <DashboardLayout user={user}>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
+          <div className="flex items-center gap-3">
             <Link
               href="/dashboard/projects"
-              className="p-2 hover:bg-gray-100 rounded-lg"
+              className="p-2 hover:bg-slate-100 rounded transition-colors text-slate-600 hover:text-slate-900"
             >
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Proje Düzenle</h1>
-              <p className="text-gray-600">{project.code} - {project.name}</p>
+              <h1 className="text-xl font-bold text-slate-900">Proje Düzenle</h1>
+              <p className="text-sm text-slate-600">{project.code} - {project.name}</p>
             </div>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Basic Information */}
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <Building2 className="h-5 w-5 mr-2" />
+          <div className="bg-white rounded-lg shadow-sm border p-4">
+            <h2 className="text-base font-semibold text-gray-900 mb-4">
               Temel Bilgiler
             </h2>
 
@@ -742,9 +743,8 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
           </div>
 
           {/* Representatives */}
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <User className="h-5 w-5 mr-2" />
+          <div className="bg-white rounded-lg shadow-sm border p-4">
+            <h2 className="text-base font-semibold text-gray-900 mb-4">
               Proje Temsilcileri
             </h2>
 
@@ -826,17 +826,17 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
           </div>
 
           {/* Submit */}
-          <div className="flex justify-end space-x-3">
+          <div className="flex justify-end space-x-2">
             <Link
               href="/dashboard/projects"
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              className="px-3 py-2 border border-gray-300 rounded text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
             >
               İptal
             </Link>
             <button
               type="submit"
               disabled={saving}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center"
+              className="px-3 py-2 bg-teal-600 text-white rounded text-sm font-semibold hover:bg-teal-700 disabled:opacity-50 flex items-center transition-colors"
             >
               {saving && <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />}
               <Save className="h-4 w-4 mr-2" />

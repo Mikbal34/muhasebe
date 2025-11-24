@@ -246,62 +246,49 @@ export default function UsersPage() {
     <DashboardLayout user={user}>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Kullanıcı Yönetimi</h1>
-            <p className="text-gray-600">Sistem kullanıcılarını görüntüleyin ve yönetin</p>
-          </div>
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-xl font-bold text-slate-900">Kullanıcı Yönetimi</h1>
+              <p className="text-sm text-slate-600">Sistem kullanıcılarını görüntüleyin ve yönetin</p>
+            </div>
 
-          <Link
-            href="/dashboard/users/new"
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Yeni Kullanıcı
-          </Link>
+            <Link
+              href="/dashboard/users/new"
+              className="inline-flex items-center px-3 py-2 text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 transition-colors"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Yeni Kullanıcı
+            </Link>
+          </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center">
-              <Users className="h-8 w-8 text-blue-600 bg-blue-100 rounded-lg p-2" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Toplam Kullanıcı</p>
-                <p className="text-xl font-bold text-blue-600">
-                  {users.length}
-                </p>
-              </div>
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white p-4 rounded-lg shadow-sm border">
+            <p className="text-xs text-slate-600 uppercase mb-1">Toplam Kullanıcı</p>
+            <p className="text-lg font-bold text-slate-900">
+              {users.length}
+            </p>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center">
-              <User className="h-8 w-8 text-green-600 bg-green-100 rounded-lg p-2" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Yöneticiler</p>
-                <p className="text-xl font-bold text-green-600">
-                  {roleStats.manager || 0}
-                </p>
-              </div>
-            </div>
+          <div className="bg-white p-4 rounded-lg shadow-sm border">
+            <p className="text-xs text-slate-600 uppercase mb-1">Yöneticiler</p>
+            <p className="text-lg font-bold text-slate-900">
+              {roleStats.manager || 0}
+            </p>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center">
-              <Shield className="h-8 w-8 text-red-600 bg-red-100 rounded-lg p-2" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Admin</p>
-                <p className="text-xl font-bold text-red-600">
-                  {roleStats.admin || 0}
-                </p>
-              </div>
-            </div>
+          <div className="bg-white p-4 rounded-lg shadow-sm border">
+            <p className="text-xs text-slate-600 uppercase mb-1">Admin</p>
+            <p className="text-lg font-bold text-slate-900">
+              {roleStats.admin || 0}
+            </p>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -310,7 +297,7 @@ export default function UsersPage() {
                 placeholder="Ad, soyad veya e-posta ara..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
             </div>
 
@@ -319,7 +306,7 @@ export default function UsersPage() {
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
               >
                 <option value="">Tüm Roller</option>
                 <option value="admin">Yönetici (Admin)</option>
@@ -332,7 +319,7 @@ export default function UsersPage() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
               >
                 <option value="">Tüm Durumlar</option>
                 <option value="active">Aktif</option>
@@ -383,9 +370,9 @@ export default function UsersPage() {
 
                   return (
                     <tr key={userData.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="h-10 w-10 bg-indigo-500 rounded-full flex items-center justify-center mr-4">
+                          <div className="h-10 w-10 bg-slate-700 rounded-lg flex items-center justify-center mr-3">
                             <span className="text-sm font-medium text-white">
                               {userData.full_name.charAt(0).toUpperCase()}
                             </span>
@@ -400,13 +387,13 @@ export default function UsersPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${roleInfo.color}`}>
                           <RoleIcon className="h-3 w-3 mr-1" />
                           {roleInfo.text}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center text-sm text-gray-900">
                           <Mail className="h-4 w-4 text-gray-400 mr-1" />
                           {userData.email}
@@ -418,7 +405,7 @@ export default function UsersPage() {
                           </div>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         {userData.balance ? (
                           <div>
                             <div className="text-sm font-medium text-green-600">
@@ -434,7 +421,7 @@ export default function UsersPage() {
                           <span className="text-sm text-gray-500">-</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         {userData.iban ? (
                           <div className="flex items-center">
                             <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
@@ -449,7 +436,7 @@ export default function UsersPage() {
                           </div>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         {userData.is_active ? (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             <CheckCircle className="h-3 w-3 mr-1" />
@@ -496,11 +483,13 @@ export default function UsersPage() {
 
           {filteredUsers.length === 0 && (
             <div className="text-center py-12">
-              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <div className="h-16 w-16 bg-slate-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <Users className="h-8 w-8 text-slate-400" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900 mb-2">
                 {searchTerm || roleFilter || statusFilter ? 'Kullanıcı bulunamadı' : 'Henüz kullanıcı yok'}
               </h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-sm text-slate-600 mb-4">
                 {searchTerm || roleFilter || statusFilter
                   ? 'Arama kriterlerinizi değiştirmeyi deneyin'
                   : 'İlk kullanıcıyı eklemek için butona tıklayın'
@@ -509,7 +498,7 @@ export default function UsersPage() {
               {!searchTerm && !roleFilter && !statusFilter && (
                 <Link
                   href="/dashboard/users/new"
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                  className="inline-flex items-center px-3 py-2 text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 transition-colors"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Yeni Kullanıcı Ekle

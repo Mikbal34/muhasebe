@@ -230,7 +230,7 @@ export default function SettingsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto"></div>
           <p className="mt-2 text-gray-600">Yükleniyor...</p>
         </div>
       </div>
@@ -245,42 +245,43 @@ export default function SettingsPage() {
     <DashboardLayout user={user}>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-              <Settings className="h-7 w-7 mr-3 text-blue-600" />
-              Sistem Ayarları
-            </h1>
-            <p className="text-gray-600">
-              {isAdmin ? 'Sistem geneli konfigürasyon ayarları' :
-                isManager ? 'Mali işler ve bildirim ayarları' :
-                  'Bildirim ve kişisel ayarlar'}
-            </p>
-          </div>
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-xl font-bold text-slate-900">
+                Sistem Ayarları
+              </h1>
+              <p className="text-sm text-slate-600">
+                {isAdmin ? 'Sistem geneli konfigürasyon ayarları' :
+                  isManager ? 'Mali işler ve bildirim ayarları' :
+                    'Bildirim ve kişisel ayarlar'}
+              </p>
+            </div>
 
-          <div className="flex items-center space-x-3">
-            {isAdmin && (
-              <button
-                onClick={resetToDefaults}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Varsayılanlara Döndür
-              </button>
-            )}
-
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-            >
-              {saving ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
-              ) : (
-                <Save className="h-4 w-4 mr-2" />
+            <div className="flex items-center space-x-3">
+              {isAdmin && (
+                <button
+                  onClick={resetToDefaults}
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-semibold rounded text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Varsayılanlara Döndür
+                </button>
               )}
-              {saving ? 'Kaydediliyor...' : 'Kaydet'}
-            </button>
+
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="inline-flex items-center px-3 py-2 text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 disabled:opacity-50 transition-colors"
+              >
+                {saving ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                {saving ? 'Kaydediliyor...' : 'Kaydet'}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -307,14 +308,11 @@ export default function SettingsPage() {
         {/* Company Settings - Admin Only */}
         {isAdmin && (
           <div className="bg-white rounded-lg shadow-sm border">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-                <Users className="h-5 w-5 mr-2 text-blue-600" />
-                Şirket Bilgileri
-              </h2>
+            <div className="p-4 border-b border-gray-200">
+              <h2 className="text-base font-semibold text-gray-900">Şirket Bilgileri</h2>
               <p className="text-gray-600 text-sm mt-1">Organizasyon bilgileri ve iletişim detayları</p>
             </div>
-            <div className="p-6 space-y-6">
+            <div className="p-4 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -324,7 +322,7 @@ export default function SettingsPage() {
                     type="text"
                     value={settings.company.name}
                     onChange={(e) => handleInputChange('company', 'name', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors['company.name'] ? 'border-red-300' : 'border-gray-300'
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors['company.name'] ? 'border-red-300' : 'border-gray-300'
                       }`}
                   />
                   {errors['company.name'] && (
@@ -340,7 +338,7 @@ export default function SettingsPage() {
                     type="text"
                     value={settings.company.tax_number}
                     onChange={(e) => handleInputChange('company', 'tax_number', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors['company.tax_number'] ? 'border-red-300' : 'border-gray-300'
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors['company.tax_number'] ? 'border-red-300' : 'border-gray-300'
                       }`}
                   />
                   {errors['company.tax_number'] && (
@@ -356,7 +354,7 @@ export default function SettingsPage() {
                     value={settings.company.address}
                     onChange={(e) => handleInputChange('company', 'address', e.target.value)}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
 
@@ -368,7 +366,7 @@ export default function SettingsPage() {
                     type="text"
                     value={settings.company.phone}
                     onChange={(e) => handleInputChange('company', 'phone', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
 
@@ -380,7 +378,7 @@ export default function SettingsPage() {
                     type="email"
                     value={settings.company.email}
                     onChange={(e) => handleInputChange('company', 'email', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors['company.email'] ? 'border-red-300' : 'border-gray-300'
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors['company.email'] ? 'border-red-300' : 'border-gray-300'
                       }`}
                   />
                   {errors['company.email'] && (
@@ -395,14 +393,11 @@ export default function SettingsPage() {
         {/* Financial Settings - Admin and Manager */}
         {(isAdmin || isManager) && (
           <div className="bg-white rounded-lg shadow-sm border">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-                <DollarSign className="h-5 w-5 mr-2 text-green-600" />
-                Mali Ayarlar
-              </h2>
+            <div className="p-4 border-b border-gray-200">
+              <h2 className="text-base font-semibold text-gray-900">Mali Ayarlar</h2>
               <p className="text-gray-600 text-sm mt-1">Varsayılan finansal parametreler</p>
             </div>
-            <div className="p-6 space-y-6">
+            <div className="p-4 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -415,7 +410,7 @@ export default function SettingsPage() {
                     step="0.1"
                     value={settings.financial.default_vat_rate}
                     onChange={(e) => handleInputChange('financial', 'default_vat_rate', parseFloat(e.target.value))}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors['financial.default_vat_rate'] ? 'border-red-300' : 'border-gray-300'
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors['financial.default_vat_rate'] ? 'border-red-300' : 'border-gray-300'
                       }`}
                   />
                   {errors['financial.default_vat_rate'] && (
@@ -434,7 +429,7 @@ export default function SettingsPage() {
                     step="0.1"
                     value={settings.financial.default_company_rate}
                     onChange={(e) => handleInputChange('financial', 'default_company_rate', parseFloat(e.target.value))}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors['financial.default_company_rate'] ? 'border-red-300' : 'border-gray-300'
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors['financial.default_company_rate'] ? 'border-red-300' : 'border-gray-300'
                       }`}
                   />
                   {errors['financial.default_company_rate'] && (
@@ -449,7 +444,7 @@ export default function SettingsPage() {
                   <select
                     value={settings.financial.currency}
                     onChange={(e) => handleInputChange('financial', 'currency', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
                   >
                     <option value="TRY">Turkish Lira (₺)</option>
                     <option value="USD">US Dollar ($)</option>
@@ -464,7 +459,7 @@ export default function SettingsPage() {
                   <select
                     value={settings.financial.decimal_places}
                     onChange={(e) => handleInputChange('financial', 'decimal_places', parseInt(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
                   >
                     <option value={0}>0</option>
                     <option value={1}>1</option>
@@ -479,14 +474,11 @@ export default function SettingsPage() {
 
         {/* Notification Settings - All Users */}
         <div className="bg-white rounded-lg shadow-sm border">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-              <Bell className="h-5 w-5 mr-2 text-yellow-600" />
-              Bildirim Ayarları
-            </h2>
+          <div className="p-4 border-b border-gray-200">
+            <h2 className="text-base font-semibold text-gray-900">Bildirim Ayarları</h2>
             <p className="text-gray-600 text-sm mt-1">Sistem bildirimi tercihleri</p>
           </div>
-          <div className="p-6 space-y-4">
+          <div className="p-4 space-y-4">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -558,14 +550,11 @@ export default function SettingsPage() {
         {/* System Settings - Admin Only */}
         {isAdmin && (
           <div className="bg-white rounded-lg shadow-sm border">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-                <Database className="h-5 w-5 mr-2 text-purple-600" />
-                Sistem Ayarları
-              </h2>
+            <div className="p-4 border-b border-gray-200">
+              <h2 className="text-base font-semibold text-gray-900">Sistem Ayarları</h2>
               <p className="text-gray-600 text-sm mt-1">Sistem performansı ve güvenlik ayarları</p>
             </div>
-            <div className="p-6 space-y-6">
+            <div className="p-4 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -591,7 +580,7 @@ export default function SettingsPage() {
                     value={settings.system.backup_frequency}
                     onChange={(e) => handleInputChange('system', 'backup_frequency', e.target.value)}
                     disabled={!settings.system.backup_enabled}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50"
                   >
                     <option value="hourly">Saatlik</option>
                     <option value="daily">Günlük</option>
@@ -610,7 +599,7 @@ export default function SettingsPage() {
                     max="100"
                     value={settings.system.max_file_size}
                     onChange={(e) => handleInputChange('system', 'max_file_size', parseInt(e.target.value))}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors['system.max_file_size'] ? 'border-red-300' : 'border-gray-300'
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors['system.max_file_size'] ? 'border-red-300' : 'border-gray-300'
                       }`}
                   />
                   {errors['system.max_file_size'] && (
@@ -628,7 +617,7 @@ export default function SettingsPage() {
                     max="480"
                     value={settings.system.session_timeout}
                     onChange={(e) => handleInputChange('system', 'session_timeout', parseInt(e.target.value))}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors['system.session_timeout'] ? 'border-red-300' : 'border-gray-300'
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors['system.session_timeout'] ? 'border-red-300' : 'border-gray-300'
                       }`}
                   />
                   {errors['system.session_timeout'] && (

@@ -201,84 +201,64 @@ export default function ExpensesPage() {
     <DashboardLayout user={user}>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Giderler</h1>
-            <p className="text-gray-600">Proje giderlerini görüntüleyin ve yönetin</p>
-          </div>
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-xl font-bold text-slate-900">Giderler</h1>
+              <p className="text-sm text-slate-600">Proje giderlerini görüntüleyin ve yönetin</p>
+            </div>
 
-          {(user.role === 'admin' || user.role === 'manager') && (
-            <Link
-              href="/dashboard/expenses/new"
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Yeni Gider
-            </Link>
-          )}
+            {(user.role === 'admin' || user.role === 'manager') && (
+              <Link
+                href="/dashboard/expenses/new"
+                className="inline-flex items-center px-3 py-2 bg-teal-600 text-white text-sm font-semibold rounded hover:bg-teal-700 transition-colors"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Yeni Gider
+              </Link>
+            )}
+          </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Toplam Gider</p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">
-                  ₺{totalStats.totalAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-                </p>
-              </div>
-              <div className="h-12 w-12 bg-red-100 rounded-lg flex items-center justify-center">
-                <TrendingDown className="h-6 w-6 text-red-600" />
-              </div>
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
+            <p className="text-xs text-slate-600 uppercase mb-1">Toplam Gider</p>
+            <p className="text-lg font-bold text-slate-900">
+              ₺{totalStats.totalAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+            </p>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Toplam Kayıt</p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">{totalStats.count}</p>
-              </div>
-              <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Receipt className="h-6 w-6 text-blue-600" />
-              </div>
-            </div>
+          <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
+            <p className="text-xs text-slate-600 uppercase mb-1">Toplam Kayıt</p>
+            <p className="text-lg font-bold text-slate-900">{totalStats.count}</p>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Ortalama Gider</p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">
-                  ₺{totalStats.count > 0 ? (totalStats.totalAmount / totalStats.count).toLocaleString('tr-TR', { minimumFractionDigits: 2 }) : '0.00'}
-                </p>
-              </div>
-              <div className="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <DollarSign className="h-6 w-6 text-green-600" />
-              </div>
-            </div>
+          <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
+            <p className="text-xs text-slate-600 uppercase mb-1">Ortalama Gider</p>
+            <p className="text-lg font-bold text-slate-900">
+              ₺{totalStats.count > 0 ? (totalStats.totalAmount / totalStats.count).toLocaleString('tr-TR', { minimumFractionDigits: 2 }) : '0.00'}
+            </p>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
                 type="text"
                 placeholder="Proje veya açıklama ara..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded text-sm focus:ring-1 focus:ring-teal-600 focus:border-teal-600"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
 
             <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <select
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded text-sm focus:ring-1 focus:ring-teal-600 focus:border-teal-600"
                 value={projectFilter}
                 onChange={(e) => setProjectFilter(e.target.value)}
               >
@@ -296,13 +276,15 @@ export default function ExpensesPage() {
         {/* Expenses by Project (Accordion) */}
         <div className="space-y-4">
           {projectGroups.length === 0 ? (
-            <div className="bg-white rounded-lg shadow-sm border p-12 text-center">
-              <Receipt className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">Henüz gider kaydı bulunmamaktadır</p>
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-12 text-center">
+              <div className="h-16 w-16 bg-slate-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <Receipt className="h-8 w-8 text-slate-400" />
+              </div>
+              <p className="text-sm text-slate-600">Henüz gider kaydı bulunmamaktadır</p>
               {(user.role === 'admin' || user.role === 'manager') && (
                 <Link
                   href="/dashboard/expenses/new"
-                  className="inline-flex items-center mt-4 text-blue-600 hover:text-blue-700"
+                  className="inline-flex items-center mt-4 text-teal-600 hover:text-teal-700 text-sm font-semibold"
                 >
                   <Plus className="h-4 w-4 mr-1" />
                   İlk gideri ekleyin

@@ -22,7 +22,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           representatives:project_representatives(
             id,
             role,
-            user:users(id, full_name, email, phone, iban)
+            user_id,
+            personnel_id,
+            user:users(id, full_name, email, phone, iban, role),
+            personnel:personnel(id, full_name, email, phone, iban, tc_no)
           ),
           incomes(
             id,

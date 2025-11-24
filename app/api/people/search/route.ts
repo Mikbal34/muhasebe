@@ -14,10 +14,11 @@ export async function GET(request: NextRequest) {
 
       const { supabase } = ctx
 
-      // Fetch users
+      // Fetch users (exclude admin - TTO gets commission automatically)
       let usersQuery = supabase
         .from('users')
         .select('id, full_name, email, phone, iban, role, is_active')
+        .neq('role', 'admin') // Exclude admin from project representatives
         .order('full_name', { ascending: true })
 
       if (!includeInactive) {

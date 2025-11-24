@@ -152,25 +152,26 @@ export default function NewExpensePage() {
 
   return (
     <DashboardLayout user={user}>
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="max-w-3xl mx-auto space-y-4">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
+          <div className="flex items-center gap-3">
             <Link
               href="/dashboard/expenses"
-              className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 mb-2"
+              className="p-2 hover:bg-slate-100 rounded transition-colors text-slate-600 hover:text-slate-900"
             >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Geri Dön
+              <ArrowLeft className="h-5 w-5" />
             </Link>
-            <h1 className="text-2xl font-bold text-gray-900">Yeni Gider Ekle</h1>
-            <p className="text-gray-600">Projeye ait gider kaydı oluşturun</p>
+            <div>
+              <h1 className="text-xl font-bold text-slate-900">Yeni Gider Ekle</h1>
+              <p className="text-sm text-slate-600">Projeye ait gider kaydı oluşturun</p>
+            </div>
           </div>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow">
-          <div className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border border-slate-200">
+          <div className="p-4 space-y-4">
             {/* Project Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -265,17 +266,17 @@ export default function NewExpensePage() {
           </div>
 
           {/* Form Actions */}
-          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+          <div className="px-4 py-4 border-t border-slate-200 flex justify-end gap-2">
             <Link
               href="/dashboard/expenses"
-              className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              className="px-3 py-2 border border-gray-300 text-sm font-semibold rounded text-gray-700 bg-white hover:bg-gray-50 transition-colors"
             >
               İptal
             </Link>
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center px-3 py-2 bg-teal-600 text-white text-sm font-semibold rounded hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {submitting ? (
                 <>

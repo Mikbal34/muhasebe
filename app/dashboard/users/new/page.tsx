@@ -204,7 +204,7 @@ export default function NewUserPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto"></div>
           <p className="mt-2 text-gray-600">Yükleniyor...</p>
         </div>
       </div>
@@ -227,32 +227,31 @@ export default function NewUserPage() {
     <DashboardLayout user={user}>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
+          <div className="flex items-center gap-3">
             <Link
               href="/dashboard/users"
-              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
+              className="p-2 hover:bg-slate-100 rounded transition-colors text-slate-600 hover:text-slate-900"
             >
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-                <UserPlus className="h-7 w-7 mr-3 text-blue-600" />
+              <h1 className="text-xl font-bold text-slate-900">
                 Yeni Kullanıcı Ekle
               </h1>
-              <p className="text-gray-600">Sisteme yeni kullanıcı ekleyin</p>
+              <p className="text-sm text-slate-600">Sisteme yeni kullanıcı ekleyin</p>
             </div>
           </div>
         </div>
 
         {/* Form */}
         <div className="bg-white rounded-lg shadow-sm border">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Kullanıcı Bilgileri</h2>
-            <p className="text-gray-600 text-sm mt-1">Yeni kullanıcının temel bilgilerini girin</p>
+          <div className="p-4 border-b border-gray-200">
+            <h2 className="text-base font-semibold text-gray-900">Kullanıcı Bilgileri</h2>
+            <p className="text-sm text-gray-600 mt-1">Yeni kullanıcının temel bilgilerini girin</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <form onSubmit={handleSubmit} className="p-4 space-y-4">
             {/* Error Message */}
             {errors.submit && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -272,7 +271,7 @@ export default function NewUserPage() {
                   type="text"
                   value={formData.full_name}
                   onChange={(e) => handleInputChange('full_name', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 ${
                     errors.full_name ? 'border-red-300' : 'border-gray-300'
                   }`}
                   placeholder="Kullanıcının ad ve soyadını girin"
@@ -291,7 +290,7 @@ export default function NewUserPage() {
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 ${
                     errors.email ? 'border-red-300' : 'border-gray-300'
                   }`}
                   placeholder="kullanici@example.com"
@@ -318,7 +317,7 @@ export default function NewUserPage() {
                       key={role}
                       className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
                         isSelected
-                          ? 'border-blue-500 bg-blue-50'
+                          ? 'border-teal-500 bg-teal-50'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                       onClick={() => handleInputChange('role', role)}
@@ -332,7 +331,7 @@ export default function NewUserPage() {
                           <div className="text-sm text-gray-600">{roleInfo.description}</div>
                         </div>
                         <div className={`w-4 h-4 rounded-full border-2 ${
-                          isSelected ? 'border-blue-500 bg-blue-500' : 'border-gray-300'
+                          isSelected ? 'border-teal-500 bg-teal-500' : 'border-gray-300'
                         }`}>
                           {isSelected && (
                             <div className="w-full h-full rounded-full bg-white scale-50"></div>
@@ -363,17 +362,17 @@ export default function NewUserPage() {
             </div>
 
             {/* Form Actions */}
-            <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
               <Link
                 href="/dashboard/users"
-                className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                className="px-3 py-2 border border-gray-300 text-sm font-semibold rounded text-gray-700 bg-white hover:bg-gray-50 transition-colors"
               >
                 İptal
               </Link>
               <button
                 type="submit"
                 disabled={saving}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                className="inline-flex items-center px-3 py-2 text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 disabled:opacity-50 transition-colors"
               >
                 {saving ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
@@ -462,7 +461,7 @@ export default function NewUserPage() {
             <div className="flex justify-center">
               <button
                 onClick={closePasswordModal}
-                className="px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
+                className="px-6 py-2 bg-teal-600 text-white text-sm font-semibold rounded hover:bg-teal-700 transition-colors"
               >
                 Tamam
               </button>

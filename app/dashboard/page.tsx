@@ -351,29 +351,29 @@ export default function DashboardPage() {
   return (
     <DashboardLayout user={user}>
       <div className="space-y-6">
-        {/* Welcome Section - Modern Design */}
-        <div className="bg-gradient-to-br from-white to-slate-50 rounded-2xl shadow-lg p-8 border border-slate-200">
+        {/* Welcome Section */}
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="h-16 w-16 bg-gradient-to-br from-accent-teal to-accent-cyan rounded-2xl flex items-center justify-center shadow-xl">
-                <span className="text-2xl font-bold text-white">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 bg-slate-700 rounded-lg flex items-center justify-center">
+                <span className="text-base font-bold text-white">
                   {user.full_name.charAt(0).toUpperCase()}
                 </span>
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-slate-900 mb-1">
+                <h1 className="text-xl font-bold text-slate-900">
                   Hoş geldiniz, {user.full_name}
                 </h1>
-                <p className="text-slate-600 font-medium">
-                  {user.role === 'admin' && '🔐 Sistem Yöneticisi Paneli'}
-                  {user.role === 'manager' && '💼 Mali İşler Paneli'}
+                <p className="text-sm text-slate-600">
+                  {user.role === 'admin' && 'Sistem Yöneticisi Paneli'}
+                  {user.role === 'manager' && 'Mali İşler Paneli'}
                 </p>
               </div>
             </div>
             <div className="text-right">
-              <div className="bg-white/60 backdrop-blur-sm px-4 py-3 rounded-xl border border-slate-200 shadow-sm">
-                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Bugün</p>
-                <p className="text-sm font-bold text-slate-900">
+              <div className="bg-slate-50 px-3 py-2 rounded-lg border border-slate-200">
+                <p className="text-xs text-slate-600 uppercase mb-0.5">Bugün</p>
+                <p className="text-sm font-semibold text-slate-900">
                   {new Date().toLocaleDateString('tr-TR', {
                     day: 'numeric',
                     month: 'long',
@@ -388,209 +388,144 @@ export default function DashboardPage() {
         {/* TTO Dashboard (Admin Only) */}
         {user.role === 'admin' && dashboardMetrics && (
           <div className="space-y-6">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-gradient-to-br from-accent-teal to-accent-cyan rounded-xl flex items-center justify-center shadow-lg">
-                <Landmark className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-slate-900">Finansal Gösterge Tablosu</h2>
-                <p className="text-sm text-slate-600">TTO Mali Durum Özeti</p>
-              </div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Finansal Gösterge Tablosu</h2>
+              <p className="text-sm text-slate-600">TTO Mali Durum Özeti</p>
             </div>
 
-            {/* Main 6 Cards - Modern Design with Mini Charts */}
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {/* Main 6 Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
               {/* 1. Total Budget */}
-              <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-5 border border-slate-200 hover:border-accent-teal group">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex-1">
-                    <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Toplam Bütçe</p>
-                    <p className="text-2xl font-bold text-slate-900 mt-1">
-                      ₺{(dashboardMetrics.total_budget / 1000000).toFixed(1)}M
-                    </p>
-                  </div>
-                  <div className="h-10 w-10 bg-gradient-to-br from-accent-teal to-accent-cyan rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                    <Wallet className="h-5 w-5 text-white" />
-                  </div>
-                </div>
-                <div className="mt-2">
-                  <MiniChart
-                    data={[1.2, 1.8, 1.5, 2.1, 2.5, 2.3, 2.8, 3.2]}
-                    color="#14B8A6"
-                    height={45}
-                  />
-                </div>
+              <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-3 border border-slate-200">
+                <p className="text-xs text-slate-600 uppercase mb-1">Toplam Bütçe</p>
+                <p className="text-lg font-bold text-slate-900">
+                  ₺{dashboardMetrics.total_budget.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                </p>
               </div>
 
               {/* 2. Invoiced (Kesilen Fatura) */}
-              <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-5 border border-slate-200 hover:border-blue-400 group">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex-1">
-                    <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Kesilen Fatura</p>
-                    <p className="text-2xl font-bold text-slate-900 mt-1">
-                      ₺{(dashboardMetrics.total_invoiced / 1000000).toFixed(1)}M
-                    </p>
-                  </div>
-                  <div className="h-10 w-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                    <Receipt className="h-5 w-5 text-white" />
-                  </div>
-                </div>
-                <div className="mt-2">
-                  <MiniChart
-                    data={[0.5, 0.7, 1.2, 1.0, 1.5, 1.8, 2.0, 2.2]}
-                    color="#4F46E5"
-                    height={45}
-                  />
-                </div>
+              <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-3 border border-slate-200">
+                <p className="text-xs text-slate-600 uppercase mb-1">Kesilen Fatura</p>
+                <p className="text-lg font-bold text-slate-900">
+                  ₺{dashboardMetrics.total_invoiced.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                </p>
               </div>
 
-              {/* 3. Collected (Tahsil Edilen) - GREEN */}
-              <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-5 border border-slate-200 hover:border-emerald-400 group">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex-1">
-                    <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Tahsil Edilen</p>
-                    <p className="text-2xl font-bold text-slate-900 mt-1">
-                      ₺{(dashboardMetrics.total_collected / 1000000).toFixed(1)}M
-                    </p>
-                  </div>
-                  <div className="h-10 w-10 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                    <CheckCircle className="h-5 w-5 text-white" />
-                  </div>
-                </div>
-                <div className="mt-2">
-                  <MiniChart
-                    data={[0.8, 1.2, 1.1, 1.4, 1.7, 1.6, 1.9, 2.0]}
-                    color="#10B981"
-                    height={45}
-                  />
-                </div>
+              {/* 3. Collected (Tahsil Edilen) */}
+              <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-3 border border-slate-200">
+                <p className="text-xs text-slate-600 uppercase mb-1">Tahsil Edilen</p>
+                <p className="text-lg font-bold text-emerald-600">
+                  ₺{dashboardMetrics.total_collected.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                </p>
               </div>
 
-              {/* 4. Outstanding (Açık Bakiye) - ORANGE */}
-              <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-5 border border-slate-200 hover:border-orange-400 group">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex-1">
-                    <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Açık Bakiye</p>
-                    <p className="text-2xl font-bold text-slate-900 mt-1">
-                      ₺{(dashboardMetrics.total_outstanding / 1000).toFixed(0)}K
-                    </p>
-                  </div>
-                  <div className="h-10 w-10 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                    <AlertCircle className="h-5 w-5 text-white" />
-                  </div>
-                </div>
-                <div className="mt-2">
-                  <MiniChart
-                    data={[300, 250, 280, 220, 200, 180, 150, 120]}
-                    color="#F97316"
-                    height={45}
-                  />
-                </div>
+              {/* 4. Outstanding (Açık Bakiye) */}
+              <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-3 border border-slate-200">
+                <p className="text-xs text-slate-600 uppercase mb-1">Açık Bakiye</p>
+                <p className="text-lg font-bold text-orange-600">
+                  ₺{dashboardMetrics.total_outstanding.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                </p>
               </div>
 
-              {/* 5. Remaining to Invoice (Kesilecek Fatura) - RED */}
-              <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-5 border border-slate-200 hover:border-red-400 group">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex-1">
-                    <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Kesilecek Fatura</p>
-                    <p className="text-2xl font-bold text-slate-900 mt-1">
-                      ₺{(dashboardMetrics.remaining_to_invoice / 1000000).toFixed(1)}M
-                    </p>
-                  </div>
-                  <div className="h-10 w-10 bg-gradient-to-br from-red-500 to-rose-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                    <FileText className="h-5 w-5 text-white" />
-                  </div>
-                </div>
-                <div className="mt-2">
-                  <MiniChart
-                    data={[1.5, 1.3, 1.1, 0.9, 0.7, 0.6, 0.4, 0.3]}
-                    color="#EF4444"
-                    height={45}
-                  />
-                </div>
+              {/* 5. Remaining to Invoice (Kesilecek Fatura) */}
+              <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-3 border border-slate-200">
+                <p className="text-xs text-slate-600 uppercase mb-1">Kesilecek Fatura</p>
+                <p className="text-lg font-bold text-red-600">
+                  ₺{dashboardMetrics.remaining_to_invoice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                </p>
               </div>
 
               {/* 6. TTO Commission */}
-              <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-5 border border-slate-200 hover:border-purple-400 group">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex-1">
-                    <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">TTO Payı</p>
-                    <p className="text-2xl font-bold text-slate-900 mt-1">
-                      ₺{(dashboardMetrics.total_commission / 1000).toFixed(0)}K
-                    </p>
-                  </div>
-                  <div className="h-10 w-10 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                    <Coins className="h-5 w-5 text-white" />
-                  </div>
-                </div>
-                <div className="mt-2">
-                  <MiniChart
-                    data={[100, 120, 115, 140, 160, 155, 180, 200]}
-                    color="#8B5CF6"
-                    height={45}
-                  />
-                </div>
+              <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-3 border border-slate-200">
+                <p className="text-xs text-slate-600 uppercase mb-1">TTO Payı</p>
+                <p className="text-lg font-bold text-purple-600">
+                  ₺{dashboardMetrics.total_commission.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                </p>
               </div>
             </div>
 
-            {/* Progress Bar - Modern Design */}
-            <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl shadow-md p-6 border border-slate-200">
-              <div className="space-y-4">
+            {/* Multi-Segment Progress Bar */}
+            <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-semibold text-slate-600 uppercase tracking-wide mb-1">Fatura İlerleme Durumu</p>
-                    <p className="text-3xl font-bold text-slate-900">
-                      %{dashboardMetrics.progress_percentage.toFixed(1)}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-slate-600 mb-1">Kesilen</p>
-                    <p className="text-lg font-bold text-accent-teal">
-                      ₺{(dashboardMetrics.total_invoiced / 1000000).toFixed(1)}M
+                    <p className="text-xs text-slate-600 uppercase mb-1">Bütçe Durumu</p>
+                    <p className="text-xl font-bold text-slate-900">
+                      ₺{dashboardMetrics.total_budget.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                     </p>
                   </div>
                 </div>
-                <div className="relative w-full h-10 bg-slate-200 rounded-full overflow-hidden shadow-inner">
+
+                {/* 3 Segmentli Progress Bar */}
+                <div className="relative w-full h-8 bg-slate-200 rounded-lg overflow-hidden">
+                  {/* Yeşil: Tahsil Edilen */}
                   <div
-                    className="absolute h-full bg-gradient-to-r from-accent-teal to-accent-cyan flex items-center justify-center text-sm font-bold text-white transition-all duration-500 shadow-lg"
-                    style={{ width: `${Math.min(dashboardMetrics.progress_percentage, 100)}%` }}
-                  >
-                    {dashboardMetrics.progress_percentage > 15 && (
-                      <span>%{dashboardMetrics.progress_percentage.toFixed(1)}</span>
-                    )}
-                  </div>
-                  {dashboardMetrics.progress_percentage <= 15 && (
-                    <div className="absolute inset-0 flex items-center justify-center text-sm font-bold text-slate-700">
-                      %{dashboardMetrics.progress_percentage.toFixed(1)}
+                    className="absolute h-full bg-emerald-500 transition-all duration-500"
+                    style={{
+                      width: `${dashboardMetrics.total_budget > 0 ? (dashboardMetrics.total_collected / dashboardMetrics.total_budget) * 100 : 0}%`,
+                      left: 0
+                    }}
+                    title={`Tahsil Edilen: ₺${dashboardMetrics.total_collected.toLocaleString('tr-TR')}`}
+                  />
+
+                  {/* Turuncu: Açık Bakiye (Kesilen ama tahsil edilmemiş) */}
+                  <div
+                    className="absolute h-full bg-orange-500 transition-all duration-500"
+                    style={{
+                      width: `${dashboardMetrics.total_budget > 0 ? (dashboardMetrics.total_outstanding / dashboardMetrics.total_budget) * 100 : 0}%`,
+                      left: `${dashboardMetrics.total_budget > 0 ? (dashboardMetrics.total_collected / dashboardMetrics.total_budget) * 100 : 0}%`
+                    }}
+                    title={`Açık Bakiye: ₺${dashboardMetrics.total_outstanding.toLocaleString('tr-TR')}`}
+                  />
+
+                  {/* Gri kısım zaten arka planda görünüyor (remaining) */}
+                </div>
+
+                {/* Legend */}
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-emerald-500 rounded"></div>
+                    <div>
+                      <div className="font-semibold text-slate-900">Tahsil Edilen</div>
+                      <div className="text-slate-600">₺{dashboardMetrics.total_collected.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
                     </div>
-                  )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-orange-500 rounded"></div>
+                    <div>
+                      <div className="font-semibold text-slate-900">Açık Bakiye</div>
+                      <div className="text-slate-600">₺{dashboardMetrics.total_outstanding.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-slate-300 rounded"></div>
+                    <div>
+                      <div className="font-semibold text-slate-900">Kesilecek</div>
+                      <div className="text-slate-600">₺{dashboardMetrics.remaining_to_invoice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Year Breakdown Cards - Modern Design */}
+            {/* Year Breakdown Cards */}
             <div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-4">Yıllık Dağılım</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <h3 className="text-base font-semibold text-slate-900 mb-3">Yıllık Dağılım</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {dashboardMetrics.year_breakdown.map((yearData) => (
-                  <div key={yearData.year} className="bg-gradient-to-br from-white to-slate-50 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 p-6 border border-slate-200">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-2xl font-bold text-slate-900">{yearData.year}</h3>
-                      <div className="h-8 w-8 bg-gradient-to-br from-accent-cyan to-blue-500 rounded-lg flex items-center justify-center">
-                        <Calendar className="h-4 w-4 text-white" />
-                      </div>
-                    </div>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100">
-                        <span className="text-xs font-semibold text-red-700 uppercase tracking-wide">Kesilecek</span>
-                        <span className="text-lg font-bold text-red-700">
-                          ₺{(yearData.remaining / 1000).toFixed(0)}K
+                  <div key={yearData.year} className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
+                    <h3 className="text-lg font-bold text-slate-900 mb-3">{yearData.year}</h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between p-2 bg-red-50 rounded border border-red-100">
+                        <span className="text-xs text-red-700 uppercase">Kesilecek</span>
+                        <span className="text-base font-bold text-red-700">
+                          ₺{yearData.remaining.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100">
-                        <span className="text-xs font-semibold text-purple-700 uppercase tracking-wide">TTO Payı</span>
-                        <span className="text-lg font-bold text-purple-700">
-                          ₺{(yearData.commission / 1000).toFixed(0)}K
+                      <div className="flex items-center justify-between p-2 bg-purple-50 rounded border border-purple-100">
+                        <span className="text-xs text-purple-700 uppercase">TTO Payı</span>
+                        <span className="text-base font-bold text-purple-700">
+                          ₺{yearData.commission.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                     </div>
@@ -599,17 +534,17 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Monthly Income-Expense Table - Modern Design */}
-            <div className="bg-gradient-to-br from-white to-slate-50 rounded-xl shadow-md p-6 border border-slate-200">
-              <div className="flex items-center justify-between mb-6">
+            {/* Monthly Income-Expense Table */}
+            <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
+              <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900">Aylık Gelir-Gider Tablosu</h3>
-                  <p className="text-sm text-slate-600 mt-1">12 aylık finansal özet</p>
+                  <h3 className="text-base font-bold text-slate-900">Aylık Gelir-Gider Tablosu</h3>
+                  <p className="text-xs text-slate-600 mt-0.5">12 aylık finansal özet</p>
                 </div>
                 <select
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(e.target.value)}
-                  className="px-5 py-3 border-2 border-slate-300 rounded-xl text-sm font-bold text-slate-900 bg-white hover:border-accent-teal focus:outline-none focus:ring-2 focus:ring-accent-teal focus:border-accent-teal transition-all shadow-sm"
+                  className="px-3 py-2 border border-slate-300 rounded text-sm font-semibold text-slate-900 bg-white focus:outline-none focus:ring-1 focus:ring-teal-600 focus:border-teal-600"
                 >
                   <option value="2024">2024</option>
                   <option value="2025">2025</option>
@@ -617,61 +552,61 @@ export default function DashboardPage() {
                 </select>
               </div>
 
-              <div className="overflow-x-auto rounded-lg border border-slate-200 shadow-sm">
+              <div className="overflow-x-auto rounded border border-slate-200">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b-2 border-slate-300 bg-gradient-to-r from-slate-100 to-slate-50">
-                      <th className="py-4 px-4 text-left font-bold text-slate-900 sticky left-0 bg-slate-100">Kategori</th>
-                      <th className="py-4 px-3 text-center font-bold text-slate-700">Oca</th>
-                      <th className="py-4 px-3 text-center font-bold text-slate-700">Şub</th>
-                      <th className="py-4 px-3 text-center font-bold text-slate-700">Mar</th>
-                      <th className="py-4 px-3 text-center font-bold text-slate-700">Nis</th>
-                      <th className="py-4 px-3 text-center font-bold text-slate-700">May</th>
-                      <th className="py-4 px-3 text-center font-bold text-slate-700">Haz</th>
-                      <th className="py-4 px-3 text-center font-bold text-slate-700">Tem</th>
-                      <th className="py-4 px-3 text-center font-bold text-slate-700">Ağu</th>
-                      <th className="py-4 px-3 text-center font-bold text-slate-700">Eyl</th>
-                      <th className="py-4 px-3 text-center font-bold text-slate-700">Eki</th>
-                      <th className="py-4 px-3 text-center font-bold text-slate-700">Kas</th>
-                      <th className="py-4 px-3 text-center font-bold text-slate-700">Ara</th>
+                    <tr className="border-b border-slate-300 bg-slate-50">
+                      <th className="py-3 px-3 text-left font-semibold text-slate-900 sticky left-0 bg-slate-50">Kategori</th>
+                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Oca</th>
+                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Şub</th>
+                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Mar</th>
+                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Nis</th>
+                      <th className="py-3 px-2 text-center font-semibold text-slate-700">May</th>
+                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Haz</th>
+                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Tem</th>
+                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Ağu</th>
+                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Eyl</th>
+                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Eki</th>
+                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Kas</th>
+                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Ara</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
                     {/* Gelirler Row */}
-                    <tr className="hover:bg-emerald-50 transition-colors">
-                      <td className="py-4 px-4 font-bold text-slate-900 sticky left-0 bg-white hover:bg-emerald-50">💰 Gelirler</td>
+                    <tr className="hover:bg-slate-50">
+                      <td className="py-3 px-3 font-semibold text-slate-900 sticky left-0 bg-white hover:bg-slate-50">Gelirler</td>
                       {dashboardMetrics.monthly_breakdown[selectedYear]?.map((monthData, index) => (
-                        <td key={index} className="py-4 px-3 text-center text-emerald-600 font-bold">
-                          {monthData.income > 0 ? `₺${(monthData.income / 1000).toFixed(0)}K` : '-'}
+                        <td key={index} className="py-3 px-2 text-center text-emerald-600 font-semibold">
+                          {monthData.income > 0 ? `₺${monthData.income.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}` : '-'}
                         </td>
                       ))}
                     </tr>
 
                     {/* Giderler Row */}
-                    <tr className="hover:bg-red-50 transition-colors">
-                      <td className="py-4 px-4 font-bold text-slate-900 sticky left-0 bg-white hover:bg-red-50">📤 Giderler</td>
+                    <tr className="hover:bg-slate-50">
+                      <td className="py-3 px-3 font-semibold text-slate-900 sticky left-0 bg-white hover:bg-slate-50">Giderler</td>
                       {dashboardMetrics.monthly_breakdown[selectedYear]?.map((monthData, index) => (
-                        <td key={index} className="py-4 px-3 text-center text-red-600 font-bold">
-                          {monthData.expense > 0 ? `-₺${(monthData.expense / 1000).toFixed(0)}K` : '-'}
+                        <td key={index} className="py-3 px-2 text-center text-red-600 font-semibold">
+                          {monthData.expense > 0 ? `-₺${monthData.expense.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}` : '-'}
                         </td>
                       ))}
                     </tr>
 
                     {/* Fark Row */}
-                    <tr className="bg-gradient-to-r from-accent-teal/10 to-accent-cyan/10 hover:from-accent-teal/20 hover:to-accent-cyan/20 transition-colors border-t-2 border-accent-teal">
-                      <td className="py-4 px-4 font-extrabold text-slate-900 sticky left-0 bg-gradient-to-r from-accent-teal/10 to-accent-cyan/10">📊 Net Kar</td>
+                    <tr className="bg-slate-100 border-t-2 border-slate-300">
+                      <td className="py-3 px-3 font-bold text-slate-900 sticky left-0 bg-slate-100">Net Kar</td>
                       {dashboardMetrics.monthly_breakdown[selectedYear]?.map((monthData, index) => (
                         <td
                           key={index}
-                          className={`py-4 px-3 text-center font-extrabold ${
+                          className={`py-3 px-2 text-center font-bold ${
                             monthData.difference > 0
-                              ? 'text-accent-teal'
+                              ? 'text-teal-600'
                               : monthData.difference < 0
                               ? 'text-red-700'
                               : 'text-gray-500'
                           }`}
                         >
-                          {monthData.difference !== 0 ? `₺${(monthData.difference / 1000).toFixed(0)}K` : '-'}
+                          {monthData.difference !== 0 ? `₺${monthData.difference.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}` : '-'}
                         </td>
                       ))}
                     </tr>
@@ -680,24 +615,24 @@ export default function DashboardPage() {
               </div>
 
               {/* Summary */}
-              <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-3 gap-4 text-center">
+              <div className="mt-3 pt-3 border-t border-slate-200 grid grid-cols-3 gap-3 text-center">
                 <div>
-                  <p className="text-xs text-gray-600 mb-1">Toplam Gelir</p>
-                  <p className="text-lg font-bold text-green-600">
+                  <p className="text-xs text-slate-600 mb-1">Toplam Gelir</p>
+                  <p className="text-base font-bold text-emerald-600">
                     ₺{(dashboardMetrics.monthly_breakdown[selectedYear]?.reduce((sum, m) => sum + m.income, 0) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-600 mb-1">Toplam Gider</p>
-                  <p className="text-lg font-bold text-red-600">
+                  <p className="text-xs text-slate-600 mb-1">Toplam Gider</p>
+                  <p className="text-base font-bold text-red-600">
                     ₺{(dashboardMetrics.monthly_breakdown[selectedYear]?.reduce((sum, m) => sum + m.expense, 0) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-600 mb-1">Net Fark</p>
-                  <p className={`text-lg font-bold ${
+                  <p className="text-xs text-slate-600 mb-1">Net Fark</p>
+                  <p className={`text-base font-bold ${
                     (dashboardMetrics.monthly_breakdown[selectedYear]?.reduce((sum, m) => sum + m.difference, 0) || 0) > 0
-                      ? 'text-green-600'
+                      ? 'text-emerald-600'
                       : 'text-red-600'
                   }`}>
                     ₺{(dashboardMetrics.monthly_breakdown[selectedYear]?.reduce((sum, m) => sum + m.difference, 0) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}

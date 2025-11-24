@@ -186,56 +186,43 @@ export default function PersonnelPage() {
     <DashboardLayout user={user}>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Personel Yönetimi</h1>
-            <p className="text-gray-600">Proje personellerini görüntüleyin ve yönetin</p>
-          </div>
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-xl font-bold text-slate-900">Personel Yönetimi</h1>
+              <p className="text-sm text-slate-600">Proje personellerini görüntüleyin ve yönetin</p>
+            </div>
 
-          <Link
-            href="/dashboard/personnel/new"
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Yeni Personel
-          </Link>
+            <Link
+              href="/dashboard/personnel/new"
+              className="inline-flex items-center px-3 py-2 text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 transition-colors"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Yeni Personel
+            </Link>
+          </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center">
-              <Users className="h-8 w-8 text-blue-600 bg-blue-100 rounded-lg p-2" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Toplam Personel</p>
-                <p className="text-xl font-bold text-blue-600">{stats.total}</p>
-              </div>
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white p-4 rounded-lg shadow-sm border">
+            <p className="text-xs text-slate-600 uppercase mb-1">Toplam Personel</p>
+            <p className="text-lg font-bold text-slate-900">{stats.total}</p>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center">
-              <CheckCircle className="h-8 w-8 text-green-600 bg-green-100 rounded-lg p-2" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Aktif</p>
-                <p className="text-xl font-bold text-green-600">{stats.active}</p>
-              </div>
-            </div>
+          <div className="bg-white p-4 rounded-lg shadow-sm border">
+            <p className="text-xs text-slate-600 uppercase mb-1">Aktif</p>
+            <p className="text-lg font-bold text-slate-900">{stats.active}</p>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center">
-              <XCircle className="h-8 w-8 text-gray-600 bg-gray-100 rounded-lg p-2" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Pasif</p>
-                <p className="text-xl font-bold text-gray-600">{stats.inactive}</p>
-              </div>
-            </div>
+          <div className="bg-white p-4 rounded-lg shadow-sm border">
+            <p className="text-xs text-slate-600 uppercase mb-1">Pasif</p>
+            <p className="text-lg font-bold text-slate-900">{stats.inactive}</p>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="relative col-span-2">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -244,7 +231,7 @@ export default function PersonnelPage() {
                 placeholder="Ad, email veya TC No ile ara..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
             </div>
 
@@ -253,7 +240,7 @@ export default function PersonnelPage() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
               >
                 <option value="">Tüm Durumlar</option>
                 <option value="active">Aktif</option>
@@ -297,14 +284,14 @@ export default function PersonnelPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredPersonnel.map((p) => (
                   <tr key={p.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="h-10 w-10 flex-shrink-0">
-                          <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                            <User className="h-5 w-5 text-blue-600" />
+                          <div className="h-10 w-10 rounded-lg bg-slate-700 flex items-center justify-center">
+                            <User className="h-5 w-5 text-white" />
                           </div>
                         </div>
-                        <div className="ml-4">
+                        <div className="ml-3">
                           <div className="text-sm font-medium text-gray-900">{p.full_name}</div>
                           {p.notes && (
                             <div className="text-xs text-gray-500 truncate max-w-xs" title={p.notes}>
@@ -314,7 +301,7 @@ export default function PersonnelPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <div className="text-sm text-gray-900 flex items-center">
                         <Mail className="h-3 w-3 mr-1 text-gray-400" />
                         {p.email}
@@ -326,12 +313,12 @@ export default function PersonnelPage() {
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
                         {p.tc_no || '-'}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3">
                       <div className="text-sm text-gray-900 flex items-center">
                         {p.iban ? (
                           <>
@@ -343,7 +330,7 @@ export default function PersonnelPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       {p.is_active ? (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                           <CheckCircle className="h-3 w-3 mr-1" />
@@ -393,11 +380,13 @@ export default function PersonnelPage() {
 
           {filteredPersonnel.length === 0 && (
             <div className="text-center py-12">
-              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <div className="h-16 w-16 bg-slate-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <Users className="h-8 w-8 text-slate-400" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900 mb-2">
                 {searchTerm || statusFilter ? 'Personel bulunamadı' : 'Henüz personel kaydı yok'}
               </h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-sm text-slate-600 mb-4">
                 {searchTerm || statusFilter
                   ? 'Arama kriterlerinizi değiştirmeyi deneyin'
                   : 'İlk personeli eklemek için butona tıklayın'
@@ -406,7 +395,7 @@ export default function PersonnelPage() {
               {!searchTerm && !statusFilter && (
                 <Link
                   href="/dashboard/personnel/new"
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                  className="inline-flex items-center px-3 py-2 text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 transition-colors"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Yeni Personel Ekle

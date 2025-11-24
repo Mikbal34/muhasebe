@@ -207,33 +207,28 @@ export default function IncomesPage() {
   return (
     <DashboardLayout user={user}>
       <div className="space-y-6">
-        {/* Header - Modern Design */}
-        <div className="bg-gradient-to-br from-white to-slate-50 rounded-2xl shadow-lg p-6 border border-slate-200">
+        {/* Header */}
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="flex items-center gap-4">
-              <div className="h-14 w-14 bg-gradient-to-br from-accent-teal to-accent-cyan rounded-xl flex items-center justify-center shadow-lg">
-                <Wallet className="h-7 w-7 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-slate-900">Gelirler</h1>
-                <p className="text-slate-600 font-medium">Proje gelirlerini görüntüleyin ve yönetin</p>
-              </div>
+            <div>
+              <h1 className="text-xl font-bold text-slate-900">Gelirler</h1>
+              <p className="text-sm text-slate-600">Proje gelirlerini görüntüleyin ve yönetin</p>
             </div>
 
             {(user.role === 'admin' || user.role === 'manager') && (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <Link
                   href="/dashboard/balances/allocate"
-                  className="inline-flex items-center px-5 py-3 border-2 border-slate-300 text-sm font-bold rounded-xl text-slate-700 bg-white hover:bg-slate-50 hover:border-accent-teal transition-all duration-200"
+                  className="inline-flex items-center px-3 py-2 border border-slate-300 text-sm font-semibold rounded text-slate-700 bg-white hover:bg-slate-50 transition-colors"
                 >
-                  <Coins className="h-5 w-5 mr-2" />
+                  <Coins className="h-4 w-4 mr-2" />
                   Gelir Dağılımı
                 </Link>
                 <Link
                   href="/dashboard/incomes/new"
-                  className="inline-flex items-center px-5 py-3 border-2 border-transparent text-sm font-bold rounded-xl text-white bg-gradient-to-r from-accent-teal to-accent-cyan hover:shadow-lg transition-all duration-200 hover:scale-105"
+                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 transition-colors"
                 >
-                  <Plus className="h-5 w-5 mr-2" />
+                  <Plus className="h-4 w-4 mr-2" />
                   Yeni Gelir
                 </Link>
               </div>
@@ -241,97 +236,56 @@ export default function IncomesPage() {
           </div>
         </div>
 
-        {/* Stats Cards - Modern Design */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-6 border border-slate-200 hover:border-accent-teal group">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex-1">
-                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Gelen Toplam</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1">
-                  ₺{(totalStats.totalGross / 1000).toFixed(1)}K
-                </p>
-              </div>
-              <div className="h-12 w-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                <DollarSign className="h-6 w-6 text-white" />
-              </div>
-            </div>
-            <div className="text-xs text-blue-600 font-medium">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-slate-200">
+            <p className="text-xs text-slate-600 uppercase mb-1">Gelen Toplam</p>
+            <p className="text-lg font-bold text-slate-900">
               ₺{totalStats.totalGross.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-            </div>
+            </p>
           </div>
 
-          <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-6 border border-slate-200 hover:border-red-500 group">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex-1">
-                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">KDV Toplam</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1">
-                  ₺{(totalStats.totalVat / 1000).toFixed(1)}K
-                </p>
-              </div>
-              <div className="h-12 w-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                <Percent className="h-6 w-6 text-white" />
-              </div>
-            </div>
-            <div className="text-xs text-red-600 font-medium">
+          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-slate-200">
+            <p className="text-xs text-slate-600 uppercase mb-1">KDV Toplam</p>
+            <p className="text-lg font-bold text-slate-900">
               ₺{totalStats.totalVat.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-            </div>
+            </p>
           </div>
 
-          <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-6 border border-slate-200 hover:border-accent-teal group">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex-1">
-                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Tahsilat Toplam</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1">
-                  ₺{(totalStats.totalCollected / 1000).toFixed(1)}K
-                </p>
-              </div>
-              <div className="h-12 w-12 bg-gradient-to-br from-accent-teal to-accent-cyan rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                <Wallet className="h-6 w-6 text-white" />
-              </div>
-            </div>
-            <div className="text-xs text-accent-teal font-medium">
+          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-slate-200">
+            <p className="text-xs text-slate-600 uppercase mb-1">Tahsilat Toplam</p>
+            <p className="text-lg font-bold text-emerald-600">
               ₺{totalStats.totalCollected.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-            </div>
+            </p>
           </div>
 
-          <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-6 border border-slate-200 hover:border-orange-500 group">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex-1">
-                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Tahsil Edilecek</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1">
-                  ₺{(totalOutstanding / 1000).toFixed(1)}K
-                </p>
-              </div>
-              <div className="h-12 w-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                <TrendingUp className="h-6 w-6 text-white" />
-              </div>
-            </div>
-            <div className="text-xs text-orange-600 font-medium">
+          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-slate-200">
+            <p className="text-xs text-slate-600 uppercase mb-1">Tahsil Edilecek</p>
+            <p className="text-lg font-bold text-orange-600">
               ₺{totalOutstanding.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-            </div>
+            </p>
           </div>
         </div>
 
-        {/* Filters - Modern Design */}
-        <div className="bg-gradient-to-br from-white to-slate-50 rounded-xl shadow-md p-6 border border-slate-200">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Filters */}
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-accent-teal h-5 w-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
               <input
                 type="text"
                 placeholder="Proje adı, kodu veya açıklama ara..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-teal focus:border-accent-teal transition-all duration-200 text-slate-900 placeholder-slate-400"
+                className="pl-9 w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-600 focus:border-teal-600 text-slate-900 placeholder-slate-400"
               />
             </div>
 
             <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-accent-teal h-5 w-5" />
               <select
                 value={projectFilter}
                 onChange={(e) => setProjectFilter(e.target.value)}
-                className="pl-10 w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-teal focus:border-accent-teal transition-all duration-200 text-slate-900 appearance-none cursor-pointer"
+                className="w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-600 focus:border-teal-600 text-slate-900 appearance-none cursor-pointer"
               >
                 <option value="">Tüm Projeler</option>
                 {projects.map((project) => (
@@ -344,28 +298,28 @@ export default function IncomesPage() {
 
             <div className="col-span-full flex items-center justify-between bg-white rounded-lg p-3 border border-slate-200 shadow-sm">
               <div className="flex items-center text-sm text-slate-700 font-medium">
-                <Wallet className="h-5 w-5 mr-2 text-accent-teal" />
+                <Wallet className="h-5 w-5 mr-2 text-teal-600" />
                 {filteredIncomes.length} gelir görüntüleniyor
               </div>
             </div>
           </div>
         </div>
 
-        {/* Incomes by Project (Accordion) - Modern Design */}
+        {/* Incomes by Project (Accordion) */}
         <div className="space-y-4">
           {projectGroups.length === 0 ? (
-            <div className="bg-gradient-to-br from-white to-slate-50 rounded-2xl shadow-md border border-slate-200 p-16 text-center">
-              <div className="h-20 w-20 bg-gradient-to-br from-accent-teal/20 to-accent-cyan/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <Wallet className="h-10 w-10 text-accent-teal" />
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-12 text-center">
+              <div className="h-16 w-16 bg-slate-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <Wallet className="h-8 w-8 text-slate-400" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Henüz gelir kaydı yok</h3>
-              <p className="text-slate-600 font-medium mb-6">İlk gelir kaydını oluşturmak için butona tıklayın</p>
+              <h3 className="text-base font-bold text-slate-900 mb-2">Henüz gelir kaydı yok</h3>
+              <p className="text-sm text-slate-600 mb-4">İlk gelir kaydını oluşturmak için butona tıklayın</p>
               {(user.role === 'admin' || user.role === 'manager') && (
                 <Link
                   href="/dashboard/incomes/new"
-                  className="inline-flex items-center px-6 py-3 border-2 border-transparent text-sm font-bold rounded-xl text-white bg-gradient-to-r from-accent-teal to-accent-cyan hover:shadow-lg transition-all duration-200 hover:scale-105"
+                  className="inline-flex items-center px-3 py-2 text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 transition-colors"
                 >
-                  <Plus className="h-5 w-5 mr-2" />
+                  <Plus className="h-4 w-4 mr-2" />
                   İlk geliri ekleyin
                 </Link>
               )}
@@ -375,77 +329,77 @@ export default function IncomesPage() {
               const isExpanded = expandedProjects[group.project.id]
 
               return (
-                <div key={group.project.id} className="bg-gradient-to-br from-white to-slate-50 rounded-xl shadow-md border border-slate-200 overflow-hidden hover:shadow-xl transition-all duration-300">
-                  {/* Project Header (Accordion Toggle) - Modern Design */}
+                <div key={group.project.id} className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+                  {/* Project Header (Accordion Toggle) */}
                   <button
                     onClick={() => toggleProject(group.project.id)}
-                    className="w-full px-6 py-5 flex items-center justify-between hover:bg-accent-teal/5 transition-all duration-200"
+                    className="w-full px-4 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
                   >
-                    <div className="flex items-center gap-4 flex-1">
-                      <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="flex items-center gap-2">
                         {isExpanded ? (
-                          <ChevronDown className="h-6 w-6 text-accent-teal" />
+                          <ChevronDown className="h-5 w-5 text-slate-600" />
                         ) : (
-                          <ChevronRight className="h-6 w-6 text-accent-teal" />
+                          <ChevronRight className="h-5 w-5 text-slate-600" />
                         )}
-                        <div className="h-10 w-10 bg-gradient-to-br from-accent-teal to-accent-cyan rounded-lg flex items-center justify-center shadow-md">
-                          <Building2 className="h-5 w-5 text-white" />
+                        <div className="h-8 w-8 bg-slate-700 rounded-lg flex items-center justify-center">
+                          <Building2 className="h-4 w-4 text-white" />
                         </div>
                       </div>
 
                       <div className="text-left">
-                        <h3 className="text-lg font-bold text-slate-900">{group.project.name}</h3>
-                        <p className="text-sm font-medium text-accent-teal">{group.project.code}</p>
+                        <h3 className="text-base font-bold text-slate-900">{group.project.name}</h3>
+                        <p className="text-sm text-slate-600">{group.project.code}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-6">
-                      <div className="text-right bg-white rounded-lg px-4 py-2 border border-slate-200 shadow-sm">
-                        <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Gelir Sayısı</p>
-                        <p className="text-lg font-bold text-slate-900">{group.incomes.length}</p>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right bg-white rounded-lg px-3 py-2 border border-slate-200">
+                        <p className="text-xs text-slate-600 uppercase">Gelir Sayısı</p>
+                        <p className="text-base font-bold text-slate-900">{group.incomes.length}</p>
                       </div>
-                      <div className="text-right bg-emerald-50 rounded-lg px-4 py-2 border border-emerald-100 shadow-sm">
-                        <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wide">Brüt Toplam</p>
-                        <p className="text-lg font-bold text-emerald-700">
-                          ₺{group.totalGross.toLocaleString('tr-TR')}
+                      <div className="text-right bg-white rounded-lg px-3 py-2 border border-slate-200">
+                        <p className="text-xs text-slate-600 uppercase">Brüt Toplam</p>
+                        <p className="text-base font-bold text-slate-900">
+                          ₺{group.totalGross.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                         </p>
                       </div>
-                      <div className="text-right bg-blue-50 rounded-lg px-4 py-2 border border-blue-100 shadow-sm">
-                        <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Net Toplam</p>
-                        <p className="text-lg font-bold text-blue-700">
-                          ₺{group.totalNet.toLocaleString('tr-TR')}
+                      <div className="text-right bg-white rounded-lg px-3 py-2 border border-slate-200">
+                        <p className="text-xs text-slate-600 uppercase">Net Toplam</p>
+                        <p className="text-base font-bold text-slate-900">
+                          ₺{group.totalNet.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                         </p>
                       </div>
                     </div>
                   </button>
 
-                  {/* Project Incomes (Collapsible) - Modern Table */}
+                  {/* Project Incomes (Collapsible) */}
                   {isExpanded && (
-                    <div className="border-t-2 border-slate-200">
+                    <div className="border-t border-slate-200">
                       <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-slate-200">
-                          <thead className="bg-gradient-to-r from-slate-100 to-slate-50">
+                          <thead className="bg-slate-50">
                             <tr>
-                              <th className="px-6 py-4 text-left text-xs font-bold text-slate-900 uppercase tracking-wider">
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
                                 Açıklama
                               </th>
-                              <th className="px-6 py-4 text-left text-xs font-bold text-slate-900 uppercase tracking-wider">
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
                                 Brüt Tutar
                               </th>
-                              <th className="px-6 py-4 text-left text-xs font-bold text-slate-900 uppercase tracking-wider">
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
                                 Tahsilat
                               </th>
-                              <th className="px-6 py-4 text-left text-xs font-bold text-slate-900 uppercase tracking-wider">
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
                                 KDV
                               </th>
-                              <th className="px-6 py-4 text-left text-xs font-bold text-slate-900 uppercase tracking-wider">
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
                                 Net Tutar
                               </th>
-                              <th className="px-6 py-4 text-left text-xs font-bold text-slate-900 uppercase tracking-wider">
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
                                 Tarih
                               </th>
                               {(user.role === 'admin' || user.role === 'manager') && (
-                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-900 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
                                   İşlemler
                                 </th>
                               )}
@@ -457,57 +411,56 @@ export default function IncomesPage() {
                               const isFullyCollected = income.collected_amount >= income.gross_amount
 
                               return (
-                                <tr key={income.id} className="hover:bg-accent-teal/5 transition-colors duration-150">
-                                  <td className="px-6 py-4">
+                                <tr key={income.id} className="hover:bg-slate-50 transition-colors">
+                                  <td className="px-4 py-3">
                                     <div className="text-sm font-medium text-slate-900">
                                       {income.description || '-'}
                                     </div>
                                   </td>
-                                  <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm font-bold text-emerald-700">
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <div className="text-sm font-semibold text-slate-900">
                                       ₺{income.gross_amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                                     </div>
                                   </td>
-                                  <td className="px-6 py-4 whitespace-nowrap">
+                                  <td className="px-4 py-3 whitespace-nowrap">
                                     <div className="flex flex-col gap-1">
-                                      <div className="text-sm font-bold text-blue-700">
+                                      <div className="text-sm font-semibold text-emerald-600">
                                         ₺{income.collected_amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                                       </div>
                                       {outstandingAmount > 0 && (
-                                        <div className="text-xs font-medium text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full inline-flex items-center w-fit">
+                                        <div className="text-xs font-medium text-orange-600 bg-orange-50 px-2 py-0.5 rounded inline-flex items-center w-fit">
                                           Açık: ₺{outstandingAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                                         </div>
                                       )}
                                       {isFullyCollected && (
-                                        <div className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full inline-flex items-center w-fit">
+                                        <div className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded inline-flex items-center w-fit">
                                           ✓ Tam tahsil
                                         </div>
                                       )}
                                     </div>
                                   </td>
-                                  <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm font-medium text-slate-700">
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <div className="text-sm text-slate-700">
                                       %{income.vat_rate} (₺{income.vat_amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })})
                                     </div>
                                   </td>
-                                  <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm font-bold text-blue-700">
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <div className="text-sm font-semibold text-slate-900">
                                       ₺{income.net_amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                                     </div>
                                   </td>
-                                  <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="flex items-center text-sm font-medium text-slate-700">
-                                      <Calendar className="h-4 w-4 mr-2 text-accent-teal" />
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <div className="text-sm text-slate-700">
                                       {new Date(income.income_date).toLocaleDateString('tr-TR')}
                                     </div>
                                   </td>
                                   {(user.role === 'admin' || user.role === 'manager') && (
-                                    <td className="px-6 py-4 whitespace-nowrap">
+                                    <td className="px-4 py-3 whitespace-nowrap">
                                       <button
                                         onClick={() => openCollectionModal(income)}
-                                        className="inline-flex items-center px-4 py-2 border-2 border-transparent text-xs font-bold rounded-lg text-white bg-gradient-to-r from-accent-teal to-accent-cyan hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-teal transition-all duration-200 hover:scale-105"
+                                        className="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 transition-colors"
                                       >
-                                        <Banknote className="h-4 w-4 mr-1" />
+                                        <Banknote className="h-3 w-3 mr-1" />
                                         Tahsilat
                                       </button>
                                     </td>

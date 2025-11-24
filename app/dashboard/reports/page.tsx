@@ -176,16 +176,16 @@ export default function ReportsPage() {
     <DashboardLayout user={user}>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Raporlar</h1>
-            <p className="text-gray-600">Detaylı finansal raporları görüntüleyin ve indirin</p>
+            <h1 className="text-xl font-bold text-slate-900">Raporlar</h1>
+            <p className="text-sm text-slate-600">Detaylı finansal raporları görüntüleyin ve indirin</p>
           </div>
         </div>
 
         {/* Report Controls */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Rapor Oluştur</h2>
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <h2 className="text-base font-semibold text-gray-900 mb-4">Rapor Oluştur</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <div>
@@ -195,7 +195,7 @@ export default function ReportsPage() {
               <select
                 value={reportType}
                 onChange={(e) => setReportType(e.target.value as any)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
               >
                 <option value="company">Şirket Raporu</option>
                 <option value="project">Proje Raporu</option>
@@ -212,7 +212,7 @@ export default function ReportsPage() {
                 type="date"
                 value={dateRange.start_date}
                 onChange={(e) => setDateRange(prev => ({ ...prev, start_date: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
             </div>
 
@@ -224,7 +224,7 @@ export default function ReportsPage() {
                 type="date"
                 value={dateRange.end_date}
                 onChange={(e) => setDateRange(prev => ({ ...prev, end_date: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
             </div>
 
@@ -232,7 +232,7 @@ export default function ReportsPage() {
               <button
                 onClick={handleGenerateReport}
                 disabled={loading}
-                className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                className="w-full inline-flex items-center justify-center px-3 py-2 text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 disabled:opacity-50 transition-colors"
               >
                 {loading ? (
                   <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
@@ -250,175 +250,110 @@ export default function ReportsPage() {
           <>
             {/* Summary Cards */}
             {reportData.summary && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {reportType === 'company' && (
                   <>
-                    <div className="bg-white p-6 rounded-lg shadow-sm border">
-                      <div className="flex items-center">
-                        <DollarSign className="h-8 w-8 text-green-600 bg-green-100 rounded-lg p-2" />
-                        <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-600">Brüt Gelir</p>
-                          <p className="text-xl font-bold text-green-600">
-                            ₺{(reportData.summary.totalGrossIncome || 0).toLocaleString('tr-TR')}
-                          </p>
-                        </div>
-                      </div>
+                    <div className="bg-white p-4 rounded-lg shadow-sm border">
+                      <p className="text-xs text-slate-600 uppercase mb-1">Brüt Gelir</p>
+                      <p className="text-lg font-bold text-slate-900">
+                        ₺{(reportData.summary.totalGrossIncome || 0).toLocaleString('tr-TR')}
+                      </p>
                     </div>
 
-                    <div className="bg-white p-6 rounded-lg shadow-sm border">
-                      <div className="flex items-center">
-                        <PieChart className="h-8 w-8 text-blue-600 bg-blue-100 rounded-lg p-2" />
-                        <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-600">Komisyon</p>
-                          <p className="text-xl font-bold text-blue-600">
-                            ₺{(reportData.summary.totalCommissions || 0).toLocaleString('tr-TR')}
-                          </p>
-                        </div>
-                      </div>
+                    <div className="bg-white p-4 rounded-lg shadow-sm border">
+                      <p className="text-xs text-slate-600 uppercase mb-1">Komisyon</p>
+                      <p className="text-lg font-bold text-slate-900">
+                        ₺{(reportData.summary.totalCommissions || 0).toLocaleString('tr-TR')}
+                      </p>
                     </div>
 
-                    <div className="bg-white p-6 rounded-lg shadow-sm border">
-                      <div className="flex items-center">
-                        <TrendingUp className="h-8 w-8 text-purple-600 bg-purple-100 rounded-lg p-2" />
-                        <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-600">Dağıtılan</p>
-                          <p className="text-xl font-bold text-purple-600">
-                            ₺{(reportData.summary.totalDistributed || 0).toLocaleString('tr-TR')}
-                          </p>
-                        </div>
-                      </div>
+                    <div className="bg-white p-4 rounded-lg shadow-sm border">
+                      <p className="text-xs text-slate-600 uppercase mb-1">Dağıtılan</p>
+                      <p className="text-lg font-bold text-slate-900">
+                        ₺{(reportData.summary.totalDistributed || 0).toLocaleString('tr-TR')}
+                      </p>
                     </div>
 
-                    <div className="bg-white p-6 rounded-lg shadow-sm border">
-                      <div className="flex items-center">
-                        <FileText className="h-8 w-8 text-indigo-600 bg-indigo-100 rounded-lg p-2" />
-                        <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-600">Net Şirket</p>
-                          <p className="text-xl font-bold text-indigo-600">
-                            ₺{(reportData.summary.netCompanyIncome || 0).toLocaleString('tr-TR')}
-                          </p>
-                        </div>
-                      </div>
+                    <div className="bg-white p-4 rounded-lg shadow-sm border">
+                      <p className="text-xs text-slate-600 uppercase mb-1">Net Şirket</p>
+                      <p className="text-lg font-bold text-slate-900">
+                        ₺{(reportData.summary.netCompanyIncome || 0).toLocaleString('tr-TR')}
+                      </p>
                     </div>
                   </>
                 )}
 
                 {reportType === 'project' && (
                   <>
-                    <div className="bg-white p-6 rounded-lg shadow-sm border">
-                      <div className="flex items-center">
-                        <Building2 className="h-8 w-8 text-blue-600 bg-blue-100 rounded-lg p-2" />
-                        <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-600">Proje Sayısı</p>
-                          <p className="text-xl font-bold text-blue-600">
-                            {reportData.summary.totalProjects || 0}
-                          </p>
-                        </div>
-                      </div>
+                    <div className="bg-white p-4 rounded-lg shadow-sm border">
+                      <p className="text-xs text-slate-600 uppercase mb-1">Proje Sayısı</p>
+                      <p className="text-lg font-bold text-slate-900">
+                        {reportData.summary.totalProjects || 0}
+                      </p>
                     </div>
 
-                    <div className="bg-white p-6 rounded-lg shadow-sm border">
-                      <div className="flex items-center">
-                        <DollarSign className="h-8 w-8 text-green-600 bg-green-100 rounded-lg p-2" />
-                        <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-600">Toplam Bütçe</p>
-                          <p className="text-xl font-bold text-green-600">
-                            ₺{(reportData.summary.totalBudget || 0).toLocaleString('tr-TR')}
-                          </p>
-                        </div>
-                      </div>
+                    <div className="bg-white p-4 rounded-lg shadow-sm border">
+                      <p className="text-xs text-slate-600 uppercase mb-1">Toplam Bütçe</p>
+                      <p className="text-lg font-bold text-slate-900">
+                        ₺{(reportData.summary.totalBudget || 0).toLocaleString('tr-TR')}
+                      </p>
                     </div>
 
-                    <div className="bg-white p-6 rounded-lg shadow-sm border">
-                      <div className="flex items-center">
-                        <TrendingUp className="h-8 w-8 text-purple-600 bg-purple-100 rounded-lg p-2" />
-                        <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-600">Toplam Gelir</p>
-                          <p className="text-xl font-bold text-purple-600">
-                            ₺{(reportData.summary.totalIncome || 0).toLocaleString('tr-TR')}
-                          </p>
-                        </div>
-                      </div>
+                    <div className="bg-white p-4 rounded-lg shadow-sm border">
+                      <p className="text-xs text-slate-600 uppercase mb-1">Toplam Gelir</p>
+                      <p className="text-lg font-bold text-slate-900">
+                        ₺{(reportData.summary.totalIncome || 0).toLocaleString('tr-TR')}
+                      </p>
                     </div>
                   </>
                 )}
 
                 {reportType === 'payments' && (
                   <>
-                    <div className="bg-white p-6 rounded-lg shadow-sm border">
-                      <div className="flex items-center">
-                        <FileText className="h-8 w-8 text-blue-600 bg-blue-100 rounded-lg p-2" />
-                        <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-600">Toplam Ödeme</p>
-                          <p className="text-xl font-bold text-blue-600">
-                            {reportData.summary.totalPayments || 0}
-                          </p>
-                        </div>
-                      </div>
+                    <div className="bg-white p-4 rounded-lg shadow-sm border">
+                      <p className="text-xs text-slate-600 uppercase mb-1">Toplam Ödeme</p>
+                      <p className="text-lg font-bold text-slate-900">
+                        {reportData.summary.totalPayments || 0}
+                      </p>
                     </div>
 
-                    <div className="bg-white p-6 rounded-lg shadow-sm border">
-                      <div className="flex items-center">
-                        <DollarSign className="h-8 w-8 text-green-600 bg-green-100 rounded-lg p-2" />
-                        <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-600">Toplam Tutar</p>
-                          <p className="text-xl font-bold text-green-600">
-                            ₺{(reportData.summary.totalAmount || 0).toLocaleString('tr-TR')}
-                          </p>
-                        </div>
-                      </div>
+                    <div className="bg-white p-4 rounded-lg shadow-sm border">
+                      <p className="text-xs text-slate-600 uppercase mb-1">Toplam Tutar</p>
+                      <p className="text-lg font-bold text-slate-900">
+                        ₺{(reportData.summary.totalAmount || 0).toLocaleString('tr-TR')}
+                      </p>
                     </div>
 
-                    <div className="bg-white p-6 rounded-lg shadow-sm border">
-                      <div className="flex items-center">
-                        <TrendingUp className="h-8 w-8 text-purple-600 bg-purple-100 rounded-lg p-2" />
-                        <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-600">Ortalama</p>
-                          <p className="text-xl font-bold text-purple-600">
-                            ₺{Math.round(reportData.summary.avgPaymentAmount || 0).toLocaleString('tr-TR')}
-                          </p>
-                        </div>
-                      </div>
+                    <div className="bg-white p-4 rounded-lg shadow-sm border">
+                      <p className="text-xs text-slate-600 uppercase mb-1">Ortalama</p>
+                      <p className="text-lg font-bold text-slate-900">
+                        ₺{Math.round(reportData.summary.avgPaymentAmount || 0).toLocaleString('tr-TR')}
+                      </p>
                     </div>
                   </>
                 )}
 
                 {reportType === 'manager' && (
                   <>
-                    <div className="bg-white p-6 rounded-lg shadow-sm border">
-                      <div className="flex items-center">
-                        <Users className="h-8 w-8 text-indigo-600 bg-indigo-100 rounded-lg p-2" />
-                        <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-600">Akademisyen</p>
-                          <p className="text-xl font-bold text-indigo-600">
-                            {reportData.summary.totalAcademicians || 0}
-                          </p>
-                        </div>
-                      </div>
+                    <div className="bg-white p-4 rounded-lg shadow-sm border">
+                      <p className="text-xs text-slate-600 uppercase mb-1">Akademisyen</p>
+                      <p className="text-lg font-bold text-slate-900">
+                        {reportData.summary.totalAcademicians || 0}
+                      </p>
                     </div>
 
-                    <div className="bg-white p-6 rounded-lg shadow-sm border">
-                      <div className="flex items-center">
-                        <DollarSign className="h-8 w-8 text-green-600 bg-green-100 rounded-lg p-2" />
-                        <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-600">Toplam Bakiye</p>
-                          <p className="text-xl font-bold text-green-600">
-                            ₺{(reportData.summary.totalBalance || 0).toLocaleString('tr-TR')}
-                          </p>
-                        </div>
-                      </div>
+                    <div className="bg-white p-4 rounded-lg shadow-sm border">
+                      <p className="text-xs text-slate-600 uppercase mb-1">Toplam Bakiye</p>
+                      <p className="text-lg font-bold text-slate-900">
+                        ₺{(reportData.summary.totalBalance || 0).toLocaleString('tr-TR')}
+                      </p>
                     </div>
 
-                    <div className="bg-white p-6 rounded-lg shadow-sm border">
-                      <div className="flex items-center">
-                        <TrendingUp className="h-8 w-8 text-purple-600 bg-purple-100 rounded-lg p-2" />
-                        <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-600">Toplam Kazanç</p>
-                          <p className="text-xl font-bold text-purple-600">
-                            ₺{(reportData.summary.totalEarnings || 0).toLocaleString('tr-TR')}
-                          </p>
-                        </div>
-                      </div>
+                    <div className="bg-white p-4 rounded-lg shadow-sm border">
+                      <p className="text-xs text-slate-600 uppercase mb-1">Toplam Kazanç</p>
+                      <p className="text-lg font-bold text-slate-900">
+                        ₺{(reportData.summary.totalEarnings || 0).toLocaleString('tr-TR')}
+                      </p>
                     </div>
                   </>
                 )}

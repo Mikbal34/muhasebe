@@ -206,113 +206,107 @@ export default function ProjectDetailPage() {
     <DashboardLayout user={user}>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Link
-              href="/dashboard/projects"
-              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{project.name}</h1>
-              <p className="text-gray-600">{project.code}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-3">
-            <span className={`px-3 py-1 text-sm font-medium rounded-full ${getStatusColor(project.status)}`}>
-              {getStatusText(project.status)}
-            </span>
-
-            {/* Hakem Heyeti Onayı Butonu */}
-            {(user.role === 'admin' || user.role === 'manager') &&
-             project.sent_to_referee &&
-             !project.referee_approved && (
-              <button
-                onClick={handleApproveReferee}
-                disabled={approvingReferee}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:opacity-50"
-              >
-                {approvingReferee ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
-                    İşleniyor...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Hakem Onayını İşaretle
-                  </>
-                )}
-              </button>
-            )}
-
-            {(user.role === 'admin' || user.role === 'manager') && project.status === 'active' && (
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
               <Link
-                href={`/dashboard/projects/${project.id}/edit` as any}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                href="/dashboard/projects"
+                className="p-2 hover:bg-slate-100 rounded transition-colors text-slate-600 hover:text-slate-900"
               >
-                <Edit className="h-4 w-4 mr-2" />
-                Düzenle
+                <ArrowLeft className="h-5 w-5" />
               </Link>
-            )}
-            {(user.role === 'admin' || user.role === 'manager') && project.status !== 'active' && (
-              <div className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-500 bg-gray-100 cursor-not-allowed">
-                <Edit className="h-4 w-4 mr-2" />
-                Düzenle
+              <div>
+                <h1 className="text-xl font-bold text-slate-900">{project.name}</h1>
+                <p className="text-sm text-slate-600">{project.code}</p>
               </div>
-            )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className={`px-3 py-1.5 text-xs font-semibold rounded ${getStatusColor(project.status)}`}>
+                {getStatusText(project.status)}
+              </span>
+
+              {/* Hakem Heyeti Onayı Butonu */}
+              {(user.role === 'admin' || user.role === 'manager') &&
+               project.sent_to_referee &&
+               !project.referee_approved && (
+                <button
+                  onClick={handleApproveReferee}
+                  disabled={approvingReferee}
+                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-semibold rounded text-white bg-emerald-600 hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                >
+                  {approvingReferee ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                      İşleniyor...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Hakem Onayını İşaretle
+                    </>
+                  )}
+                </button>
+              )}
+
+              {(user.role === 'admin' || user.role === 'manager') && project.status === 'active' && (
+                <Link
+                  href={`/dashboard/projects/${project.id}/edit` as any}
+                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 transition-colors"
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Düzenle
+                </Link>
+              )}
+              {(user.role === 'admin' || user.role === 'manager') && project.status !== 'active' && (
+                <div className="inline-flex items-center px-3 py-2 border border-slate-300 text-sm font-semibold rounded text-slate-400 bg-slate-100 cursor-not-allowed">
+                  <Edit className="h-4 w-4 mr-2" />
+                  Düzenle
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center">
-              <DollarSign className="h-8 w-8 text-blue-600 bg-blue-100 rounded-lg p-2" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Bütçe</p>
-                <p className="text-2xl font-bold text-blue-600">
-                  ₺{project.budget.toLocaleString('tr-TR')}
-                </p>
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-slate-200">
+            <p className="text-xs text-slate-600 uppercase mb-1">Bütçe</p>
+            <p className="text-lg font-bold text-slate-900">
+              ₺{(project.budget / 1000).toFixed(0)}K
+            </p>
+            <div className="text-xs text-slate-600 mt-1">
+              ₺{project.budget.toLocaleString('tr-TR')}
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center">
-              <Wallet className="h-8 w-8 text-green-600 bg-green-100 rounded-lg p-2" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Toplam Gelir</p>
-                <p className="text-2xl font-bold text-green-600">
-                  ₺{totalIncome.toLocaleString('tr-TR')}
-                </p>
-              </div>
+          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-slate-200">
+            <p className="text-xs text-slate-600 uppercase mb-1">Toplam Gelir</p>
+            <p className="text-lg font-bold text-emerald-600">
+              ₺{(totalIncome / 1000).toFixed(0)}K
+            </p>
+            <div className="text-xs text-slate-600 mt-1">
+              ₺{totalIncome.toLocaleString('tr-TR')}
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center">
-              <TrendingUp className="h-8 w-8 text-purple-600 bg-purple-100 rounded-lg p-2" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Net Gelir</p>
-                <p className="text-2xl font-bold text-purple-600">
-                  ₺{totalNetIncome.toLocaleString('tr-TR')}
-                </p>
-              </div>
+          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-slate-200">
+            <p className="text-xs text-slate-600 uppercase mb-1">Net Gelir</p>
+            <p className="text-lg font-bold text-purple-600">
+              ₺{(totalNetIncome / 1000).toFixed(0)}K
+            </p>
+            <div className="text-xs text-slate-600 mt-1">
+              ₺{totalNetIncome.toLocaleString('tr-TR')}
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center">
-              <Users className="h-8 w-8 text-indigo-600 bg-indigo-100 rounded-lg p-2" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Temsilci</p>
-                <p className="text-2xl font-bold text-indigo-600">
-                  {project.representatives.length}
-                </p>
-              </div>
+          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-slate-200">
+            <p className="text-xs text-slate-600 uppercase mb-1">Temsilciler</p>
+            <p className="text-lg font-bold text-slate-900">
+              {project.representatives.length}
+            </p>
+            <div className="text-xs text-slate-600 mt-1">
+              Proje ekibi
             </div>
           </div>
         </div>

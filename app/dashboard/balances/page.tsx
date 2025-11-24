@@ -197,12 +197,12 @@ export default function BalancesPage() {
     <DashboardLayout user={user}>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-xl font-bold text-slate-900">
               Bakiyeler
             </h1>
-            <p className="text-gray-600">
+            <p className="text-sm text-slate-600">
               Personel ve kullanıcı bakiyelerini görüntüleyin ve yönetin
             </p>
           </div>
@@ -211,19 +211,19 @@ export default function BalancesPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Balances List */}
           <div className="bg-white rounded-lg shadow-sm border">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="p-4 border-b border-gray-200">
+              <h2 className="text-base font-semibold text-gray-900 mb-4">
                 Personel & Kullanıcı Bakiyeleri
               </h2>
 
-              <div className="relative mb-4">
+              <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <input
                   type="text"
                   placeholder="Ad veya e-posta ara..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
               </div>
             </div>
@@ -239,13 +239,13 @@ export default function BalancesPage() {
                   <div
                     key={balance.id}
                     className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
-                      selectedBalance === balance.id ? 'bg-blue-50 border-blue-200' : ''
+                      selectedBalance === balance.id ? 'bg-teal-50 border-teal-200' : ''
                     }`}
                     onClick={() => handleBalanceSelect(balance.id)}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
-                        <div className="h-10 w-10 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+                        <div className="h-10 w-10 bg-slate-700 rounded-lg flex items-center justify-center mr-3">
                           <span className="text-sm font-medium text-white">
                             {person.full_name.charAt(0).toUpperCase()}
                           </span>
@@ -294,8 +294,8 @@ export default function BalancesPage() {
 
           {/* Transaction History */}
           <div className="bg-white rounded-lg shadow-sm border">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">
+            <div className="p-4 border-b border-gray-200">
+              <h2 className="text-base font-semibold text-gray-900">
                 İşlem Geçmişi
                 {selectedBalanceData && (
                   <span className="text-sm font-normal text-gray-600 ml-2">
@@ -365,15 +365,15 @@ export default function BalancesPage() {
 
         {/* Selected Balance Details */}
         {selectedBalanceData && (
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Detaylı Bakiye Bilgisi</h2>
+          <div className="bg-white p-4 rounded-lg shadow-sm border">
+            <h2 className="text-base font-semibold text-gray-900 mb-4">Detaylı Bakiye Bilgisi</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-green-50 p-4 rounded-lg">
+              <div className="bg-green-50 p-3 rounded-lg">
                 <div className="flex items-center">
-                  <DollarSign className="h-6 w-6 text-green-600 mr-2" />
+                  <DollarSign className="h-5 w-5 text-green-600 mr-2" />
                   <div>
-                    <p className="text-sm text-green-800">Kullanılabilir</p>
-                    <p className="text-lg font-bold text-green-600">
+                    <p className="text-xs text-green-800">Kullanılabilir</p>
+                    <p className="text-base font-bold text-green-600">
                       ₺{selectedBalanceData.available_amount.toLocaleString('tr-TR')}
                     </p>
                     {selectedBalanceData.reserved_amount > 0 && (
@@ -385,36 +385,36 @@ export default function BalancesPage() {
                 </div>
               </div>
 
-              <div className="bg-red-50 p-4 rounded-lg">
+              <div className="bg-red-50 p-3 rounded-lg">
                 <div className="flex items-center">
-                  <CreditCard className="h-6 w-6 text-red-600 mr-2" />
+                  <CreditCard className="h-5 w-5 text-red-600 mr-2" />
                   <div>
-                    <p className="text-sm text-red-800">Borç</p>
-                    <p className="text-lg font-bold text-red-600">
+                    <p className="text-xs text-red-800">Borç</p>
+                    <p className="text-base font-bold text-red-600">
                       ₺{selectedBalanceData.debt_amount.toLocaleString('tr-TR')}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="bg-blue-50 p-3 rounded-lg">
                 <div className="flex items-center">
-                  <PiggyBank className="h-6 w-6 text-blue-600 mr-2" />
+                  <PiggyBank className="h-5 w-5 text-blue-600 mr-2" />
                   <div>
-                    <p className="text-sm text-blue-800">Rezerve</p>
-                    <p className="text-lg font-bold text-blue-600">
+                    <p className="text-xs text-blue-800">Rezerve</p>
+                    <p className="text-base font-bold text-blue-600">
                       ₺{selectedBalanceData.reserved_amount.toLocaleString('tr-TR')}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="bg-gray-50 p-3 rounded-lg">
                 <div className="flex items-center">
-                  <Calendar className="h-6 w-6 text-gray-600 mr-2" />
+                  <Calendar className="h-5 w-5 text-gray-600 mr-2" />
                   <div>
-                    <p className="text-sm text-gray-800">Son Güncelleme</p>
-                    <p className="text-sm font-medium text-gray-600">
+                    <p className="text-xs text-gray-800">Son Güncelleme</p>
+                    <p className="text-xs font-medium text-gray-600">
                       {new Date(selectedBalanceData.last_updated).toLocaleDateString('tr-TR')}
                     </p>
                   </div>

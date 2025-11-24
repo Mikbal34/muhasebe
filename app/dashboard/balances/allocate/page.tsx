@@ -229,7 +229,7 @@ function ManualBalanceAllocationPageContent() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto"></div>
           <p className="mt-2 text-gray-600">Yükleniyor...</p>
         </div>
       </div>
@@ -240,17 +240,17 @@ function ManualBalanceAllocationPageContent() {
     <DashboardLayout user={user}>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
+          <div className="flex items-center gap-3">
             <Link
               href="/dashboard"
-              className="p-2 hover:bg-gray-100 rounded-lg"
+              className="p-2 hover:bg-slate-100 rounded transition-colors text-slate-600 hover:text-slate-900"
             >
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Manuel Bakiye Dağıtımı</h1>
-              <p className="text-gray-600">Proje gelirlerini ekip üyelerine dağıtın</p>
+              <h1 className="text-xl font-bold text-slate-900">Manuel Bakiye Dağıtımı</h1>
+              <p className="text-sm text-slate-600">Proje gelirlerini ekip üyelerine dağıtın</p>
             </div>
           </div>
         </div>
@@ -269,14 +269,14 @@ function ManualBalanceAllocationPageContent() {
         )}
 
         {/* Project Selection */}
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
             Proje Seçin
           </label>
           <select
             value={selectedProjectId}
             onChange={(e) => handleProjectChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
           >
             <option value="">Bir proje seçin...</option>
             {projects.map(project => (
@@ -289,68 +289,67 @@ function ManualBalanceAllocationPageContent() {
 
         {loading && (
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-2 text-gray-600">Proje bilgileri yükleniyor...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto"></div>
+            <p className="mt-2 text-slate-600">Proje bilgileri yükleniyor...</p>
           </div>
         )}
 
         {!loading && selectedProject && financialSummary && (
           <>
             {/* Financial Summary */}
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <DollarSign className="h-5 w-5 mr-2" />
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+              <h2 className="text-base font-semibold text-slate-900 mb-4">
                 Proje Finansal Özet
               </h2>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600">Brüt Gelir</p>
-                  <p className="text-lg font-semibold text-gray-900">
+                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                  <p className="text-xs text-slate-600 uppercase">Brüt Gelir</p>
+                  <p className="text-base font-semibold text-slate-900">
                     ₺{financialSummary.total_gross.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
 
-                <div className="bg-red-50 p-4 rounded-lg">
-                  <p className="text-sm text-red-600">KDV</p>
-                  <p className="text-lg font-semibold text-red-700">
+                <div className="bg-red-50 p-3 rounded-lg border border-red-100">
+                  <p className="text-xs text-red-600 uppercase">KDV</p>
+                  <p className="text-base font-semibold text-red-700">
                     -₺{financialSummary.total_vat.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
 
-                <div className="bg-orange-50 p-4 rounded-lg">
-                  <p className="text-sm text-orange-600">Şirket Komisyonu</p>
-                  <p className="text-lg font-semibold text-orange-700">
+                <div className="bg-orange-50 p-3 rounded-lg border border-orange-100">
+                  <p className="text-xs text-orange-600 uppercase">Şirket Komisyonu</p>
+                  <p className="text-base font-semibold text-orange-700">
                     -₺{financialSummary.total_commission.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
 
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <p className="text-sm text-blue-600">Dağıtılabilir Tutar</p>
-                  <p className="text-lg font-semibold text-blue-700">
+                <div className="bg-teal-50 p-3 rounded-lg border border-teal-100">
+                  <p className="text-xs text-teal-600 uppercase">Dağıtılabilir Tutar</p>
+                  <p className="text-base font-semibold text-teal-700">
                     ₺{financialSummary.distributable_amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-3 gap-4">
+              <div className="mt-4 pt-4 border-t border-slate-200 grid grid-cols-3 gap-4">
                 <div>
-                  <p className="text-sm text-gray-600">Toplam Dağıtılan</p>
-                  <p className="text-lg font-semibold text-gray-900">
+                  <p className="text-xs text-slate-600 uppercase">Toplam Dağıtılan</p>
+                  <p className="text-base font-semibold text-slate-900">
                     ₺{financialSummary.total_allocated.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-sm text-gray-600">Kalan Tutar</p>
-                  <p className={`text-lg font-semibold ${financialSummary.remaining_amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <p className="text-xs text-slate-600 uppercase">Kalan Tutar</p>
+                  <p className={`text-base font-semibold ${financialSummary.remaining_amount >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                     ₺{financialSummary.remaining_amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-sm text-gray-600">Dağıtım Oranı</p>
-                  <p className="text-lg font-semibold text-gray-900">
+                  <p className="text-xs text-slate-600 uppercase">Dağıtım Oranı</p>
+                  <p className="text-base font-semibold text-slate-900">
                     {financialSummary.distributable_amount > 0
                       ? ((financialSummary.total_allocated / financialSummary.distributable_amount) * 100).toFixed(1)
                       : 0}%
@@ -360,31 +359,30 @@ function ManualBalanceAllocationPageContent() {
             </div>
 
             {/* Team Members */}
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <Users className="h-5 w-5 mr-2" />
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+              <h2 className="text-base font-semibold text-slate-900 mb-4">
                 Proje Ekibi
               </h2>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {teamMembers.map(member => (
                   <div
                     key={member.id}
-                    className="flex items-center justify-between bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition-colors"
+                    className="flex items-center justify-between bg-slate-50 p-4 rounded-lg hover:bg-slate-100 transition-colors border border-slate-200"
                   >
                     <div className="flex items-center space-x-3">
                       {member.role === 'project_leader' ? (
                         <Crown className="h-5 w-5 text-yellow-500" />
                       ) : (
-                        <Microscope className="h-5 w-5 text-blue-500" />
+                        <Microscope className="h-5 w-5 text-teal-500" />
                       )}
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="font-medium text-gray-900">{member.person_name}</p>
+                          <p className="font-medium text-slate-900">{member.person_name}</p>
                           <PersonBadge type={member.person_type} />
                         </div>
-                        <p className="text-sm text-gray-600">{member.person_email}</p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-sm text-slate-600">{member.person_email}</p>
+                        <p className="text-xs text-slate-500">
                           {member.role === 'project_leader' ? 'Proje Yürütücüsü' : 'Araştırmacı'}
                         </p>
                       </div>
@@ -392,15 +390,15 @@ function ManualBalanceAllocationPageContent() {
 
                     <div className="flex items-center space-x-4">
                       <div className="text-right">
-                        <p className="text-sm text-gray-600">Dağıtılan</p>
-                        <p className="text-lg font-semibold text-gray-900">
+                        <p className="text-xs text-slate-600 uppercase">Dağıtılan</p>
+                        <p className="text-base font-semibold text-slate-900">
                           ₺{member.allocated_amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                         </p>
                       </div>
 
                       <div className="text-right">
-                        <p className="text-sm text-gray-600">Mevcut Bakiye</p>
-                        <p className="text-lg font-semibold text-green-600">
+                        <p className="text-xs text-slate-600 uppercase">Mevcut Bakiye</p>
+                        <p className="text-base font-semibold text-emerald-600">
                           ₺{member.current_balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                         </p>
                       </div>
@@ -408,14 +406,14 @@ function ManualBalanceAllocationPageContent() {
                       <div className="flex space-x-2">
                         <button
                           onClick={() => openAllocationModal(member, 'add')}
-                          className="p-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                          className="p-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors"
                           title="Bakiye Ekle"
                         >
                           <Plus className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => openAllocationModal(member, 'subtract')}
-                          className="p-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                          className="p-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
                           title="Bakiye Düş"
                         >
                           <Minus className="h-4 w-4" />
@@ -432,11 +430,11 @@ function ManualBalanceAllocationPageContent() {
         {/* Allocation Modal */}
         {showModal && selectedMember && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <div className="bg-white rounded-lg p-4 max-w-md w-full mx-4 border border-slate-200 shadow-lg">
+              <h3 className="text-base font-semibold text-slate-900 mb-4 flex items-center">
                 {allocationData.operation === 'add' ? (
                   <>
-                    <TrendingUp className="h-5 w-5 text-green-600 mr-2" />
+                    <TrendingUp className="h-5 w-5 text-emerald-600 mr-2" />
                     Bakiye Ekle
                   </>
                 ) : (
@@ -447,35 +445,35 @@ function ManualBalanceAllocationPageContent() {
                 )}
               </h3>
 
-              <div className="mb-4">
-                <p className="text-sm text-gray-600">Kişi</p>
+              <div className="mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                <p className="text-xs text-slate-600 uppercase mb-1">Kişi</p>
                 <div className="flex items-center gap-2">
-                  <p className="font-medium text-gray-900">{selectedMember.person_name}</p>
+                  <p className="font-medium text-slate-900">{selectedMember.person_name}</p>
                   <PersonBadge type={selectedMember.person_type} />
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
                     Tutar (₺)
                   </label>
                   <MoneyInput
                     value={allocationData.amount}
                     onChange={(value) => setAllocationData({ ...allocationData, amount: value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
                     Not (Opsiyonel)
                   </label>
                   <textarea
                     value={allocationData.notes}
                     onChange={(e) => setAllocationData({ ...allocationData, notes: e.target.value })}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
                     placeholder="Bakiye değişikliği hakkında not..."
                   />
                 </div>
@@ -490,7 +488,7 @@ function ManualBalanceAllocationPageContent() {
               <div className="flex justify-end space-x-3 mt-6">
                 <button
                   onClick={closeModal}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                  className="px-3 py-2 border border-slate-300 text-sm font-semibold rounded text-slate-700 hover:bg-slate-50 transition-colors"
                   disabled={submitting}
                 >
                   İptal
@@ -498,10 +496,10 @@ function ManualBalanceAllocationPageContent() {
                 <button
                   onClick={handleAllocationSubmit}
                   disabled={submitting}
-                  className={`px-4 py-2 rounded-md text-white ${allocationData.operation === 'add'
-                    ? 'bg-green-600 hover:bg-green-700'
+                  className={`px-3 py-2 text-sm font-semibold rounded text-white ${allocationData.operation === 'add'
+                    ? 'bg-emerald-600 hover:bg-emerald-700'
                     : 'bg-red-600 hover:bg-red-700'
-                    } disabled:opacity-50`}
+                    } disabled:opacity-50 transition-colors`}
                 >
                   {submitting ? 'İşleniyor...' : allocationData.operation === 'add' ? 'Ekle' : 'Düş'}
                 </button>
@@ -519,7 +517,7 @@ export default function ManualBalanceAllocationPage() {
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto"></div>
           <p className="mt-2 text-gray-600">Yükleniyor...</p>
         </div>
       </div>

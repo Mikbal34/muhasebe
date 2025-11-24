@@ -288,8 +288,8 @@ export default function NewIncomePage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Yükleniyor...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto"></div>
+          <p className="mt-2 text-slate-600">Yükleniyor...</p>
         </div>
       </div>
     )
@@ -301,32 +301,32 @@ export default function NewIncomePage() {
     <DashboardLayout user={user}>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
+          <div className="flex items-center gap-3">
             <Link
               href="/dashboard/incomes"
-              className="p-2 hover:bg-gray-100 rounded-lg"
+              className="p-2 hover:bg-slate-100 rounded transition-colors text-slate-600 hover:text-slate-900"
             >
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Yeni Gelir</h1>
-              <p className="text-gray-600">Yeni bir gelir kaydı oluşturun</p>
+              <h1 className="text-xl font-bold text-slate-900">Yeni Gelir</h1>
+              <p className="text-sm text-slate-600">Yeni bir gelir kaydı oluşturun</p>
             </div>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Information */}
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <Wallet className="h-5 w-5 mr-2" />
+          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+            <h2 className="text-base font-semibold text-slate-900 mb-4 flex items-center">
+              <Wallet className="h-4 w-4 mr-2 text-slate-700" />
               Gelir Bilgileri
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Proje *
                 </label>
                 <select
@@ -339,7 +339,7 @@ export default function NewIncomePage() {
                       vat_rate: project?.vat_rate.toString() || '18'
                     })
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm"
                 >
                   <option value="">Proje seçiniz...</option>
                   {projects.map(project => (
@@ -348,11 +348,11 @@ export default function NewIncomePage() {
                     </option>
                   ))}
                 </select>
-                {errors.project_id && <p className="mt-1 text-sm text-red-600">{errors.project_id}</p>}
+                {errors.project_id && <p className="mt-1 text-xs text-red-600">{errors.project_id}</p>}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Brüt Tutar (₺) *
                 </label>
                 <input
@@ -361,14 +361,14 @@ export default function NewIncomePage() {
                   step="0.01"
                   value={formData.gross_amount}
                   onChange={(e) => setFormData({ ...formData, gross_amount: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm"
                   placeholder="100000"
                 />
-                {errors.gross_amount && <p className="mt-1 text-sm text-red-600">{errors.gross_amount}</p>}
+                {errors.gross_amount && <p className="mt-1 text-xs text-red-600">{errors.gross_amount}</p>}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   KDV Oranı (%)
                 </label>
                 <input
@@ -378,33 +378,33 @@ export default function NewIncomePage() {
                   step="0.01"
                   value={formData.vat_rate}
                   onChange={(e) => setFormData({ ...formData, vat_rate: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm"
                 />
-                {errors.vat_rate && <p className="mt-1 text-sm text-red-600">{errors.vat_rate}</p>}
+                {errors.vat_rate && <p className="mt-1 text-xs text-red-600">{errors.vat_rate}</p>}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Gelir Tarihi *
                 </label>
                 <input
                   type="date"
                   value={formData.income_date}
                   onChange={(e) => setFormData({ ...formData, income_date: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm"
                 />
-                {errors.income_date && <p className="mt-1 text-sm text-red-600">{errors.income_date}</p>}
+                {errors.income_date && <p className="mt-1 text-xs text-red-600">{errors.income_date}</p>}
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Açıklama
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm"
                   placeholder="Gelir ile ilgili açıklama..."
                 />
               </div>
@@ -413,23 +413,23 @@ export default function NewIncomePage() {
 
           {/* Project Details */}
           {selectedProject && (
-            <div className="bg-blue-50 rounded-lg border border-blue-200 p-6">
-              <h3 className="text-md font-semibold text-blue-900 mb-3 flex items-center">
-                <Building2 className="h-4 w-4 mr-2" />
+            <div className="bg-slate-50 rounded-lg border border-slate-200 p-4">
+              <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center">
+                <Building2 className="h-4 w-4 mr-2 text-slate-700" />
                 Seçilen Proje Detayları
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                 <div>
-                  <p className="text-blue-700 font-medium">Proje Kodu</p>
-                  <p className="text-blue-900">{selectedProject.code}</p>
+                  <p className="text-slate-600 font-medium text-xs">Proje Kodu</p>
+                  <p className="text-slate-900">{selectedProject.code}</p>
                 </div>
                 <div>
-                  <p className="text-blue-700 font-medium">Bütçe</p>
-                  <p className="text-blue-900">₺{selectedProject.budget.toLocaleString('tr-TR')}</p>
+                  <p className="text-slate-600 font-medium text-xs">Bütçe</p>
+                  <p className="text-slate-900">₺{selectedProject.budget.toLocaleString('tr-TR')}</p>
                 </div>
                 <div>
-                  <p className="text-blue-700 font-medium">Şirket Komisyonu</p>
-                  <p className="text-blue-900">%{selectedProject.company_rate}</p>
+                  <p className="text-slate-600 font-medium text-xs">Şirket Komisyonu</p>
+                  <p className="text-slate-900">%{selectedProject.company_rate}</p>
                 </div>
               </div>
             </div>
@@ -437,97 +437,72 @@ export default function NewIncomePage() {
 
           {/* Calculation Preview */}
           {formData.gross_amount && parseFloat(formData.gross_amount) > 0 && (
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <DollarSign className="h-5 w-5 mr-2" />
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+              <h2 className="text-base font-semibold text-slate-900 mb-3 flex items-center">
+                <DollarSign className="h-4 w-4 mr-2 text-slate-700" />
                 Hesaplama Önizlemesi
               </h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                  <div className="flex items-center">
-                    <DollarSign className="h-6 w-6 text-green-600 bg-green-100 rounded p-1" />
-                    <div className="ml-3">
-                      <p className="text-xs text-green-700 font-medium">Brüt Tutar</p>
-                      <p className="text-lg font-bold text-green-600">
-                        ₺{calculatedAmounts.gross_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                  </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                  <p className="text-xs text-slate-600 font-medium mb-1">Brüt Tutar</p>
+                  <p className="text-sm font-bold text-slate-900">
+                    ₺{calculatedAmounts.gross_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
+                  </p>
                 </div>
 
-                <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-                  <div className="flex items-center">
-                    <Percent className="h-6 w-6 text-red-600 bg-red-100 rounded p-1" />
-                    <div className="ml-3">
-                      <p className="text-xs text-red-700 font-medium">KDV (%{formData.vat_rate})</p>
-                      <p className="text-lg font-bold text-red-600">
-                        ₺{calculatedAmounts.vat_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                  </div>
+                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                  <p className="text-xs text-slate-600 font-medium mb-1">KDV (%{formData.vat_rate})</p>
+                  <p className="text-sm font-bold text-red-600">
+                    -₺{calculatedAmounts.vat_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
+                  </p>
                 </div>
 
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                  <div className="flex items-center">
-                    <DollarSign className="h-6 w-6 text-blue-600 bg-blue-100 rounded p-1" />
-                    <div className="ml-3">
-                      <p className="text-xs text-blue-700 font-medium">Net Tutar</p>
-                      <p className="text-lg font-bold text-blue-600">
-                        ₺{calculatedAmounts.net_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                  </div>
+                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                  <p className="text-xs text-slate-600 font-medium mb-1">Net Tutar</p>
+                  <p className="text-sm font-bold text-slate-900">
+                    ₺{calculatedAmounts.net_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
+                  </p>
                 </div>
 
-                <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
-                  <div className="flex items-center">
-                    <Building2 className="h-6 w-6 text-orange-600 bg-orange-100 rounded p-1" />
-                    <div className="ml-3">
-                      <p className="text-xs text-orange-700 font-medium">
-                        Şirket (%{selectedProject?.company_rate || 0})
-                      </p>
-                      <p className="text-lg font-bold text-orange-600">
-                        ₺{calculatedAmounts.company_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                  </div>
+                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                  <p className="text-xs text-slate-600 font-medium mb-1">
+                    Şirket (%{selectedProject?.company_rate || 0})
+                  </p>
+                  <p className="text-sm font-bold text-orange-600">
+                    -₺{calculatedAmounts.company_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
+                  </p>
                 </div>
 
-                <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-                  <div className="flex items-center">
-                    <Wallet className="h-6 w-6 text-purple-600 bg-purple-100 rounded p-1" />
-                    <div className="ml-3">
-                      <p className="text-xs text-purple-700 font-medium">Dağıtılabilir</p>
-                      <p className="text-lg font-bold text-purple-600">
-                        ₺{calculatedAmounts.distributable_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                  </div>
+                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                  <p className="text-xs text-slate-600 font-medium mb-1">Dağıtılabilir</p>
+                  <p className="text-sm font-bold text-emerald-600">
+                    ₺{calculatedAmounts.distributable_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
+                  </p>
                 </div>
               </div>
             </div>
           )}
 
           {/* Submit */}
-          <div className="flex justify-end space-x-3">
+          <div className="flex justify-end gap-3">
             <Link
               href="/dashboard/incomes"
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              className="px-3 py-2 border border-slate-300 rounded text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
             >
               İptal
             </Link>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+              className="px-3 py-2 bg-teal-600 text-white rounded text-sm font-semibold hover:bg-teal-700 disabled:opacity-50 transition-colors"
             >
               {loading ? 'Kaydediliyor...' : 'Gelir Kaydet'}
             </button>
           </div>
 
           {errors.submit && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
               <p className="text-sm text-red-600">{errors.submit}</p>
             </div>
           )}

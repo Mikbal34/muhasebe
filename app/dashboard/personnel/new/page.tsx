@@ -126,37 +126,39 @@ export default function NewPersonnelPage() {
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
       </div>
     )
   }
 
   return (
     <DashboardLayout user={user}>
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-3xl mx-auto space-y-4">
         {/* Header */}
-        <div className="mb-6">
-          <Link
-            href="/dashboard/personnel"
-            className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4"
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Personel Listesine Dön
-          </Link>
-          <h1 className="text-2xl font-bold text-gray-900">Yeni Personel Ekle</h1>
-          <p className="text-gray-600 mt-1">Projelerde görev alacak yeni personel ekleyin</p>
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/dashboard/personnel"
+              className="p-2 hover:bg-slate-100 rounded transition-colors text-slate-600 hover:text-slate-900"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+            <div>
+              <h1 className="text-xl font-bold text-slate-900">Yeni Personel Ekle</h1>
+              <p className="text-sm text-slate-600">Projelerde görev alacak yeni personel ekleyin</p>
+            </div>
+          </div>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border p-4 space-y-4">
           {/* Kişisel Bilgiler */}
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">Kişisel Bilgiler</h2>
+            <h2 className="text-base font-semibold text-gray-900 border-b pb-2">Kişisel Bilgiler</h2>
 
             {/* Ad Soyad */}
             <div>
               <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 mb-1">
-                <User className="h-4 w-4 inline mr-1" />
                 Ad Soyad *
               </label>
               <input
@@ -165,7 +167,7 @@ export default function NewPersonnelPage() {
                 value={formData.full_name}
                 onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-                  errors.full_name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                  errors.full_name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-teal-500'
                 }`}
                 placeholder="Ahmet Yılmaz"
               />
@@ -175,7 +177,6 @@ export default function NewPersonnelPage() {
             {/* TC Kimlik No */}
             <div>
               <label htmlFor="tc_no" className="block text-sm font-medium text-gray-700 mb-1">
-                <IdCard className="h-4 w-4 inline mr-1" />
                 TC Kimlik No
               </label>
               <input
@@ -184,7 +185,7 @@ export default function NewPersonnelPage() {
                 value={formData.tc_no}
                 onChange={(e) => setFormData({ ...formData, tc_no: e.target.value.replace(/\D/g, '').slice(0, 11) })}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-                  errors.tc_no ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                  errors.tc_no ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-teal-500'
                 }`}
                 placeholder="12345678901"
                 maxLength={11}
@@ -196,12 +197,11 @@ export default function NewPersonnelPage() {
 
           {/* İletişim Bilgileri */}
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">İletişim Bilgileri</h2>
+            <h2 className="text-base font-semibold text-gray-900 border-b pb-2">İletişim Bilgileri</h2>
 
             {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                <Mail className="h-4 w-4 inline mr-1" />
                 Email *
               </label>
               <input
@@ -210,7 +210,7 @@ export default function NewPersonnelPage() {
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-                  errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                  errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-teal-500'
                 }`}
                 placeholder="ahmet@example.com"
               />
@@ -220,7 +220,6 @@ export default function NewPersonnelPage() {
             {/* Telefon */}
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-                <Phone className="h-4 w-4 inline mr-1" />
                 Telefon
               </label>
               <input
@@ -228,7 +227,7 @@ export default function NewPersonnelPage() {
                 id="phone"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
                 placeholder="0532 123 45 67"
               />
             </div>
@@ -236,12 +235,11 @@ export default function NewPersonnelPage() {
 
           {/* Ödeme Bilgileri */}
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">Ödeme Bilgileri</h2>
+            <h2 className="text-base font-semibold text-gray-900 border-b pb-2">Ödeme Bilgileri</h2>
 
             {/* IBAN */}
             <div>
               <label htmlFor="iban" className="block text-sm font-medium text-gray-700 mb-1">
-                <CreditCard className="h-4 w-4 inline mr-1" />
                 IBAN
               </label>
               <input
@@ -253,7 +251,7 @@ export default function NewPersonnelPage() {
                   setFormData({ ...formData, iban: value })
                 }}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-                  errors.iban ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                  errors.iban ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-teal-500'
                 }`}
                 placeholder="TR00 0000 0000 0000 0000 0000 00"
                 maxLength={26}
@@ -265,12 +263,11 @@ export default function NewPersonnelPage() {
 
           {/* Notlar */}
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">Ek Bilgiler</h2>
+            <h2 className="text-base font-semibold text-gray-900 border-b pb-2">Ek Bilgiler</h2>
 
             {/* Notes */}
             <div>
               <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
-                <FileText className="h-4 w-4 inline mr-1" />
                 Notlar
               </label>
               <textarea
@@ -278,7 +275,7 @@ export default function NewPersonnelPage() {
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
                 placeholder="Personel hakkında not..."
               />
             </div>
@@ -290,7 +287,7 @@ export default function NewPersonnelPage() {
                 id="is_active"
                 checked={formData.is_active}
                 onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
               />
               <label htmlFor="is_active" className="ml-2 block text-sm text-gray-700">
                 Aktif personel
@@ -299,17 +296,17 @@ export default function NewPersonnelPage() {
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end space-x-3 pt-6 border-t">
+          <div className="flex justify-end space-x-3 pt-4 border-t">
             <Link
               href="/dashboard/personnel"
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              className="px-3 py-2 border border-gray-300 text-sm font-semibold rounded text-gray-700 hover:bg-gray-50 transition-colors"
             >
               İptal
             </Link>
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center px-3 py-2 text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? (
                 <>

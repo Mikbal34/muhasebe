@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
         .select(`
           *,
           project:projects(id, name, code),
-          created_by_user:users!expenses_created_by_fkey(full_name)
+          created_by_user:users!created_by(full_name)
         `, { count: 'exact' })
 
       // Apply filters
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
         .select(`
           *,
           project:projects(id, name, code),
-          created_by_user:users!expenses_created_by_fkey(full_name)
+          created_by_user:users!created_by(full_name)
         `)
         .single()
 

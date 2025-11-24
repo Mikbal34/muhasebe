@@ -109,15 +109,15 @@ export function CollectionModal({ isOpen, onClose, onSuccess, income }: Collecti
       >
         <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
 
-        <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+        <div className="inline-block align-bottom bg-white rounded-lg p-4 text-left overflow-hidden shadow-md transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-slate-200">
           <div className="flex justify-between items-start mb-4">
             <div className="flex items-center">
-              <div className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full bg-green-100 text-green-600">
-                <Coins className="h-6 w-6" />
+              <div className="flex-shrink-0 flex items-center justify-center h-8 w-8 rounded-lg bg-slate-100 text-slate-700">
+                <Coins className="h-5 w-5" />
               </div>
               <div className="ml-3">
-                <h3 className="text-lg font-medium text-gray-900">
-                  Tahsilat Kaydi
+                <h3 className="text-base font-semibold text-gray-900">
+                  Tahsilat Kaydı
                 </h3>
               </div>
             </div>
@@ -140,19 +140,19 @@ export function CollectionModal({ isOpen, onClose, onSuccess, income }: Collecti
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Brut Tutar:</span>
                 <span className="font-semibold text-gray-900">
-                  {income.gross_amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
+                  ₺{income.gross_amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Mevcut Tahsilat:</span>
-                <span className="font-semibold text-blue-600">
-                  {income.collected_amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
+                <span className="font-semibold text-gray-900">
+                  ₺{income.collected_amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                 </span>
               </div>
               <div className="flex justify-between text-sm pt-2 border-t">
-                <span className="text-gray-600">Yeni Acik Bakiye:</span>
-                <span className={`font-semibold ${outstandingAmount > 0 ? 'text-orange-600' : 'text-green-600'}`}>
-                  {outstandingAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
+                <span className="text-gray-600">Yeni Açık Bakiye:</span>
+                <span className={`font-semibold ${outstandingAmount > 0 ? 'text-orange-600' : 'text-emerald-600'}`}>
+                  ₺{outstandingAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                 </span>
               </div>
             </div>
@@ -169,13 +169,13 @@ export function CollectionModal({ isOpen, onClose, onSuccess, income }: Collecti
                   id="collected_amount"
                   value={collectedAmount}
                   onChange={setCollectedAmount}
-                  className="pl-12 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                  className="pl-12 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 sm:text-sm"
                   disabled={loading}
                   required
                 />
               </div>
               <p className="mt-1 text-xs text-gray-500">
-                Maksimum: {income.gross_amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
+                Maksimum: ₺{income.gross_amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
               </p>
             </div>
 
@@ -192,7 +192,7 @@ export function CollectionModal({ isOpen, onClose, onSuccess, income }: Collecti
                   id="collection_date"
                   value={collectionDate}
                   onChange={(e) => setCollectionDate(e.target.value)}
-                  className="pl-10 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                  className="pl-10 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 sm:text-sm"
                   disabled={loading}
                 />
               </div>
@@ -208,7 +208,7 @@ export function CollectionModal({ isOpen, onClose, onSuccess, income }: Collecti
               <button
                 type="submit"
                 disabled={loading || !collectedAmount}
-                className="w-full inline-flex justify-center items-center rounded-md border border-transparent px-4 py-2 text-base font-medium text-white shadow-sm bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full inline-flex justify-center items-center rounded-md border border-transparent px-3 py-2 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {loading && (
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
@@ -219,9 +219,9 @@ export function CollectionModal({ isOpen, onClose, onSuccess, income }: Collecti
                 type="button"
                 onClick={onClose}
                 disabled={loading}
-                className="w-full inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:w-auto sm:text-sm disabled:opacity-50"
+                className="w-full inline-flex justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:w-auto disabled:opacity-50 transition-colors"
               >
-                Iptal
+                İptal
               </button>
             </div>
           </form>
