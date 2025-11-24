@@ -47,8 +47,11 @@ interface Project {
   }
   representatives: Array<{
     id: string
+    role: 'project_leader' | 'researcher'
     share_percentage: number
     is_lead: boolean
+    user_id?: string | null
+    personnel_id?: string | null
     user: {
       id: string
       full_name: string
