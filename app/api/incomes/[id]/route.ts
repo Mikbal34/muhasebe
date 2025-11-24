@@ -118,10 +118,7 @@ export async function PATCH(
       // Validate request body
       const validation = updateIncomeCollectionSchema.safeParse(body)
       if (!validation.success) {
-        return apiResponse.error(
-          'Validation failed',
-          'The provided data is invalid',
-          400,
+        return apiResponse.validationError(
           validation.error.errors.map((e) => e.message)
         )
       }
