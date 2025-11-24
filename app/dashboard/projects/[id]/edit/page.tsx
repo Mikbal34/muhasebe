@@ -56,6 +56,8 @@ interface Project {
   sent_to_referee: boolean
   referee_approved: boolean
   referee_approval_date: string | null
+  has_assignment_permission: boolean
+  assignment_document_path: string | null
   created_at: string
   representatives: Array<{
     user_id: string
