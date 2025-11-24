@@ -21,36 +21,17 @@ export async function GET(request: NextRequest) {
           created_by_user:users!projects_created_by_fkey(full_name),
           representatives:project_representatives(
             id,
-            share_percentage,
-            is_lead,
-            user:users(id, full_name, email)
+            role,
+            user_id,
+            personnel_id,
+            user:users(id, full_name, email),
+            personnel:personnel(id, full_name, email)
           )
         `)
 
       // Apply filters based on user role
-      if (ctx.user.role === 'academician') {
-        // Academicians can only see projects they're representatives of
-        const { data: userProjects } = await ctx.supabase
-          .from('project_representatives')
-          .select('project_id')
-          .eq('user_id', ctx.user.id)
-
-        const projectIds = userProjects?.map(up => (up as any).project_id) || []
-        if (projectIds.length === 0) {
-          // If user has no projects, return empty result
-          return apiResponse.success({
-            projects: [],
-            pagination: {
-              page: 1,
-              limit: 20,
-              total: 0,
-              pages: 0
-            }
-          })
-        }
-
-        query = query.in('id', projectIds)
-      }
+      // Manager and Admin have full access, so no specific filtering needed for them
+      // If we had other roles, we would add logic here
 
       // Apply filters
       if (status) {
@@ -58,11 +39,52 @@ export async function GET(request: NextRequest) {
       }
 
       if (search) {
-        query = query.or(`name.ilike.%${search}%,code.ilike.%${search}%`)
+        // Search in project name, code, or representative names
+        const { data: matchingUsers } = await ctx.supabase
+          .from('users')
+          .select('id')
+          .ilike('full_name', `%${search}%`)
+
+        const userIds = (matchingUsers || []).map((u: any) => u.id)
+
+        let projectIdsFromUsers: string[] = []
+        if (userIds.length > 0) {
+          const { data: userProjects } = await ctx.supabase
+            .from('project_representatives')
+            .select('project_id')
+            .in('user_id', userIds)
+
+          projectIdsFromUsers = userProjects?.map(up => (up as any).project_id) || []
+        }
+
+        if (projectIdsFromUsers.length > 0) {
+          query = query.or(`name.ilike.%${search}%,code.ilike.%${search}%,id.in.(${projectIdsFromUsers.join(',')})`)
+        } else {
+          query = query.or(`name.ilike.%${search}%,code.ilike.%${search}%`)
+        }
       }
 
       if (created_by) {
         query = query.eq('created_by', created_by)
+      }
+
+      // Apply representative filter
+      const { representative_id } = queryValidation.data
+      if (representative_id) {
+        const { data: repProjects } = await ctx.supabase
+          .from('project_representatives')
+          .select('project_id')
+          .eq('user_id', representative_id)
+
+        const projectIds = repProjects?.map(rp => (rp as any).project_id) || []
+
+        if (projectIds.length > 0) {
+          query = query.in('id', projectIds)
+        } else {
+          // If representative has no projects, ensure no results are returned
+          // We can use a condition that is always false or an empty ID list
+          query = query.in('id', [])
+        }
       }
 
       // Apply sorting and pagination
@@ -96,18 +118,43 @@ export async function GET(request: NextRequest) {
 // POST /api/projects - Create new project
 export async function POST(request: NextRequest) {
   return withAuth(request, async (req, ctx) => {
-    // Only admins and finance officers can create projects
-    if (!['admin', 'finance_officer'].includes(ctx.user.role)) {
-      return apiResponse.forbidden('Only admins and finance officers can create projects')
+    // Only admins and managers can create projects
+    if (!['admin', 'manager'].includes(ctx.user.role)) {
+      return apiResponse.forbidden('Only admins and managers can create projects')
     }
 
     // Validate request data
     const validation = await validateRequest(request, createProjectSchema)
     if ('error' in validation) {
+      // Read the error response body
+      const errorClone = validation.error.clone()
+      const errorBody = await errorClone.json()
+      console.error('Validation error details:', errorBody)
       return validation.error
     }
 
-    const { name, budget, start_date, end_date, status = 'active', representatives, company_rate = 15, vat_rate = 18 } = validation.data
+    console.log('Project creation data:', validation.data)
+
+    const {
+      name,
+      budget,
+      start_date,
+      end_date,
+      status = 'active',
+      representatives,
+      company_rate = 15,
+      vat_rate = 18,
+      referee_payment = 0,
+      referee_payer,
+      stamp_duty_payer,
+      stamp_duty_amount = 0,
+      contract_path,
+      has_assignment_permission = false,
+      assignment_document_path,
+      sent_to_referee = false,
+      referee_approved = false,
+      referee_approval_date
+    } = validation.data
 
     try {
       // Start transaction
@@ -121,6 +168,16 @@ export async function POST(request: NextRequest) {
           status,
           company_rate,
           vat_rate,
+          referee_payment,
+          referee_payer,
+          stamp_duty_payer,
+          stamp_duty_amount,
+          contract_path,
+          has_assignment_permission,
+          assignment_document_path: assignment_document_path || null,
+          sent_to_referee,
+          referee_approved,
+          referee_approval_date: referee_approval_date || null,
           created_by: ctx.user.id
         })
         .select()
@@ -131,12 +188,12 @@ export async function POST(request: NextRequest) {
         return apiResponse.error('Failed to create project', projectError.message, 500)
       }
 
-      // Insert representatives
+      // Insert representatives (can be users or personnel)
       const representativeData = representatives.map(rep => ({
         project_id: project.id,
-        user_id: rep.user_id,
-        share_percentage: rep.share_percentage,
-        is_lead: rep.is_lead
+        user_id: rep.user_id || null,
+        personnel_id: rep.personnel_id || null,
+        role: rep.role
       }))
 
       const { error: repError } = await (ctx.supabase as any)
@@ -158,9 +215,11 @@ export async function POST(request: NextRequest) {
           created_by_user:users!projects_created_by_fkey(full_name),
           representatives:project_representatives(
             id,
-            share_percentage,
-            is_lead,
-            user:users(id, full_name, email)
+            role,
+            user_id,
+            personnel_id,
+            user:users(id, full_name, email),
+            personnel:personnel(id, full_name, email)
           )
         `)
         .eq('id', project.id)
@@ -171,20 +230,23 @@ export async function POST(request: NextRequest) {
         return apiResponse.error('Project created but failed to fetch details', fetchError.message, 500)
       }
 
-      // Create notifications for all project representatives
+      // Create notifications for user representatives only (personnel can't login)
       for (const rep of representatives) {
-        await (ctx.supabase as any).rpc('create_notification', {
-          p_user_id: rep.user_id,
-          p_type: 'success',
-          p_title: 'Yeni Proje',
-          p_message: `${(project as any).code} - ${name} projesine temsilci olarak atandınız.`,
-          p_auto_hide: true,
-          p_duration: 8000,
-          p_action_label: 'Görüntüle',
-          p_action_url: '/dashboard/projects',
-          p_reference_type: 'project',
-          p_reference_id: (project as any).id
-        })
+        // Only send notification if representative is a user (has user_id)
+        if (rep.user_id) {
+          await (ctx.supabase as any).rpc('create_notification', {
+            p_user_id: rep.user_id,
+            p_type: 'success',
+            p_title: 'Yeni Proje',
+            p_message: `${(project as any).code} - ${name} projesine temsilci olarak atandınız.`,
+            p_auto_hide: true,
+            p_duration: 8000,
+            p_action_label: 'Görüntüle',
+            p_action_url: '/dashboard/projects',
+            p_reference_type: 'project',
+            p_reference_id: (project as any).id
+          })
+        }
       }
 
       // Also notify the creator (admin/finance officer) if not already a representative

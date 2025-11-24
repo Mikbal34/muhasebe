@@ -6,9 +6,11 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export type UserRole = 'admin' | 'finance_officer' | 'academician'
+export type UserRole = 'admin' | 'manager'
 
 export type ProjectStatus = 'active' | 'completed' | 'cancelled'
+
+export type ProjectRepresentativeRole = 'project_leader' | 'researcher'
 
 export type PaymentInstructionStatus =
   | 'pending'
@@ -26,6 +28,8 @@ export type BalanceTransactionType =
 export type ReportType = 'project' | 'academician' | 'company' | 'payments'
 
 export type ReportFormat = 'excel' | 'pdf'
+
+export type PersonType = 'user' | 'personnel'
 
 export interface Database {
   public: {
@@ -66,6 +70,45 @@ export interface Database {
         }
         Relationships: []
       }
+      personnel: {
+        Row: {
+          id: string
+          full_name: string
+          email: string
+          phone: string | null
+          iban: string | null
+          tc_no: string | null
+          is_active: boolean
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          full_name: string
+          email: string
+          phone?: string | null
+          iban?: string | null
+          tc_no?: string | null
+          is_active?: boolean
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          full_name?: string
+          email?: string
+          phone?: string | null
+          iban?: string | null
+          tc_no?: string | null
+          is_active?: boolean
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       projects: {
         Row: {
           id: string
@@ -77,6 +120,17 @@ export interface Database {
           status: ProjectStatus
           created_at: string
           created_by: string
+          referee_payment: number
+          referee_payer: 'company' | 'client'
+          stamp_duty_payer: 'company' | 'client' | null
+          stamp_duty_amount: number
+          stamp_duty_deducted: boolean
+          contract_path: string | null
+          sent_to_referee: boolean
+          referee_approved: boolean
+          referee_approval_date: string | null
+          has_assignment_permission: boolean
+          assignment_document_path: string | null
         }
         Insert: {
           id?: string
@@ -88,6 +142,16 @@ export interface Database {
           status?: ProjectStatus
           created_at?: string
           created_by: string
+          referee_payment?: number
+          stamp_duty_payer?: 'company' | 'client' | null
+          stamp_duty_amount?: number
+          stamp_duty_deducted?: boolean
+          contract_path?: string | null
+          sent_to_referee?: boolean
+          referee_approved?: boolean
+          referee_approval_date?: string | null
+          has_assignment_permission?: boolean
+          assignment_document_path?: string | null
         }
         Update: {
           id?: string
@@ -99,6 +163,16 @@ export interface Database {
           status?: ProjectStatus
           created_at?: string
           created_by?: string
+          referee_payment?: number
+          stamp_duty_payer?: 'company' | 'client' | null
+          stamp_duty_amount?: number
+          stamp_duty_deducted?: boolean
+          contract_path?: string | null
+          sent_to_referee?: boolean
+          referee_approved?: boolean
+          referee_approval_date?: string | null
+          has_assignment_permission?: boolean
+          assignment_document_path?: string | null
         }
         Relationships: [
           {
@@ -114,25 +188,25 @@ export interface Database {
         Row: {
           id: string
           project_id: string
-          user_id: string
-          share_percentage: number
-          is_lead: boolean
+          user_id: string | null
+          personnel_id: string | null
+          role: ProjectRepresentativeRole
           created_at: string
         }
         Insert: {
           id?: string
           project_id: string
-          user_id: string
-          share_percentage: number
-          is_lead?: boolean
+          user_id?: string | null
+          personnel_id?: string | null
+          role?: ProjectRepresentativeRole
           created_at?: string
         }
         Update: {
           id?: string
           project_id?: string
-          user_id?: string
-          share_percentage?: number
-          is_lead?: boolean
+          user_id?: string | null
+          personnel_id?: string | null
+          role?: ProjectRepresentativeRole
           created_at?: string
         }
         Relationships: [
@@ -206,29 +280,86 @@ export interface Database {
           }
         ]
       }
+      expenses: {
+        Row: {
+          id: string
+          project_id: string
+          amount: number
+          description: string
+          expense_date: string
+          created_by: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          amount: number
+          description: string
+          expense_date?: string
+          created_by: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          amount?: number
+          description?: string
+          expense_date?: string
+          created_by?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       balances: {
         Row: {
           id: string
-          user_id: string
+          user_id: string | null
+          personnel_id: string | null
           available_amount: number
           debt_amount: number
           reserved_amount: number
+          total_income: number
+          total_payment: number
           last_updated: string
         }
         Insert: {
           id?: string
-          user_id: string
+          user_id?: string | null
+          personnel_id?: string | null
           available_amount?: number
           debt_amount?: number
           reserved_amount?: number
+          total_income?: number
+          total_payment?: number
           last_updated?: string
         }
         Update: {
           id?: string
-          user_id?: string
+          user_id?: string | null
+          personnel_id?: string | null
           available_amount?: number
           debt_amount?: number
           reserved_amount?: number
+          total_income?: number
+          total_payment?: number
           last_updated?: string
         }
         Relationships: [
@@ -292,7 +423,8 @@ export interface Database {
         Row: {
           id: string
           instruction_number: string
-          user_id: string
+          user_id: string | null
+          recipient_personnel_id: string | null
           total_amount: number
           status: PaymentInstructionStatus
           bank_export_file: string | null
@@ -306,7 +438,8 @@ export interface Database {
         Insert: {
           id?: string
           instruction_number?: string
-          user_id: string
+          user_id?: string | null
+          recipient_personnel_id?: string | null
           total_amount: number
           status?: PaymentInstructionStatus
           bank_export_file?: string | null
@@ -320,7 +453,8 @@ export interface Database {
         Update: {
           id?: string
           instruction_number?: string
-          user_id?: string
+          user_id?: string | null
+          recipient_personnel_id?: string | null
           total_amount?: number
           status?: PaymentInstructionStatus
           bank_export_file?: string | null
@@ -430,7 +564,8 @@ export interface Database {
         Row: {
           id: string
           income_id: string
-          user_id: string
+          user_id: string | null
+          personnel_id: string | null
           share_percentage: number
           amount: number
           created_at: string
@@ -438,7 +573,8 @@ export interface Database {
         Insert: {
           id?: string
           income_id: string
-          user_id: string
+          user_id?: string | null
+          personnel_id?: string | null
           share_percentage: number
           amount: number
           created_at?: string
@@ -446,7 +582,8 @@ export interface Database {
         Update: {
           id?: string
           income_id?: string
-          user_id?: string
+          user_id?: string | null
+          personnel_id?: string | null
           share_percentage?: number
           amount?: number
           created_at?: string
@@ -582,9 +719,82 @@ export interface Database {
           }
         ]
       }
+      manual_balance_allocations: {
+        Row: {
+          id: string
+          project_id: string
+          user_id: string | null
+          personnel_id: string | null
+          amount: number
+          notes: string | null
+          created_by: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          user_id?: string | null
+          personnel_id?: string | null
+          amount: number
+          notes?: string | null
+          created_by: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          user_id?: string | null
+          personnel_id?: string | null
+          amount?: number
+          notes?: string | null
+          created_by?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manual_balance_allocations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_balance_allocations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_balance_allocations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      all_people: {
+        Row: {
+          id: string
+          full_name: string
+          email: string
+          phone: string | null
+          iban: string | null
+          person_type: PersonType
+          is_active: boolean
+          created_at: string
+          updated_at: string
+          user_role: string | null
+          notes: string | null
+          tc_no: string | null
+        }
+      }
     }
     Functions: {
       update_balance: {
@@ -608,6 +818,90 @@ export interface Database {
           p_new_values?: Json
         }
         Returns: string
+      }
+      get_project_total_allocated: {
+        Args: {
+          p_project_id: string
+        }
+        Returns: number
+      }
+      get_project_distributable_amount: {
+        Args: {
+          p_project_id: string
+        }
+        Returns: number
+      }
+      get_user_role: {
+        Args: {
+          user_id: string
+        }
+        Returns: string
+      }
+      is_admin_or_manager: {
+        Args: Record<string, never>
+        Returns: boolean
+      }
+      is_admin: {
+        Args: Record<string, never>
+        Returns: boolean
+      }
+      get_person_info: {
+        Args: {
+          p_user_id: string | null
+          p_personnel_id: string | null
+        }
+        Returns: {
+          id: string
+          full_name: string
+          email: string
+          phone: string | null
+          iban: string | null
+          person_type: PersonType
+        }[]
+      }
+      search_all_people: {
+        Args: {
+          search_term?: string | null
+          include_inactive?: boolean
+          person_type_filter?: PersonType | null
+        }
+        Returns: {
+          id: string
+          full_name: string
+          email: string
+          phone: string | null
+          iban: string | null
+          person_type: PersonType
+          is_active: boolean
+          user_role: string | null
+          notes: string | null
+          tc_no: string | null
+        }[]
+      }
+      get_person_balance: {
+        Args: {
+          p_user_id?: string | null
+          p_personnel_id?: string | null
+        }
+        Returns: {
+          available_amount: number
+          debt_amount: number
+          total_income: number
+          total_payment: number
+        }[]
+      }
+      get_person_projects: {
+        Args: {
+          p_user_id?: string | null
+          p_personnel_id?: string | null
+        }
+        Returns: {
+          project_id: string
+          project_code: string
+          project_name: string
+          role: ProjectRepresentativeRole
+          is_active: boolean
+        }[]
       }
     }
     Enums: {

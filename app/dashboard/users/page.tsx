@@ -15,25 +15,25 @@ import {
   User,
   Mail,
   Phone,
-  CreditCard,
   CheckCircle,
   XCircle,
   Shield,
   Building2
 } from 'lucide-react'
+import { StatCardSkeleton, TableSkeleton, Skeleton } from '@/components/ui/skeleton'
 
 interface User {
   id: string
   full_name: string
   email: string
-  role: 'admin' | 'finance_officer' | 'academician'
+  role: 'admin' | 'manager'
 }
 
 interface UserData {
   id: string
   email: string
   full_name: string
-  role: 'admin' | 'finance_officer' | 'academician'
+  role: 'admin' | 'manager'
   phone: string | null
   iban: string | null
   is_active: boolean
@@ -72,7 +72,7 @@ export default function UsersPage() {
       setUser(parsedUser)
 
       // Only admin can access users page
-      if (parsedUser.role !== 'admin') {
+      if (!['admin', 'manager'].includes(parsedUser.role)) {
         router.push('/dashboard')
         return
       }
@@ -101,13 +101,16 @@ export default function UsersPage() {
         const balancesMap = new Map()
         if (balancesData.success) {
           balancesData.data.balances.forEach((balance: any) => {
-            balancesMap.set(balance.user.id, {
-              id: balance.id,
-              available_amount: balance.available_amount,
-              debt_amount: balance.debt_amount,
-              reserved_amount: balance.reserved_amount,
-              iban: balance.user.iban
-            })
+            // Only process balances with user (not personnel)
+            if (balance.user) {
+              balancesMap.set(balance.user.id, {
+                id: balance.id,
+                available_amount: balance.available_amount,
+                debt_amount: balance.debt_amount,
+                reserved_amount: balance.reserved_amount,
+                iban: balance.user.iban
+              })
+            }
           })
         }
 
@@ -135,7 +138,7 @@ export default function UsersPage() {
 
   const filteredUsers = users.filter(userData => {
     const matchesSearch = userData.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         userData.email.toLowerCase().includes(searchTerm.toLowerCase())
+      userData.email.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesRole = !roleFilter || userData.role === roleFilter
     const matchesStatus = !statusFilter || (statusFilter === 'active' && userData.is_active) || (statusFilter === 'inactive' && !userData.is_active)
     return matchesSearch && matchesRole && matchesStatus
@@ -149,17 +152,11 @@ export default function UsersPage() {
           icon: Shield,
           text: 'Yönetici'
         }
-      case 'finance_officer':
+      case 'manager':
         return {
           color: 'bg-blue-100 text-blue-800',
-          icon: Building2,
-          text: 'Mali İşler'
-        }
-      case 'academician':
-        return {
-          color: 'bg-green-100 text-green-800',
           icon: User,
-          text: 'Akademisyen'
+          text: 'Yönetici'
         }
       default:
         return {
@@ -174,8 +171,6 @@ export default function UsersPage() {
     acc[user.role] = (acc[user.role] || 0) + 1
     return acc
   }, {} as Record<string, number>)
-
-  const totalBalance = users.reduce((sum, user) => sum + (user.balance?.available_amount || 0), 0)
 
   const handleDeleteUser = async (userId: string, userName: string) => {
     if (!confirm(`${userName} kullanıcısını silmek istediğinizden emin misiniz?`)) {
@@ -205,12 +200,33 @@ export default function UsersPage() {
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Yükleniyor...</p>
+      <DashboardLayout user={user || { id: '', full_name: 'Yükleniyor...', email: '', role: 'admin' }}>
+        <div className="space-y-6">
+          {/* Header Skeleton */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <Skeleton className="h-8 w-48 mb-2" />
+              <Skeleton className="h-5 w-64" />
+            </div>
+            <Skeleton className="h-10 w-32" />
+          </div>
+
+          {/* Stat Cards Skeleton - 3 cards */}
+          <StatCardSkeleton count={3} />
+
+          {/* Filters Skeleton */}
+          <div className="bg-white rounded-lg shadow-sm border p-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          </div>
+
+          {/* Table Skeleton */}
+          <TableSkeleton rows={8} columns={6} />
         </div>
-      </div>
+      </DashboardLayout>
     )
   }
 
@@ -246,7 +262,7 @@ export default function UsersPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white p-6 rounded-lg shadow-sm border">
             <div className="flex items-center">
               <Users className="h-8 w-8 text-blue-600 bg-blue-100 rounded-lg p-2" />
@@ -263,9 +279,9 @@ export default function UsersPage() {
             <div className="flex items-center">
               <User className="h-8 w-8 text-green-600 bg-green-100 rounded-lg p-2" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Akademisyen</p>
+                <p className="text-sm font-medium text-gray-600">Yöneticiler</p>
                 <p className="text-xl font-bold text-green-600">
-                  {roleStats.academician || 0}
+                  {roleStats.manager || 0}
                 </p>
               </div>
             </div>
@@ -275,21 +291,9 @@ export default function UsersPage() {
             <div className="flex items-center">
               <Shield className="h-8 w-8 text-red-600 bg-red-100 rounded-lg p-2" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Admin & Mali</p>
+                <p className="text-sm font-medium text-gray-600">Admin</p>
                 <p className="text-xl font-bold text-red-600">
-                  {(roleStats.admin || 0) + (roleStats.finance_officer || 0)}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center">
-              <CreditCard className="h-8 w-8 text-purple-600 bg-purple-100 rounded-lg p-2" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Toplam Bakiye</p>
-                <p className="text-xl font-bold text-purple-600">
-                  ₺{totalBalance.toLocaleString('tr-TR')}
+                  {roleStats.admin || 0}
                 </p>
               </div>
             </div>
@@ -318,9 +322,8 @@ export default function UsersPage() {
                 className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">Tüm Roller</option>
-                <option value="admin">Yönetici</option>
-                <option value="finance_officer">Mali İşler</option>
-                <option value="academician">Akademisyen</option>
+                <option value="admin">Yönetici (Admin)</option>
+                <option value="manager">Yönetici</option>
               </select>
             </div>
 

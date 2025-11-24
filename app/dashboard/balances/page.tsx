@@ -9,7 +9,6 @@ import {
   Search,
   Filter,
   Eye,
-  User,
   Calendar,
   DollarSign,
   TrendingUp,
@@ -17,27 +16,33 @@ import {
   CreditCard,
   History
 } from 'lucide-react'
+import PersonBadge from '@/components/ui/person-badge'
+import { ListItemSkeleton, DetailCardSkeleton, Skeleton } from '@/components/ui/skeleton'
 
 interface User {
   id: string
   full_name: string
   email: string
-  role: 'admin' | 'finance_officer' | 'academician'
+  role: 'admin' | 'manager'
+}
+
+interface Person {
+  id: string
+  full_name: string
+  email: string
+  iban: string | null
 }
 
 interface Balance {
   id: string
-  user_id: string
+  user_id: string | null
+  personnel_id: string | null
   available_amount: number
   debt_amount: number
   reserved_amount: number
   last_updated: string
-  user: {
-    id: string
-    full_name: string
-    email: string
-    iban: string | null
-  }
+  user: Person | null
+  personnel: Person | null
 }
 
 interface Transaction {
@@ -72,14 +77,6 @@ export default function BalancesPage() {
       const parsedUser = JSON.parse(userData)
       setUser(parsedUser)
       fetchBalances(token)
-
-      // If academician, show only their own balance
-      if (parsedUser.role === 'academician') {
-        const userBalance = balances.find(b => b.user_id === parsedUser.id)
-        if (userBalance) {
-          setSelectedBalance(userBalance.id)
-        }
-      }
     } catch (err) {
       router.push('/login')
     }
@@ -125,10 +122,13 @@ export default function BalancesPage() {
     }
   }
 
-  const filteredBalances = balances.filter(balance =>
-    balance.user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    balance.user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredBalances = balances.filter(balance => {
+    const person = balance.user || balance.personnel
+    if (!person) return false
+
+    return person.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+           person.email.toLowerCase().includes(searchTerm.toLowerCase())
+  })
 
   const getTransactionTypeInfo = (type: string) => {
     switch (type) {
@@ -147,21 +147,49 @@ export default function BalancesPage() {
 
   const selectedBalanceData = balances.find(b => b.id === selectedBalance)
 
-  const totalStats = filteredBalances.reduce((acc, balance) => ({
-    totalAvailable: acc.totalAvailable + balance.available_amount,
-    totalDebt: acc.totalDebt + balance.debt_amount,
-    totalReserved: acc.totalReserved + balance.reserved_amount,
-    userCount: acc.userCount + 1
-  }), { totalAvailable: 0, totalDebt: 0, totalReserved: 0, userCount: 0 })
-
   if (loading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Yükleniyor...</p>
+      <DashboardLayout user={user || { id: '', full_name: 'Yükleniyor...', email: '', role: 'manager' }}>
+        <div className="space-y-6">
+          {/* Header Skeleton */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <Skeleton className="h-8 w-32 mb-2" />
+              <Skeleton className="h-5 w-96" />
+            </div>
+          </div>
+
+          {/* Two Column Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Balances List Skeleton */}
+            <div className="bg-white rounded-lg shadow-sm border">
+              <div className="p-6 border-b border-gray-200">
+                <Skeleton className="h-6 w-48 mb-4" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+              <div className="max-h-96 overflow-y-auto p-4">
+                <ListItemSkeleton count={5} />
+              </div>
+            </div>
+
+            {/* Transaction History Skeleton */}
+            <div className="bg-white rounded-lg shadow-sm border">
+              <div className="p-6 border-b border-gray-200">
+                <Skeleton className="h-6 w-48" />
+              </div>
+              <div className="max-h-96 overflow-y-auto p-4">
+                <div className="text-center py-8">
+                  <Skeleton className="h-8 w-8 rounded-full mx-auto mb-2" />
+                  <Skeleton className="h-4 w-64 mx-auto" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Balance Details Skeleton */}
+          <DetailCardSkeleton rows={4} />
         </div>
-      </div>
+      </DashboardLayout>
     )
   }
 
@@ -172,151 +200,93 @@ export default function BalancesPage() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              {user.role === 'academician' ? 'Bakiyem' : 'Bakiyeler'}
+              Bakiyeler
             </h1>
             <p className="text-gray-600">
-              {user.role === 'academician'
-                ? 'Bakiye durumunuzu ve işlem geçmişinizi görüntüleyin'
-                : 'Kullanıcı bakiyelerini görüntüleyin ve yönetin'
-              }
+              Personel ve kullanıcı bakiyelerini görüntüleyin ve yönetin
             </p>
           </div>
-
-          {user.role === 'academician' && (
-            <Link
-              href="/dashboard/payments/request"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-            >
-              <DollarSign className="h-4 w-4 mr-2" />
-              Ödeme Talep Et
-            </Link>
-          )}
         </div>
-
-        {/* Stats Cards */}
-        {user.role !== 'academician' && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="bg-white p-6 rounded-lg shadow-sm border">
-              <div className="flex items-center">
-                <DollarSign className="h-8 w-8 text-green-600 bg-green-100 rounded-lg p-2" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Toplam Bakiye</p>
-                  <p className="text-xl font-bold text-green-600">
-                    ₺{totalStats.totalAvailable.toLocaleString('tr-TR')}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-sm border">
-              <div className="flex items-center">
-                <CreditCard className="h-8 w-8 text-red-600 bg-red-100 rounded-lg p-2" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Toplam Borç</p>
-                  <p className="text-xl font-bold text-red-600">
-                    ₺{totalStats.totalDebt.toLocaleString('tr-TR')}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-sm border">
-              <div className="flex items-center">
-                <PiggyBank className="h-8 w-8 text-blue-600 bg-blue-100 rounded-lg p-2" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Rezerve</p>
-                  <p className="text-xl font-bold text-blue-600">
-                    ₺{totalStats.totalReserved.toLocaleString('tr-TR')}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-sm border">
-              <div className="flex items-center">
-                <User className="h-8 w-8 text-purple-600 bg-purple-100 rounded-lg p-2" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Kullanıcı</p>
-                  <p className="text-xl font-bold text-purple-600">
-                    {totalStats.userCount}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Balances List */}
           <div className="bg-white rounded-lg shadow-sm border">
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                {user.role === 'academician' ? 'Bakiye Durumu' : 'Kullanıcı Bakiyeleri'}
+                Personel & Kullanıcı Bakiyeleri
               </h2>
 
-              {user.role !== 'academician' && (
-                <div className="relative mb-4">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <input
-                    type="text"
-                    placeholder="Kullanıcı adı veya e-posta ara..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              )}
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <input
+                  type="text"
+                  placeholder="Ad veya e-posta ara..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             </div>
 
             <div className="max-h-96 overflow-y-auto">
-              {filteredBalances.map((balance) => (
-                <div
-                  key={balance.id}
-                  className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
-                    selectedBalance === balance.id ? 'bg-blue-50 border-blue-200' : ''
-                  }`}
-                  onClick={() => handleBalanceSelect(balance.id)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <div className="h-10 w-10 bg-blue-500 rounded-full flex items-center justify-center mr-3">
-                        <span className="text-sm font-medium text-white">
-                          {balance.user.full_name.charAt(0).toUpperCase()}
-                        </span>
+              {filteredBalances.map((balance) => {
+                const person = balance.user || balance.personnel
+                const personType = balance.user_id ? 'user' : 'personnel'
+
+                if (!person) return null
+
+                return (
+                  <div
+                    key={balance.id}
+                    className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
+                      selectedBalance === balance.id ? 'bg-blue-50 border-blue-200' : ''
+                    }`}
+                    onClick={() => handleBalanceSelect(balance.id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <div className="h-10 w-10 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+                          <span className="text-sm font-medium text-white">
+                            {person.full_name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-gray-900">{person.full_name}</p>
+                            <PersonBadge type={personType} />
+                          </div>
+                          <p className="text-sm text-gray-600">{person.email}</p>
+                          {!person.iban && (
+                            <p className="text-xs text-red-500">IBAN eksik</p>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{balance.user.full_name}</p>
-                        <p className="text-sm text-gray-600">{balance.user.email}</p>
-                        {!balance.user.iban && (
-                          <p className="text-xs text-red-500">IBAN eksik</p>
+                      <div className="text-right">
+                        <p className="font-semibold text-green-600">
+                          ₺{balance.available_amount.toLocaleString('tr-TR')}
+                        </p>
+                        {balance.debt_amount > 0 && (
+                          <p className="text-sm text-red-600">
+                            Borç: ₺{balance.debt_amount.toLocaleString('tr-TR')}
+                          </p>
+                        )}
+                        {balance.reserved_amount > 0 && (
+                          <p className="text-sm text-blue-600">
+                            Rezerve: ₺{balance.reserved_amount.toLocaleString('tr-TR')}
+                          </p>
                         )}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-green-600">
-                        ₺{balance.available_amount.toLocaleString('tr-TR')}
-                      </p>
-                      {balance.debt_amount > 0 && (
-                        <p className="text-sm text-red-600">
-                          Borç: ₺{balance.debt_amount.toLocaleString('tr-TR')}
-                        </p>
-                      )}
-                      {balance.reserved_amount > 0 && (
-                        <p className="text-sm text-blue-600">
-                          Rezerve: ₺{balance.reserved_amount.toLocaleString('tr-TR')}
-                        </p>
-                      )}
-                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
 
             {filteredBalances.length === 0 && (
               <div className="text-center py-8">
                 <PiggyBank className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                 <p className="text-gray-600">
-                  {searchTerm ? 'Kullanıcı bulunamadı' : 'Henüz bakiye kaydı yok'}
+                  {searchTerm ? 'Kişi bulunamadı' : 'Henüz bakiye kaydı yok'}
                 </p>
               </div>
             )}
@@ -329,7 +299,7 @@ export default function BalancesPage() {
                 İşlem Geçmişi
                 {selectedBalanceData && (
                   <span className="text-sm font-normal text-gray-600 ml-2">
-                    - {selectedBalanceData.user.full_name}
+                    - {(selectedBalanceData.user || selectedBalanceData.personnel)?.full_name}
                   </span>
                 )}
               </h2>
@@ -385,7 +355,7 @@ export default function BalancesPage() {
                 <div className="text-center py-8">
                   <PiggyBank className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                   <p className="text-gray-600">
-                    İşlem geçmişini görmek için bir kullanıcı seçin
+                    İşlem geçmişini görmek için bir kişi seçin
                   </p>
                 </div>
               )}
@@ -458,10 +428,10 @@ export default function BalancesPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-900">IBAN Bilgisi</p>
                   <p className="text-sm text-gray-600">
-                    {selectedBalanceData.user.iban || 'IBAN tanımlanmamış'}
+                    {(selectedBalanceData.user || selectedBalanceData.personnel)?.iban || 'IBAN tanımlanmamış'}
                   </p>
                 </div>
-                {!selectedBalanceData.user.iban && (
+                {!(selectedBalanceData.user || selectedBalanceData.personnel)?.iban && (
                   <div className="px-3 py-1 bg-red-100 text-red-800 text-xs rounded-full">
                     IBAN Eksik
                   </div>

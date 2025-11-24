@@ -20,12 +20,13 @@ import {
   XCircle,
   AlertTriangle
 } from 'lucide-react'
+import { StatCardSkeleton, TableSkeleton, Skeleton } from '@/components/ui/skeleton'
 
 interface User {
   id: string
   full_name: string
   email: string
-  role: 'admin' | 'finance_officer' | 'academician'
+  role: 'admin' | 'manager'
 }
 
 interface PaymentInstruction {
@@ -166,12 +167,44 @@ export default function PaymentsPage() {
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Yükleniyor...</p>
+      <DashboardLayout user={user || { id: '', full_name: 'Yükleniyor...', email: '', role: 'manager' }}>
+        <div className="space-y-6">
+          {/* Header Skeleton */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <Skeleton className="h-8 w-48 mb-2" />
+              <Skeleton className="h-5 w-64" />
+            </div>
+            <Skeleton className="h-10 w-48" />
+          </div>
+
+          {/* Stat Cards Skeleton - 5 cards */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-lg shadow-sm p-4 border">
+                <div className="flex items-center">
+                  <Skeleton className="h-6 w-6 rounded" />
+                  <div className="ml-3 flex-1">
+                    <Skeleton className="h-3 w-16 mb-1" />
+                    <Skeleton className="h-5 w-12" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Filters Skeleton */}
+          <div className="bg-white rounded-lg shadow-sm border p-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Skeleton className="h-10 flex-1" />
+              <Skeleton className="h-10 w-48" />
+            </div>
+          </div>
+
+          {/* Table Skeleton */}
+          <TableSkeleton rows={8} columns={6} />
         </div>
-      </div>
+      </DashboardLayout>
     )
   }
 
@@ -183,14 +216,14 @@ export default function PaymentsPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Ödeme Talimatları</h1>
             <p className="text-gray-600">
-              {user.role === 'academician'
+              {user.role === 'manager'
                 ? 'Ödeme talimatlarınızı görüntüleyin'
                 : 'Ödeme talimatlarını görüntüleyin ve yönetin'
               }
             </p>
           </div>
 
-          {(user.role === 'admin' || user.role === 'finance_officer') && (
+          {(user.role === 'admin' || user.role === 'manager') && (
             <Link
               href="/dashboard/payments/new"
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
@@ -383,7 +416,7 @@ export default function PaymentsPage() {
                             <Eye className="h-4 w-4" />
                           </Link>
 
-                          {(user.role === 'admin' || user.role === 'finance_officer') && (
+                          {(user.role === 'admin' || user.role === 'manager') && (
                             <>
                               <Link
                                 href={`/dashboard/payments/${payment.id}/edit`}
@@ -422,7 +455,7 @@ export default function PaymentsPage() {
                   : 'İlk ödeme talimatını oluşturmak için butona tıklayın'
                 }
               </p>
-              {(user.role === 'admin' || user.role === 'finance_officer') && !searchTerm && !statusFilter && (
+              {(user.role === 'admin' || user.role === 'manager') && !searchTerm && !statusFilter && (
                 <Link
                   href="/dashboard/payments/new"
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"

@@ -27,14 +27,14 @@ interface User {
   id: string
   full_name: string
   email: string
-  role: 'admin' | 'finance_officer' | 'academician'
+  role: 'admin' | 'manager'
 }
 
 interface UserData {
   id: string
   email: string
   full_name: string
-  role: 'admin' | 'finance_officer' | 'academician'
+  role: 'admin' | 'manager'
   phone: string | null
   iban: string | null
   is_active: boolean
@@ -148,13 +148,13 @@ export default function UserDetailPage() {
           icon: Shield,
           text: 'Yönetici'
         }
-      case 'finance_officer':
+      case 'manager':
         return {
           color: 'bg-blue-100 text-blue-800',
           icon: Building2,
           text: 'Mali İşler'
         }
-      case 'academician':
+      case 'manager':
         return {
           color: 'bg-green-100 text-green-800',
           icon: GraduationCap,

@@ -12,19 +12,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
   return withAuth(request, async (req, ctx) => {
     try {
-      // Check if user has access to this project
-      if (ctx.user.role === 'academician') {
-        const { data: hasAccess } = await ctx.supabase
-          .from('project_representatives')
-          .select('id')
-          .eq('project_id', id)
-          .eq('user_id', ctx.user.id)
-          .single()
-
-        if (!hasAccess) {
-          return apiResponse.forbidden('You do not have access to this project')
-        }
-      }
+      // Note: Both admin and manager can view all projects
 
       const { data: project, error } = await ctx.supabase
         .from('projects')
@@ -33,8 +21,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           created_by_user:users!projects_created_by_fkey(full_name, email),
           representatives:project_representatives(
             id,
-            share_percentage,
-            is_lead,
+            role,
             user:users(id, full_name, email, phone, iban)
           ),
           incomes(
@@ -71,9 +58,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   const { id } = params
 
   return withAuth(request, async (req, ctx) => {
-    // Only admins and finance officers can update projects
-    if (!['admin', 'finance_officer'].includes(ctx.user.role)) {
-      return apiResponse.forbidden('Only admins and finance officers can update projects')
+    // Only admins and managers can update projects
+    if (!['admin', 'manager'].includes(ctx.user.role)) {
+      return apiResponse.forbidden('Only admins and managers can update projects')
     }
 
     try {
@@ -105,6 +92,18 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       if (body.start_date !== undefined) updateData.start_date = body.start_date
       if (body.end_date !== undefined) updateData.end_date = body.end_date
       if (body.status !== undefined) updateData.status = body.status
+      if (body.company_rate !== undefined) updateData.company_rate = body.company_rate
+      if (body.vat_rate !== undefined) updateData.vat_rate = body.vat_rate
+      if (body.referee_payment !== undefined) updateData.referee_payment = body.referee_payment
+      if (body.referee_payer !== undefined) updateData.referee_payer = body.referee_payer
+      if (body.stamp_duty_payer !== undefined) updateData.stamp_duty_payer = body.stamp_duty_payer
+      if (body.stamp_duty_amount !== undefined) updateData.stamp_duty_amount = body.stamp_duty_amount
+      if (body.contract_path !== undefined) updateData.contract_path = body.contract_path
+      if (body.has_assignment_permission !== undefined) updateData.has_assignment_permission = body.has_assignment_permission
+      if (body.assignment_document_path !== undefined) updateData.assignment_document_path = body.assignment_document_path
+      if (body.sent_to_referee !== undefined) updateData.sent_to_referee = body.sent_to_referee
+      if (body.referee_approved !== undefined) updateData.referee_approved = body.referee_approved
+      if (body.referee_approval_date !== undefined) updateData.referee_approval_date = body.referee_approval_date
 
       const { data: updatedProject, error: updateError } = await (ctx.supabase as any)
         .from('projects')
@@ -115,8 +114,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
           created_by_user:users!projects_created_by_fkey(full_name, email),
           representatives:project_representatives(
             id,
-            share_percentage,
-            is_lead,
+            role,
             user:users(id, full_name, email)
           )
         `)

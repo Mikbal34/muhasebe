@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
         .select(`
           *,
           user:users!payment_instructions_user_id_fkey(id, full_name, email, iban),
+          personnel:personnel!payment_instructions_personnel_id_fkey(id, full_name, email, iban),
           created_by_user:users!payment_instructions_created_by_fkey(full_name),
           items:payment_instruction_items(
             id,
@@ -36,11 +37,7 @@ export async function GET(request: NextRequest) {
           )
         `)
 
-      // Apply filters based on user role
-      if (ctx.user.role === 'academician') {
-        // Academicians can only see their own payment instructions
-        query = query.eq('user_id', ctx.user.id)
-      }
+
 
       // Apply filters
       if (status) {
@@ -90,14 +87,11 @@ export async function GET(request: NextRequest) {
 // POST /api/payments - Create new payment instruction
 export async function POST(request: NextRequest) {
   return withAuth(request, async (req, ctx) => {
-    // Academicians can create payment requests for themselves
-    if (ctx.user.role === 'academician') {
-      return createAcademicianPaymentRequest(req, ctx)
-    }
 
-    // Only admins and finance officers can create payment instructions for others
-    if (!['admin', 'finance_officer'].includes(ctx.user.role)) {
-      return apiResponse.forbidden('Only admins and finance officers can create payment instructions')
+
+    // Only admins and managers can create payments
+    if (!['admin', 'manager'].includes(ctx.user.role)) {
+      return apiResponse.forbidden('Only admins and managers can create payments')
     }
 
     // Validate request data
@@ -106,54 +100,91 @@ export async function POST(request: NextRequest) {
       return validation.error
     }
 
-    const { user_id, total_amount, status = 'pending', notes, items } = validation.data
+    const { user_id, personnel_id, total_amount, status = 'pending', notes, items } = validation.data
 
     try {
-      // Check if user exists and get balance info
-      const { data: user, error: userError } = await ctx.supabase
-        .from('users')
-        .select(`
-          id, full_name, email, iban, is_active,
-          balance:balances(id, available_amount, debt_amount, reserved_amount)
-        `)
-        .eq('id', user_id)
-        .single()
+      // Check if user or personnel exists and get balance info
+      let person: any = null
+      let personType: 'user' | 'personnel' = user_id ? 'user' : 'personnel'
+      let personId = user_id || personnel_id
 
-      if (userError) {
-        if (userError.code === 'PGRST116') {
-          return apiResponse.notFound('User not found')
+      if (user_id) {
+        const { data: userData, error: userError } = await ctx.supabase
+          .from('users')
+          .select(`
+            id, full_name, email, iban, is_active,
+            balance:balances!balances_user_id_fkey(id, available_amount, debt_amount, reserved_amount)
+          `)
+          .eq('id', user_id)
+          .single()
+
+        if (userError) {
+          if (userError.code === 'PGRST116') {
+            return apiResponse.notFound('User not found')
+          }
+          return apiResponse.error('Failed to check user', userError.message, 500)
         }
-        return apiResponse.error('Failed to check user', userError.message, 500)
+
+        if (!userData.is_active) {
+          return apiResponse.error('Invalid user', 'Cannot create payment instruction for inactive user', 400)
+        }
+
+        person = userData
+      } else if (personnel_id) {
+        const { data: personnelData, error: personnelError } = await ctx.supabase
+          .from('personnel')
+          .select(`
+            id, full_name, email, iban, is_active,
+            balance:balances!balances_personnel_id_fkey(id, available_amount, debt_amount, reserved_amount)
+          `)
+          .eq('id', personnel_id)
+          .single()
+
+        if (personnelError) {
+          if (personnelError.code === 'PGRST116') {
+            return apiResponse.notFound('Personnel not found')
+          }
+          return apiResponse.error('Failed to check personnel', personnelError.message, 500)
+        }
+
+        if (!personnelData.is_active) {
+          return apiResponse.error('Invalid personnel', 'Cannot create payment instruction for inactive personnel', 400)
+        }
+
+        person = personnelData
       }
 
-      if (!(user as any).is_active) {
-        return apiResponse.error('Invalid user', 'Cannot create payment instruction for inactive user', 400)
+      if (!person.iban) {
+        return apiResponse.error('Invalid recipient', `${personType === 'user' ? 'User' : 'Personnel'} must have an IBAN to receive payments`, 400)
       }
 
-      if (!(user as any).iban) {
-        return apiResponse.error('Invalid user', 'User must have an IBAN to receive payments', 400)
-      }
-
-      // Verify that all income_distribution_ids exist and belong to the user
+      // Verify that all income_distribution_ids exist and belong to the person
       for (const item of items) {
         if (item.income_distribution_id) {
-          const { data: distribution, error: distError } = await ctx.supabase
+          let distributionQuery = ctx.supabase
             .from('income_distributions')
             .select(`
               id, amount,
               income:incomes(
                 id,
                 project:projects(
-                  representatives:project_representatives!inner(user_id)
+                  representatives:project_representatives!inner(user_id, personnel_id)
                 )
               )
             `)
             .eq('id', item.income_distribution_id)
-            .eq('income.project.representatives.user_id', user_id)
-            .single()
+
+          // Filter by user_id or personnel_id
+          if (user_id) {
+            distributionQuery = distributionQuery.eq('income.project.representatives.user_id', user_id)
+          } else if (personnel_id) {
+            distributionQuery = distributionQuery.eq('income.project.representatives.personnel_id', personnel_id)
+          }
+
+          const { data: distribution, error: distError } = await distributionQuery.single()
 
           if (distError || !distribution) {
-            return apiResponse.error('Invalid income distribution', `Income distribution ${item.income_distribution_id} not found or not accessible by user`, 400)
+            return apiResponse.error('Invalid income distribution', `Income distribution ${item.income_distribution_id} not found or not accessible by ${personType}`, 400)
           }
 
           // Check if the item amount doesn't exceed the distribution amount
@@ -173,7 +204,8 @@ export async function POST(request: NextRequest) {
       const { data: payment, error: paymentError } = await (ctx.supabase as any)
         .from('payment_instructions')
         .insert({
-          user_id,
+          user_id: user_id || null,
+          personnel_id: personnel_id || null,
           total_amount,
           status,
           notes,
@@ -212,6 +244,7 @@ export async function POST(request: NextRequest) {
         .select(`
           *,
           user:users!payment_instructions_user_id_fkey(id, full_name, email, iban),
+          personnel:personnel!payment_instructions_personnel_id_fkey(id, full_name, email, iban),
           created_by_user:users!payment_instructions_created_by_fkey(full_name),
           items:payment_instruction_items(
             id,
@@ -236,19 +269,21 @@ export async function POST(request: NextRequest) {
         return apiResponse.error('Payment instruction created but failed to fetch details', fetchError.message, 500)
       }
 
-      // Create notification for the user
-      await (ctx.supabase as any).rpc('create_notification', {
-        p_user_id: user_id,
-        p_type: 'info',
-        p_title: 'Yeni Ödeme Talimatı',
-        p_message: `₺${total_amount.toLocaleString('tr-TR')} tutarında yeni ödeme talimatı oluşturuldu.`,
-        p_auto_hide: true,
-        p_duration: 8000,
-        p_action_label: 'Görüntüle',
-        p_action_url: '/dashboard/payments',
-        p_reference_type: 'payment_instruction',
-        p_reference_id: (payment as any).id
-      })
+      // Create notification (only for users, personnel don't have login accounts)
+      if (user_id) {
+        await (ctx.supabase as any).rpc('create_notification', {
+          p_user_id: user_id,
+          p_type: 'info',
+          p_title: 'Yeni Ödeme Talimatı',
+          p_message: `₺${total_amount.toLocaleString('tr-TR')} tutarında yeni ödeme talimatı oluşturuldu.`,
+          p_auto_hide: true,
+          p_duration: 8000,
+          p_action_label: 'Görüntüle',
+          p_action_url: '/dashboard/payments',
+          p_reference_type: 'payment_instruction',
+          p_reference_id: (payment as any).id
+        })
+      }
 
       return apiResponse.success(
         { payment: completePayment },

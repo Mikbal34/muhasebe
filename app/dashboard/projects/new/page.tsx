@@ -15,31 +15,32 @@ import {
   User,
   Crown
 } from 'lucide-react'
+import { MoneyInput } from '@/components/ui/money-input'
 import { useProjectNotifications } from '@/contexts/notification-context'
 import { triggerNotificationRefresh } from '@/utils/notifications'
+import { supabase } from '@/lib/supabase/client'
+import PersonPicker, { Person, PersonType } from '@/components/ui/person-picker'
+import PersonBadge from '@/components/ui/person-badge'
 
 interface User {
   id: string
   full_name: string
   email: string
-  role: 'admin' | 'finance_officer' | 'academician'
+  role: 'admin' | 'manager'
 }
 
 interface ProjectRepresentative {
-  user_id: string
-  share_percentage: number
-  is_lead: boolean
-  user?: {
-    id: string
-    full_name: string
-    email: string
-  }
+  id: string // person id (either user_id or personnel_id)
+  type: PersonType // 'user' or 'personnel'
+  user_id?: string | null
+  personnel_id?: string | null
+  role: 'project_leader' | 'researcher'
+  person: Person // full person data
 }
 
 export default function NewProjectPage() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(false)
-  const [users, setUsers] = useState<User[]>([])
   const router = useRouter()
   const { notifyProjectCreated } = useProjectNotifications()
 
@@ -52,11 +53,29 @@ export default function NewProjectPage() {
     start_date: '',
     end_date: '',
     company_rate: '10',
-    vat_rate: '18'
+    vat_rate: '18',
+    referee_payment: '0',
+    referee_payer: 'company',
+    stamp_duty_payer: 'company',
+    stamp_duty_amount: '0',
+    contract_path: '',
+    sent_to_referee: false,
+    referee_approved: false,
+    referee_approval_date: '',
+    has_assignment_permission: false,
+    assignment_document_path: ''
   })
+
+  const [contractFile, setContractFile] = useState<File | null>(null)
+  const [assignmentFile, setAssignmentFile] = useState<File | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadingAssignment, setUploadingAssignment] = useState(false)
 
   const [representatives, setRepresentatives] = useState<ProjectRepresentative[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  // State for PersonPicker
+  const [selectedPersonId, setSelectedPersonId] = useState('')
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -71,31 +90,14 @@ export default function NewProjectPage() {
       const parsedUser = JSON.parse(userData)
       setUser(parsedUser)
 
-      if (parsedUser.role !== 'admin' && parsedUser.role !== 'finance_officer') {
-        router.push('/dashboard')
+      if (!['admin', 'manager'].includes(parsedUser.role)) {
+        router.push('/dashboard/projects')
         return
       }
-
-      fetchUsers(token)
     } catch (err) {
       router.push('/login')
     }
   }, [router])
-
-  const fetchUsers = async (token: string) => {
-    try {
-      const response = await fetch('/api/users', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await response.json()
-
-      if (data.success) {
-        setUsers(data.data.users.filter((u: User) => u.role === 'academician') || [])
-      }
-    } catch (err) {
-      console.error('Failed to fetch users:', err)
-    }
-  }
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -128,51 +130,74 @@ export default function NewProjectPage() {
       newErrors.representatives = 'En az bir temsilci eklenmeli'
     }
 
-    const companyRate = parseFloat(formData.company_rate) || 0
-    const availableForAcademicians = 100 - companyRate
-    const totalPercentage = representatives.reduce((sum, rep) => sum + rep.share_percentage, 0)
-
-    if (totalPercentage !== availableForAcademicians) {
-      newErrors.representatives = `Akademisyen payları toplamı ${availableForAcademicians}% olmalı (Şirket: ${companyRate}%, Akademisyenler: ${totalPercentage}%)`
-    }
-
-    const leadCount = representatives.filter(rep => rep.is_lead).length
-    if (leadCount === 0) {
-      newErrors.representatives = 'En az bir lider temsilci seçilmeli'
+    // Check for exactly one project leader
+    const leaderCount = representatives.filter(rep => rep.role === 'project_leader').length
+    if (leaderCount === 0) {
+      newErrors.representatives = 'Bir proje yürütücüsü seçilmelidir'
+    } else if (leaderCount > 1) {
+      newErrors.representatives = 'Sadece bir proje yürütücüsü seçilmelidir'
     }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
-  const addRepresentative = (userId: string) => {
-    const user = users.find(u => u.id === userId)
-    if (!user || representatives.some(rep => rep.user_id === userId)) return
+  const addRepresentative = (personId: string, personType: PersonType, person: Person) => {
+    // Check if already added
+    if (representatives.some(rep => rep.id === personId)) return
 
+    // First representative is project_leader, rest are researchers
     const newRepresentative: ProjectRepresentative = {
-      user_id: userId,
-      share_percentage: 0,
-      is_lead: representatives.length === 0,
-      user: user
+      id: personId,
+      type: personType,
+      user_id: personType === 'user' ? personId : null,
+      personnel_id: personType === 'personnel' ? personId : null,
+      role: representatives.length === 0 ? 'project_leader' : 'researcher',
+      person: person
     }
 
     setRepresentatives([...representatives, newRepresentative])
   }
 
-  const removeRepresentative = (userId: string) => {
-    setRepresentatives(representatives.filter(rep => rep.user_id !== userId))
+  const removeRepresentative = (personId: string) => {
+    setRepresentatives(representatives.filter(rep => rep.id !== personId))
   }
 
-  const updateRepresentativeShare = (userId: string, share: number) => {
-    setRepresentatives(representatives.map(rep =>
-      rep.user_id === userId ? { ...rep, share_percentage: share } : rep
-    ))
+  const updateRepresentativeRole = (personId: string, role: 'project_leader' | 'researcher') => {
+    // If setting as project_leader, remove project_leader from others
+    if (role === 'project_leader') {
+      setRepresentatives(representatives.map(rep =>
+        rep.id === personId
+          ? { ...rep, role: 'project_leader' }
+          : { ...rep, role: 'researcher' }
+      ))
+    } else {
+      setRepresentatives(representatives.map(rep =>
+        rep.id === personId ? { ...rep, role } : rep
+      ))
+    }
   }
 
-  const toggleLeadRole = (userId: string) => {
-    setRepresentatives(representatives.map(rep =>
-      rep.user_id === userId ? { ...rep, is_lead: !rep.is_lead } : rep
-    ))
+  const handleFileUpload = async (file: File): Promise<string | null> => {
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`
+      const filePath = `${fileName}`
+
+      const { error } = await supabase.storage
+        .from('contracts')
+        .upload(filePath, file)
+
+      if (error) {
+        console.error('Upload error:', error)
+        return null
+      }
+
+      return filePath
+    } catch (error) {
+      console.error('Upload error:', error)
+      return null
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -185,6 +210,35 @@ export default function NewProjectPage() {
     setLoading(true)
 
     try {
+      let uploadedContractPath = null
+      let uploadedAssignmentPath = null
+
+      // Upload contract file if selected
+      if (contractFile) {
+        setUploading(true)
+        uploadedContractPath = await handleFileUpload(contractFile)
+        setUploading(false)
+
+        if (!uploadedContractPath) {
+          setErrors({ submit: 'Sözleşme yüklenirken bir hata oluştu' })
+          setLoading(false)
+          return
+        }
+      }
+
+      // Upload assignment document if selected and permission is granted
+      if (formData.has_assignment_permission && assignmentFile) {
+        setUploadingAssignment(true)
+        uploadedAssignmentPath = await handleFileUpload(assignmentFile)
+        setUploadingAssignment(false)
+
+        if (!uploadedAssignmentPath) {
+          setErrors({ submit: 'Görevlendirme belgesi yüklenirken bir hata oluştu' })
+          setLoading(false)
+          return
+        }
+      }
+
       const token = localStorage.getItem('token')
       const response = await fetch('/api/projects', {
         method: 'POST',
@@ -197,10 +251,20 @@ export default function NewProjectPage() {
           budget: parseFloat(formData.budget),
           company_rate: parseFloat(formData.company_rate),
           vat_rate: parseFloat(formData.vat_rate),
+          referee_payment: formData.referee_payer === 'company' ? parseFloat(formData.referee_payment) : 0,
+          referee_payer: formData.referee_payer,
+          stamp_duty_payer: formData.stamp_duty_payer,
+          stamp_duty_amount: formData.stamp_duty_payer === 'company' ? parseFloat(formData.stamp_duty_amount) : 0,
+          contract_path: uploadedContractPath,
+          sent_to_referee: formData.sent_to_referee,
+          referee_approved: formData.referee_approved,
+          referee_approval_date: formData.referee_approval_date || null,
+          has_assignment_permission: formData.has_assignment_permission,
+          assignment_document_path: uploadedAssignmentPath,
           representatives: representatives.map(rep => ({
             user_id: rep.user_id,
-            share_percentage: rep.share_percentage,
-            is_lead: rep.is_lead
+            personnel_id: rep.personnel_id,
+            role: rep.role
           }))
         })
       })
@@ -225,6 +289,9 @@ export default function NewProjectPage() {
     }
   }
 
+  // Computed values
+  const excludedPersonIds = representatives.map(rep => rep.id)
+
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -235,9 +302,6 @@ export default function NewProjectPage() {
       </div>
     )
   }
-
-  const availableUsers = users.filter(u => !representatives.some(rep => rep.user_id === u.id))
-  const totalPercentage = representatives.reduce((sum, rep) => sum + rep.share_percentage, 0)
 
   return (
     <DashboardLayout user={user}>
@@ -312,14 +376,11 @@ export default function NewProjectPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Bütçe (₺) *
                 </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
+                <MoneyInput
                   value={formData.budget}
-                  onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                  onChange={(value) => setFormData({ ...formData, budget: value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="1000000"
+                  placeholder="1.000.000"
                 />
                 {errors.budget && <p className="mt-1 text-sm text-red-600">{errors.budget}</p>}
               </div>
@@ -338,6 +399,249 @@ export default function NewProjectPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Hakem Heyeti Ödemesini Kim Yapacak?
+                </label>
+                <select
+                  value={formData.referee_payer}
+                  onChange={(e) => setFormData({ ...formData, referee_payer: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="company">Şirket (Biz)</option>
+                  <option value="client">Karşı Taraf (Müşteri)</option>
+                </select>
+              </div>
+
+              {formData.referee_payer === 'company' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Hakem Heyeti Ödemesi (₺)
+                  </label>
+                  <MoneyInput
+                    value={formData.referee_payment}
+                    onChange={(value) => setFormData({ ...formData, referee_payment: value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Damga Vergisini Kim Ödeyecek?
+                </label>
+                <select
+                  value={formData.stamp_duty_payer}
+                  onChange={(e) => setFormData({ ...formData, stamp_duty_payer: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="company">Şirket (Biz)</option>
+                  <option value="client">Karşı Taraf (Müşteri)</option>
+                </select>
+              </div>
+
+              {formData.stamp_duty_payer === 'company' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Damga Vergisi Tutarı (₺)
+                  </label>
+                  <MoneyInput
+                    value={formData.stamp_duty_amount}
+                    onChange={(value) => setFormData({ ...formData, stamp_duty_amount: value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Bu tutar ilk hakedişte şirket payından düşülecektir.
+                  </p>
+                </div>
+              )}
+
+              {/* Hakem Heyeti Bilgileri */}
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Hakem Heyeti Durumu</h3>
+
+                <div className="space-y-4">
+                  <div className="flex items-center">
+                    <input
+                      id="sent_to_referee"
+                      type="checkbox"
+                      checked={formData.sent_to_referee}
+                      onChange={(e) => setFormData({ ...formData, sent_to_referee: e.target.checked })}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="sent_to_referee" className="ml-2 block text-sm text-gray-900">
+                      Hakem heyetine gönderildi
+                    </label>
+                  </div>
+
+                  <div className="flex items-center">
+                    <input
+                      id="referee_approved"
+                      type="checkbox"
+                      checked={formData.referee_approved}
+                      onChange={(e) => setFormData({ ...formData, referee_approved: e.target.checked })}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="referee_approved" className="ml-2 block text-sm text-gray-900">
+                      Hakem heyeti onayı alındı
+                    </label>
+                  </div>
+
+                  {formData.referee_approved && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Onay Tarihi
+                      </label>
+                      <input
+                        type="date"
+                        value={formData.referee_approval_date}
+                        onChange={(e) => setFormData({ ...formData, referee_approval_date: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  )}
+
+                  <p className="text-sm text-gray-600">
+                    ⚠️ Hakem heyeti onayı olmadan gelir kaydı yapılamaz.
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Sözleşme (PDF)
+                </label>
+                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-blue-400 transition-colors">
+                  <div className="space-y-1 text-center">
+                    <FileText className="mx-auto h-12 w-12 text-gray-400" />
+                    <div className="flex text-sm text-gray-600">
+                      <label
+                        htmlFor="file-upload"
+                        className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
+                      >
+                        <span>Dosya Seç</span>
+                        <input
+                          id="file-upload"
+                          name="file-upload"
+                          type="file"
+                          className="sr-only"
+                          accept=".pdf"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              if (file.type !== 'application/pdf') {
+                                setErrors({ ...errors, file: 'Sadece PDF dosyaları yüklenebilir' })
+                                return
+                              }
+                              setContractFile(file)
+                              setErrors({ ...errors, file: '' })
+                            }
+                          }}
+                        />
+                      </label>
+                      <p className="pl-1">veya sürükleyip bırakın</p>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      PDF (max 10MB)
+                    </p>
+                    {contractFile && (
+                      <p className="text-sm text-green-600 font-medium mt-2">
+                        Seçilen dosya: {contractFile.name}
+                      </p>
+                    )}
+                    {errors.file && (
+                      <p className="text-sm text-red-600 mt-2">
+                        {errors.file}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Akademisyen Görevlendirme İzni */}
+              <div className="md:col-span-2">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <div className="flex items-start space-x-3">
+                    <input
+                      id="assignment-permission"
+                      type="checkbox"
+                      checked={formData.has_assignment_permission}
+                      onChange={(e) => setFormData({ ...formData, has_assignment_permission: e.target.checked })}
+                      className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="assignment-permission" className="block text-sm font-medium text-gray-700">
+                      Akademisyen görevlendirme izni var mı?
+                      <p className="text-xs text-gray-500 font-normal mt-1">
+                        Eğer işaretlenirse, görevlendirme belgesi yükleme alanı görünecektir.
+                      </p>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Görevlendirme Belgesi Upload - Sadece izin varsa görünür */}
+              {formData.has_assignment_permission && (
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Görevlendirme Yazısı (PDF)
+                  </label>
+                  <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-blue-400 transition-colors">
+                    <div className="space-y-1 text-center">
+                      <FileText className="mx-auto h-12 w-12 text-gray-400" />
+                      <div className="flex text-sm text-gray-600">
+                        <label
+                          htmlFor="assignment-upload"
+                          className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
+                        >
+                          <span>Dosya Seç</span>
+                          <input
+                            id="assignment-upload"
+                            name="assignment-upload"
+                            type="file"
+                            className="sr-only"
+                            accept=".pdf"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0]
+                              if (file) {
+                                if (file.type !== 'application/pdf') {
+                                  setErrors({ ...errors, assignmentFile: 'Sadece PDF dosyaları yüklenebilir' })
+                                  return
+                                }
+                                if (file.size > 10 * 1024 * 1024) {
+                                  setErrors({ ...errors, assignmentFile: 'Dosya boyutu 10MB\'dan küçük olmalı' })
+                                  return
+                                }
+                                setAssignmentFile(file)
+                                setErrors({ ...errors, assignmentFile: '' })
+                              }
+                            }}
+                          />
+                        </label>
+                        <p className="pl-1">veya sürükleyip bırakın</p>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        PDF (max 10MB)
+                      </p>
+                      {assignmentFile && (
+                        <p className="text-sm text-green-600 font-medium mt-2">
+                          Seçilen dosya: {assignmentFile.name}
+                        </p>
+                      )}
+                      {errors.assignmentFile && (
+                        <p className="text-sm text-red-600 mt-2">
+                          {errors.assignmentFile}
+                        </p>
+                      )}
+                      {uploadingAssignment && (
+                        <p className="text-sm text-blue-600 mt-2">
+                          Yükleniyor...
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -375,72 +679,52 @@ export default function NewProjectPage() {
             </h2>
 
             {/* Add Representative */}
-            {availableUsers.length > 0 && (
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Temsilci Ekle
-                </label>
-                <select
-                  onChange={(e) => e.target.value && addRepresentative(e.target.value)}
-                  value=""
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Bir akademisyen seçin...</option>
-                  {availableUsers.map(user => (
-                    <option key={user.id} value={user.id}>
-                      {user.full_name} - {user.email}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+            <div className="mb-6">
+              <PersonPicker
+                value={selectedPersonId}
+                onChange={(personId, personType, person) => {
+                  addRepresentative(personId, personType, person)
+                  setSelectedPersonId('') // Reset after adding
+                }}
+                excludeIds={excludedPersonIds}
+                label="Temsilci Ekle"
+                placeholder="Bir kullanıcı veya personel seçin..."
+                required={false}
+              />
+            </div>
 
             {/* Representatives List */}
             <div className="space-y-4">
               {representatives.map((rep) => (
-                <div key={rep.user_id} className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
+                <div key={rep.id} className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <div className="flex items-center">
-                      {rep.is_lead && (
-                        <Crown className="h-4 w-4 text-yellow-500 mr-1" />
+                      {rep.role === 'project_leader' && (
+                        <Crown className="h-5 w-5 text-yellow-500 mr-2" />
                       )}
                       <div>
-                        <p className="font-medium text-gray-900">{rep.user?.full_name}</p>
-                        <p className="text-sm text-gray-600">{rep.user?.email}</p>
+                        <div className="flex items-center space-x-2">
+                          <p className="font-medium text-gray-900">{rep.person.full_name}</p>
+                          <PersonBadge type={rep.type} size="sm" />
+                        </div>
+                        <p className="text-sm text-gray-600">{rep.person.email}</p>
                       </div>
                     </div>
                   </div>
 
                   <div className="flex items-center space-x-3">
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.01"
-                        value={rep.share_percentage}
-                        onChange={(e) => updateRepresentativeShare(rep.user_id, parseFloat(e.target.value) || 0)}
-                        className="w-20 px-2 py-1 border border-gray-300 rounded text-center"
-                        placeholder="0"
-                      />
-                      <span className="text-sm text-gray-500">%</span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => toggleLeadRole(rep.user_id)}
-                      className={`px-3 py-1 rounded text-xs font-medium ${
-                        rep.is_lead
-                          ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
+                    <select
+                      value={rep.role}
+                      onChange={(e) => updateRepresentativeRole(rep.id, e.target.value as 'project_leader' | 'researcher')}
+                      className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      {rep.is_lead ? 'Lider' : 'Lider Yap'}
-                    </button>
+                      <option value="project_leader">🏆 Proje Yürütücüsü</option>
+                      <option value="researcher">🔬 Araştırmacı</option>
+                    </select>
 
                     <button
                       type="button"
-                      onClick={() => removeRepresentative(rep.user_id)}
+                      onClick={() => removeRepresentative(rep.id)}
                       className="p-1 text-red-600 hover:bg-red-50 rounded"
                     >
                       <X className="h-4 w-4" />
@@ -453,15 +737,10 @@ export default function NewProjectPage() {
             {representatives.length > 0 && (
               <div className="mt-4 p-3 bg-blue-50 rounded-lg">
                 <p className="text-sm font-medium text-blue-900">
-                  Şirket Komisyonu: {formData.company_rate}% | Akademisyenler: {totalPercentage}%
-                  {totalPercentage !== (100 - parseFloat(formData.company_rate || '0')) && (
-                    <span className="text-red-600 ml-2">
-                      ({100 - parseFloat(formData.company_rate || '0')}% olmalı)
-                    </span>
-                  )}
+                  Şirket Komisyonu: {formData.company_rate}%
                 </p>
                 <p className="text-xs text-blue-700 mt-1">
-                  * Toplam: {parseFloat(formData.company_rate || '0') + totalPercentage}% (100% olmalı)
+                  * Bakiye dağıtımı manuel olarak yapılacaktır
                 </p>
               </div>
             )}

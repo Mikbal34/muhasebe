@@ -16,12 +16,13 @@ import {
   Filter,
   RefreshCw
 } from 'lucide-react'
+import { StatCardSkeleton, ChartSkeleton, Skeleton } from '@/components/ui/skeleton'
 
 interface User {
   id: string
   full_name: string
   email: string
-  role: 'admin' | 'finance_officer' | 'academician'
+  role: 'admin' | 'manager'
 }
 
 interface ReportData {
@@ -52,7 +53,7 @@ export default function ReportsPage() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(false)
   const [reportData, setReportData] = useState<ReportData | null>(null)
-  const [reportType, setReportType] = useState<'project' | 'academician' | 'company' | 'payments'>('company')
+  const [reportType, setReportType] = useState<'project' | 'manager' | 'company' | 'payments'>('company')
   const [dateRange, setDateRange] = useState({
     start_date: '',
     end_date: ''
@@ -73,7 +74,7 @@ export default function ReportsPage() {
       setUser(parsedUser)
 
       // Only admin and finance officers can access reports
-      if (!['admin', 'finance_officer'].includes(parsedUser.role)) {
+      if (!['admin', 'manager'].includes(parsedUser.role)) {
         router.push('/dashboard')
         return
       }
@@ -125,22 +126,47 @@ export default function ReportsPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Yükleniyor...</p>
+      <DashboardLayout user={{ id: '', full_name: 'Yükleniyor...', email: '', role: 'admin' }}>
+        <div className="space-y-6">
+          {/* Header Skeleton */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <Skeleton className="h-8 w-32 mb-2" />
+              <Skeleton className="h-5 w-96" />
+            </div>
+          </div>
+
+          {/* Report Controls Skeleton */}
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <Skeleton className="h-6 w-48 mb-4" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i}>
+                  <Skeleton className="h-4 w-32 mb-1" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              ))}
+            </div>
+            <Skeleton className="h-10 w-32" />
+          </div>
+
+          {/* Report Data Skeleton */}
+          <div className="space-y-6">
+            <StatCardSkeleton count={4} />
+            <ChartSkeleton height="h-96" />
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     )
   }
 
-  if (!['admin', 'finance_officer'].includes(user.role)) {
+  if (!['admin', 'manager'].includes(user.role)) {
     return (
       <DashboardLayout user={user}>
         <div className="text-center py-12">
           <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">Erişim Yetkisi Yok</h3>
-          <p className="text-gray-600">Bu sayfaya sadece yöneticiler ve mali işler personeli erişebilir.</p>
+          <p className="text-gray-600">Bu sayfaya sadece yöneticiler erişebilir.</p>
         </div>
       </DashboardLayout>
     )
@@ -357,7 +383,7 @@ export default function ReportsPage() {
                   </>
                 )}
 
-                {reportType === 'academician' && (
+                {reportType === 'manager' && (
                   <>
                     <div className="bg-white p-6 rounded-lg shadow-sm border">
                       <div className="flex items-center">
@@ -406,7 +432,7 @@ export default function ReportsPage() {
                   <h2 className="text-lg font-semibold text-gray-900">
                     {reportType === 'company' && 'Şirket Detay Raporu'}
                     {reportType === 'project' && 'Proje Detay Raporu'}
-                    {reportType === 'academician' && 'Akademisyen Detay Raporu'}
+                    {reportType === 'manager' && 'Akademisyen Detay Raporu'}
                     {reportType === 'payments' && 'Ödeme Detay Raporu'}
                   </h2>
                   <button
@@ -519,8 +545,8 @@ export default function ReportsPage() {
                                 </p>
                                 <p className="text-sm text-gray-600">
                                   {project.status === 'active' ? 'Aktif' :
-                                   project.status === 'completed' ? 'Tamamlandı' :
-                                   project.status === 'cancelled' ? 'İptal' : project.status}
+                                    project.status === 'completed' ? 'Tamamlandı' :
+                                      project.status === 'cancelled' ? 'İptal' : project.status}
                                 </p>
                               </div>
                             </div>
@@ -529,7 +555,7 @@ export default function ReportsPage() {
                       </div>
                     )}
 
-                    {reportType === 'academician' && reportData.academicians && (
+                    {reportType === 'manager' && reportData.academicians && (
                       <div>
                         <h3 className="text-md font-medium text-gray-900 mb-3">Akademisyen Detayları</h3>
                         <div className="space-y-2">
@@ -567,8 +593,8 @@ export default function ReportsPage() {
                                 </p>
                                 <p className="text-sm text-gray-600">
                                   {payment.status === 'pending' ? 'Bekliyor' :
-                                   payment.status === 'completed' ? 'Tamamlandı' :
-                                   payment.status === 'cancelled' ? 'İptal' : payment.status}
+                                    payment.status === 'completed' ? 'Tamamlandı' :
+                                      payment.status === 'cancelled' ? 'İptal' : payment.status}
                                 </p>
                               </div>
                             </div>

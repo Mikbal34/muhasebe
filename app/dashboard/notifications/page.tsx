@@ -15,12 +15,13 @@ import {
   Calendar,
   Eye
 } from 'lucide-react'
+import { NotificationCardSkeleton, Skeleton } from '@/components/ui/skeleton'
 
 interface User {
   id: string
   full_name: string
   email: string
-  role: 'admin' | 'finance_officer' | 'academician'
+  role: 'admin' | 'manager'
 }
 
 export default function NotificationsPage() {
@@ -114,12 +115,41 @@ export default function NotificationsPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Yükleniyor...</p>
+      <DashboardLayout user={{ id: '', full_name: 'Yükleniyor...', email: '', role: 'manager' }}>
+        <div className="space-y-6">
+          {/* Header Skeleton */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <Skeleton className="h-8 w-48 mb-2" />
+              <Skeleton className="h-5 w-64" />
+            </div>
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-10 w-48" />
+              <Skeleton className="h-10 w-32" />
+            </div>
+          </div>
+
+          {/* Filters Skeleton */}
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Skeleton className="h-4 w-20 mb-2" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+              <div>
+                <Skeleton className="h-4 w-20 mb-2" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+              <div className="flex items-end">
+                <Skeleton className="h-4 w-32" />
+              </div>
+            </div>
+          </div>
+
+          {/* Notifications List Skeleton */}
+          <NotificationCardSkeleton count={6} />
         </div>
-      </div>
+      </DashboardLayout>
     )
   }
 
@@ -240,9 +270,8 @@ export default function NotificationsPage() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-1">
-                          <h4 className={`text-lg font-medium ${
-                            !notification.read ? 'text-gray-900' : 'text-gray-700'
-                          }`}>
+                          <h4 className={`text-lg font-medium ${!notification.read ? 'text-gray-900' : 'text-gray-700'
+                            }`}>
                             {notification.title}
                           </h4>
                           {!notification.read && (
@@ -266,15 +295,14 @@ export default function NotificationsPage() {
                             })}
                           </div>
 
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            notification.type === 'success' ? 'bg-green-100 text-green-800' :
-                            notification.type === 'error' ? 'bg-red-100 text-red-800' :
-                            notification.type === 'warning' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-blue-100 text-blue-800'
-                          }`}>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${notification.type === 'success' ? 'bg-green-100 text-green-800' :
+                              notification.type === 'error' ? 'bg-red-100 text-red-800' :
+                                notification.type === 'warning' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-blue-100 text-blue-800'
+                            }`}>
                             {notification.type === 'success' ? 'Başarılı' :
-                             notification.type === 'error' ? 'Hata' :
-                             notification.type === 'warning' ? 'Uyarı' : 'Bilgi'}
+                              notification.type === 'error' ? 'Hata' :
+                                notification.type === 'warning' ? 'Uyarı' : 'Bilgi'}
                           </span>
                         </div>
 

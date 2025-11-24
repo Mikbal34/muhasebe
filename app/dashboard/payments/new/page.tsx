@@ -16,16 +16,18 @@ import {
   Wallet
 } from 'lucide-react'
 import { usePaymentNotifications } from '@/contexts/notification-context'
+import PersonBadge from '@/components/ui/person-badge'
 
 interface User {
   id: string
   full_name: string
   email: string
-  role: 'admin' | 'finance_officer' | 'academician'
+  role: 'admin' | 'manager'
 }
 
-interface UserWithBalance {
+interface PersonWithBalance {
   id: string
+  type: 'user' | 'personnel'
   full_name: string
   email: string
   iban: string | null
@@ -63,13 +65,14 @@ interface PaymentItem {
 export default function NewPaymentPage() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(false)
-  const [users, setUsers] = useState<UserWithBalance[]>([])
+  const [people, setPeople] = useState<PersonWithBalance[]>([])
   const [availableDistributions, setAvailableDistributions] = useState<IncomeDistribution[]>([])
   const router = useRouter()
   const { notifyPaymentCreated } = usePaymentNotifications()
 
   const [formData, setFormData] = useState({
-    user_id: '',
+    person_id: '',  // Will hold either user_id or personnel_id
+    person_type: '' as 'user' | 'personnel' | '',
     notes: ''
   })
 
@@ -89,81 +92,63 @@ export default function NewPaymentPage() {
       const parsedUser = JSON.parse(userData)
       setUser(parsedUser)
 
-      if (parsedUser.role !== 'admin' && parsedUser.role !== 'finance_officer') {
+      if (parsedUser.role !== 'admin' && parsedUser.role !== 'manager') {
         router.push('/dashboard')
         return
       }
 
-      fetchUsersWithBalances(token)
+      fetchPeopleWithBalances(token)
     } catch (err) {
       router.push('/login')
     }
   }, [router])
 
   useEffect(() => {
-    if (formData.user_id) {
-      fetchAvailableDistributions(formData.user_id)
+    if (formData.person_id && formData.person_type) {
+      fetchAvailableDistributions(formData.person_id, formData.person_type)
     } else {
       setAvailableDistributions([])
       setSelectedItems([])
     }
-  }, [formData.user_id])
+  }, [formData.person_id, formData.person_type])
 
-  const fetchUsersWithBalances = async (token: string) => {
+  const fetchPeopleWithBalances = async (token: string) => {
     try {
-      // Fetch all users with academician role
-      const response = await fetch('/api/users?role=academician', {
+      // Fetch balances (includes both users and personnel)
+      const balanceResponse = await fetch('/api/balances', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
-      const data = await response.json()
+      const balanceData = await balanceResponse.json()
 
-      if (data.success) {
-        const usersWithBalances = data.data.users
-          .map((user: any) => ({
-            id: user.id,
-            full_name: user.full_name,
-            email: user.email,
-            iban: user.iban,
-            balance: 0 // Will be updated if balance exists
-          }))
+      if (balanceData.success) {
+        // Map balances to people with balances
+        const peopleWithBalances: PersonWithBalance[] = balanceData.data.balances
+          .map((balance: any) => {
+            const person = balance.user || balance.personnel
+            if (!person) return null
 
-        // Now fetch balances to update the balance info
-        const balanceResponse = await fetch('/api/balances', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-        const balanceData = await balanceResponse.json()
-
-        if (balanceData.success) {
-          // Update balance info for users who have balances
-          balanceData.data.balances.forEach((balance: any) => {
-            const user = usersWithBalances.find((u: any) => u.id === balance.user.id)
-            if (user) {
-              user.balance = balance.available_amount || 0
+            return {
+              id: person.id,
+              type: balance.user_id ? 'user' as const : 'personnel' as const,
+              full_name: person.full_name,
+              email: person.email,
+              iban: person.iban,
+              balance: balance.available_amount || 0
             }
           })
-        }
+          .filter((p: any) => p !== null && p.balance > 0) // Only show people with balance > 0
 
-        setUsers(usersWithBalances)
+        setPeople(peopleWithBalances)
       }
     } catch (err) {
-      console.error('Failed to fetch users with balances:', err)
+      console.error('Failed to fetch people with balances:', err)
     }
   }
 
-  const fetchAvailableDistributions = async (userId: string) => {
-    try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(`/api/income-distributions?user_id=${userId}&unpaid_only=true`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await response.json()
-
-      if (data.success) {
-        setAvailableDistributions(data.data.distributions || [])
-      }
-    } catch (err) {
-      console.error('Failed to fetch distributions:', err)
-    }
+  const fetchAvailableDistributions = async (personId: string, personType: 'user' | 'personnel') => {
+    // For manual allocation system, we don't fetch income distributions
+    // Users can only create manual payments based on their available balance
+    setAvailableDistributions([])
   }
 
   const toggleDistributionSelection = (distribution: IncomeDistribution) => {
@@ -220,27 +205,29 @@ export default function NewPaymentPage() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
 
-    if (!formData.user_id) {
-      newErrors.user_id = 'Alıcı seçimi gerekli'
+    if (!formData.person_id) {
+      newErrors.person_id = 'Alıcı seçimi gerekli'
     }
 
     if (selectedItems.length === 0) {
-      newErrors.items = 'En az bir gelir dağıtımı seçilmeli'
+      newErrors.items = 'En az bir ödeme kalemi eklenme gerekli'
+    }
+
+    const selectedPerson = people.find(p => p.id === formData.person_id)
+    const totalAmount = selectedItems.reduce((sum, item) => sum + item.amount, 0)
+
+    if (selectedPerson && totalAmount > selectedPerson.balance) {
+      newErrors.total = `Toplam tutar kullanılabilir bakiyeden (₺${selectedPerson.balance.toLocaleString('tr-TR')}) fazla olamaz`
     }
 
     selectedItems.forEach((item, index) => {
-      const distribution = availableDistributions.find(d => d.id === item.income_distribution_id)
-      if (distribution && item.amount > distribution.amount) {
-        newErrors[`item_${index}`] = 'Tutar mevcut bakiyeden fazla olamaz'
-      }
       if (item.amount <= 0) {
         newErrors[`item_${index}`] = 'Tutar sıfırdan büyük olmalı'
       }
     })
 
-    const selectedUser = users.find(u => u.id === formData.user_id)
-    if (selectedUser && !selectedUser.iban) {
-      newErrors.iban = 'Seçilen kullanıcının IBAN bilgisi eksik'
+    if (selectedPerson && !selectedPerson.iban) {
+      newErrors.iban = 'Seçilen kişinin IBAN bilgisi eksik'
     }
 
     setErrors(newErrors)
@@ -265,7 +252,8 @@ export default function NewPaymentPage() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          user_id: formData.user_id,
+          user_id: formData.person_type === 'user' ? formData.person_id : null,
+          personnel_id: formData.person_type === 'personnel' ? formData.person_id : null,
           notes: formData.notes.trim() || null,
           items: selectedItems
         })
@@ -302,7 +290,7 @@ export default function NewPaymentPage() {
     )
   }
 
-  const selectedUser = users.find(u => u.id === formData.user_id)
+  const selectedPerson = people.find(p => p.id === formData.person_id)
   const totalAmount = selectedItems.reduce((sum, item) => sum + item.amount, 0)
 
   return (
@@ -338,34 +326,51 @@ export default function NewPaymentPage() {
                   Alıcı *
                 </label>
                 <select
-                  value={formData.user_id}
-                  onChange={(e) => setFormData({ ...formData, user_id: e.target.value })}
+                  value={formData.person_id}
+                  onChange={(e) => {
+                    const personId = e.target.value
+                    const person = people.find(p => p.id === personId)
+                    setFormData({
+                      ...formData,
+                      person_id: personId,
+                      person_type: person?.type || ''
+                    })
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   <option value="">Alıcı seçiniz...</option>
-                  {users.map(user => (
-                    <option key={user.id} value={user.id}>
-                      {user.full_name} - ₺{user.balance.toLocaleString('tr-TR', { maximumFractionDigits: 2 })} bakiye
+                  {people.map(person => (
+                    <option key={person.id} value={person.id}>
+                      {person.full_name} ({person.type === 'user' ? 'Kullanıcı' : 'Personel'}) - ₺{person.balance.toLocaleString('tr-TR', { maximumFractionDigits: 2 })} bakiye
                     </option>
                   ))}
                 </select>
-                {errors.user_id && <p className="mt-1 text-sm text-red-600">{errors.user_id}</p>}
+                {errors.person_id && <p className="mt-1 text-sm text-red-600">{errors.person_id}</p>}
               </div>
 
-              {selectedUser && (
+              {selectedPerson && (
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <p className="text-sm font-medium text-blue-700">Alıcı Bilgileri</p>
-                      <p className="text-blue-900">{selectedUser.full_name}</p>
-                      <p className="text-sm text-blue-700">{selectedUser.email}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-blue-900">{selectedPerson.full_name}</p>
+                        <PersonBadge type={selectedPerson.type} size="sm" />
+                      </div>
+                      <p className="text-sm text-blue-700">{selectedPerson.email}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-blue-700">Mevcut Bakiye</p>
+                      <p className="text-lg font-bold text-blue-900">
+                        ₺{selectedPerson.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-blue-700">IBAN</p>
                       <p className="text-blue-900 font-mono text-sm">
-                        {selectedUser.iban || 'IBAN bilgisi yok'}
+                        {selectedPerson.iban || 'IBAN bilgisi yok'}
                       </p>
-                      {!selectedUser.iban && (
+                      {!selectedPerson.iban && (
                         <p className="text-red-600 text-sm">⚠️ IBAN bilgisi eksik</p>
                       )}
                     </div>
@@ -374,6 +379,7 @@ export default function NewPaymentPage() {
               )}
 
               {errors.iban && <p className="text-sm text-red-600">{errors.iban}</p>}
+              {errors.total && <p className="text-sm text-red-600">{errors.total}</p>}
             </div>
           </div>
 
@@ -472,7 +478,7 @@ export default function NewPaymentPage() {
           )}
 
           {/* Manual Payment Items */}
-          {formData.user_id && (
+          {formData.person_id && (
             <div className="bg-white rounded-lg shadow-sm border p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold text-gray-900 flex items-center">

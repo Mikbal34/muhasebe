@@ -1,6 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 
 export interface Notification {
   id: string
@@ -35,9 +36,13 @@ interface NotificationProviderProps {
 }
 
 export function NotificationProvider({ children }: NotificationProviderProps) {
+  const pathname = usePathname()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [isLoaded, setIsLoaded] = useState(false)
+
+  // Don't fetch notifications on auth pages
+  const isAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/'
 
   const addNotification = useCallback((notificationData: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
     const notification: Notification = {
@@ -156,14 +161,27 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
   // Load notifications from database on mount
   const fetchNotifications = useCallback(async () => {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      // No token, don't attempt to fetch and don't log errors
+      return
+    }
+
     try {
-      const token = localStorage.getItem('token')
-      if (!token) {
-        return
-      }
       const response = await fetch('/api/notifications', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
+
+      // If unauthorized, silently return (user might be logged out)
+      if (!response.ok) {
+        if (response.status === 401) {
+          // Token might be invalid, silently return
+          return
+        }
+        console.error('Failed to fetch notifications:', response.statusText)
+        return
+      }
+
       const data = await response.json()
 
       if (data.success) {
@@ -183,60 +201,67 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         }))
 
         // Use functional updates to avoid race conditions
-        setNotifications(prev => dbNotifications)
-        setUnreadCount(prev => data.data.unreadCount)
-        setIsLoaded(prev => true)
+        setNotifications(dbNotifications)
+        setUnreadCount(data.data.unreadCount)
+        setIsLoaded(true)
       }
     } catch (err) {
-      console.error('Failed to fetch notifications:', err)
+      // Network errors or other issues - silently ignore
+      // This prevents console spam on login page
     }
   }, []) // Empty dependency array is correct
 
   useEffect(() => {
+    // Don't fetch notifications on auth pages
+    if (isAuthPage) {
+      return
+    }
+
     // Clear localStorage notifications to avoid confusion
     localStorage.removeItem('notifications')
 
-    // Only fetch once per mount
-    if (!isLoaded) {
+    // Only fetch if token exists
+    const token = localStorage.getItem('token')
+    if (token && !isLoaded) {
       fetchNotifications()
     }
-  }, [isLoaded]) // Watch isLoaded to prevent double fetch
-
-  // Also listen for token changes (when user logs in)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const token = localStorage.getItem('token')
-      if (token && !isLoaded) {
-        fetchNotifications()
-      }
-    }, 1000) // Check every second
-
-    return () => clearInterval(interval)
-  }, [isLoaded, fetchNotifications])
+  }, [isLoaded, isAuthPage])
 
   // Periodic refresh for new notifications (every 30 seconds)
+  // Only run if user is authenticated and not on auth pages
   useEffect(() => {
-    if (!isLoaded) return
+    // Don't run on auth pages
+    if (isAuthPage) {
+      return
+    }
+
+    const token = localStorage.getItem('token')
+    if (!token) return // Don't start interval if no token
 
     const interval = setInterval(() => {
-      const token = localStorage.getItem('token')
-      if (token) {
+      const currentToken = localStorage.getItem('token')
+      if (currentToken) {
         fetchNotifications()
       }
     }, 30000) // Check every 30 seconds
 
     return () => clearInterval(interval)
-  }, [isLoaded, fetchNotifications])
+  }, [isAuthPage])
 
   // Listen for custom refresh events (triggered by API success)
   useEffect(() => {
+    // Don't listen on auth pages
+    if (isAuthPage) {
+      return
+    }
+
     const handleRefresh = () => {
       fetchNotifications()
     }
 
     window.addEventListener('refreshNotifications', handleRefresh)
     return () => window.removeEventListener('refreshNotifications', handleRefresh)
-  }, [fetchNotifications])
+  }, [isAuthPage, fetchNotifications])
 
   return (
     <NotificationContext.Provider value={{

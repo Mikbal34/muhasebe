@@ -34,10 +34,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         return apiResponse.error('Failed to check balance', balanceError.message, 500)
       }
 
-      // Check access permissions
-      if (ctx.user.role === 'academician' && (balance as any).user_id !== ctx.user.id) {
-        return apiResponse.forbidden('You can only view your own balance transactions')
-      }
+      // Note: Both admin and manager can view all balance transactions
 
       let query = ctx.supabase
         .from('balance_transactions')

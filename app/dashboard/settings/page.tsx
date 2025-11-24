@@ -21,7 +21,7 @@ interface User {
   id: string
   full_name: string
   email: string
-  role: 'admin' | 'finance_officer' | 'academician'
+  role: 'admin' | 'manager'
 }
 
 interface SystemSettings {
@@ -239,7 +239,7 @@ export default function SettingsPage() {
 
   // Show different settings based on user role
   const isAdmin = user.role === 'admin'
-  const isFinanceOfficer = user.role === 'finance_officer'
+  const isManager = user.role === 'manager'
 
   return (
     <DashboardLayout user={user}>
@@ -253,8 +253,8 @@ export default function SettingsPage() {
             </h1>
             <p className="text-gray-600">
               {isAdmin ? 'Sistem geneli konfigürasyon ayarları' :
-               isFinanceOfficer ? 'Mali işler ve bildirim ayarları' :
-               'Bildirim ve kişisel ayarlar'}
+                isManager ? 'Mali işler ve bildirim ayarları' :
+                  'Bildirim ve kişisel ayarlar'}
             </p>
           </div>
 
@@ -306,180 +306,175 @@ export default function SettingsPage() {
 
         {/* Company Settings - Admin Only */}
         {isAdmin && (
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-              <Users className="h-5 w-5 mr-2 text-blue-600" />
-              Şirket Bilgileri
-            </h2>
-            <p className="text-gray-600 text-sm mt-1">Organizasyon bilgileri ve iletişim detayları</p>
-          </div>
-          <div className="p-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Şirket Adı
-                </label>
-                <input
-                  type="text"
-                  value={settings.company.name}
-                  onChange={(e) => handleInputChange('company', 'name', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors['company.name'] ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                />
-                {errors['company.name'] && (
-                  <p className="text-red-600 text-sm mt-1">{errors['company.name']}</p>
-                )}
-              </div>
+          <div className="bg-white rounded-lg shadow-sm border">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+                <Users className="h-5 w-5 mr-2 text-blue-600" />
+                Şirket Bilgileri
+              </h2>
+              <p className="text-gray-600 text-sm mt-1">Organizasyon bilgileri ve iletişim detayları</p>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Şirket Adı
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.company.name}
+                    onChange={(e) => handleInputChange('company', 'name', e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors['company.name'] ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                  />
+                  {errors['company.name'] && (
+                    <p className="text-red-600 text-sm mt-1">{errors['company.name']}</p>
+                  )}
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Vergi Numarası
-                </label>
-                <input
-                  type="text"
-                  value={settings.company.tax_number}
-                  onChange={(e) => handleInputChange('company', 'tax_number', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors['company.tax_number'] ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                />
-                {errors['company.tax_number'] && (
-                  <p className="text-red-600 text-sm mt-1">{errors['company.tax_number']}</p>
-                )}
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Vergi Numarası
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.company.tax_number}
+                    onChange={(e) => handleInputChange('company', 'tax_number', e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors['company.tax_number'] ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                  />
+                  {errors['company.tax_number'] && (
+                    <p className="text-red-600 text-sm mt-1">{errors['company.tax_number']}</p>
+                  )}
+                </div>
 
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Adres
-                </label>
-                <textarea
-                  value={settings.company.address}
-                  onChange={(e) => handleInputChange('company', 'address', e.target.value)}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Adres
+                  </label>
+                  <textarea
+                    value={settings.company.address}
+                    onChange={(e) => handleInputChange('company', 'address', e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Telefon
-                </label>
-                <input
-                  type="text"
-                  value={settings.company.phone}
-                  onChange={(e) => handleInputChange('company', 'phone', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Telefon
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.company.phone}
+                    onChange={(e) => handleInputChange('company', 'phone', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  E-posta
-                </label>
-                <input
-                  type="email"
-                  value={settings.company.email}
-                  onChange={(e) => handleInputChange('company', 'email', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors['company.email'] ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                />
-                {errors['company.email'] && (
-                  <p className="text-red-600 text-sm mt-1">{errors['company.email']}</p>
-                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    E-posta
+                  </label>
+                  <input
+                    type="email"
+                    value={settings.company.email}
+                    onChange={(e) => handleInputChange('company', 'email', e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors['company.email'] ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                  />
+                  {errors['company.email'] && (
+                    <p className="text-red-600 text-sm mt-1">{errors['company.email']}</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
         )}
 
-        {/* Financial Settings - Admin and Finance Officer */}
-        {(isAdmin || isFinanceOfficer) && (
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-              <DollarSign className="h-5 w-5 mr-2 text-green-600" />
-              Mali Ayarlar
-            </h2>
-            <p className="text-gray-600 text-sm mt-1">Varsayılan finansal parametreler</p>
-          </div>
-          <div className="p-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Varsayılan KDV Oranı (%)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.1"
-                  value={settings.financial.default_vat_rate}
-                  onChange={(e) => handleInputChange('financial', 'default_vat_rate', parseFloat(e.target.value))}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors['financial.default_vat_rate'] ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                />
-                {errors['financial.default_vat_rate'] && (
-                  <p className="text-red-600 text-sm mt-1">{errors['financial.default_vat_rate']}</p>
-                )}
-              </div>
+        {/* Financial Settings - Admin and Manager */}
+        {(isAdmin || isManager) && (
+          <div className="bg-white rounded-lg shadow-sm border">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+                <DollarSign className="h-5 w-5 mr-2 text-green-600" />
+                Mali Ayarlar
+              </h2>
+              <p className="text-gray-600 text-sm mt-1">Varsayılan finansal parametreler</p>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Varsayılan KDV Oranı (%)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={settings.financial.default_vat_rate}
+                    onChange={(e) => handleInputChange('financial', 'default_vat_rate', parseFloat(e.target.value))}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors['financial.default_vat_rate'] ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                  />
+                  {errors['financial.default_vat_rate'] && (
+                    <p className="text-red-600 text-sm mt-1">{errors['financial.default_vat_rate']}</p>
+                  )}
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Varsayılan Şirket Komisyonu (%)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.1"
-                  value={settings.financial.default_company_rate}
-                  onChange={(e) => handleInputChange('financial', 'default_company_rate', parseFloat(e.target.value))}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors['financial.default_company_rate'] ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                />
-                {errors['financial.default_company_rate'] && (
-                  <p className="text-red-600 text-sm mt-1">{errors['financial.default_company_rate']}</p>
-                )}
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Varsayılan Şirket Komisyonu (%)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={settings.financial.default_company_rate}
+                    onChange={(e) => handleInputChange('financial', 'default_company_rate', parseFloat(e.target.value))}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors['financial.default_company_rate'] ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                  />
+                  {errors['financial.default_company_rate'] && (
+                    <p className="text-red-600 text-sm mt-1">{errors['financial.default_company_rate']}</p>
+                  )}
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Para Birimi
-                </label>
-                <select
-                  value={settings.financial.currency}
-                  onChange={(e) => handleInputChange('financial', 'currency', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="TRY">Turkish Lira (₺)</option>
-                  <option value="USD">US Dollar ($)</option>
-                  <option value="EUR">Euro (€)</option>
-                </select>
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Para Birimi
+                  </label>
+                  <select
+                    value={settings.financial.currency}
+                    onChange={(e) => handleInputChange('financial', 'currency', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="TRY">Turkish Lira (₺)</option>
+                    <option value="USD">US Dollar ($)</option>
+                    <option value="EUR">Euro (€)</option>
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Ondalık Basamak Sayısı
-                </label>
-                <select
-                  value={settings.financial.decimal_places}
-                  onChange={(e) => handleInputChange('financial', 'decimal_places', parseInt(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value={0}>0</option>
-                  <option value={1}>1</option>
-                  <option value={2}>2</option>
-                  <option value={3}>3</option>
-                </select>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Ondalık Basamak Sayısı
+                  </label>
+                  <select
+                    value={settings.financial.decimal_places}
+                    onChange={(e) => handleInputChange('financial', 'decimal_places', parseInt(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value={0}>0</option>
+                    <option value={1}>1</option>
+                    <option value={2}>2</option>
+                    <option value={3}>3</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
-        </div>
         )}
 
         {/* Notification Settings - All Users */}
@@ -562,89 +557,87 @@ export default function SettingsPage() {
 
         {/* System Settings - Admin Only */}
         {isAdmin && (
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-              <Database className="h-5 w-5 mr-2 text-purple-600" />
-              Sistem Ayarları
-            </h2>
-            <p className="text-gray-600 text-sm mt-1">Sistem performansı ve güvenlik ayarları</p>
-          </div>
-          <div className="p-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-sm font-medium text-gray-900">Otomatik Yedekleme</h4>
-                  <p className="text-sm text-gray-600">Veritabanı otomatik yedeklemesi</p>
+          <div className="bg-white rounded-lg shadow-sm border">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+                <Database className="h-5 w-5 mr-2 text-purple-600" />
+                Sistem Ayarları
+              </h2>
+              <p className="text-gray-600 text-sm mt-1">Sistem performansı ve güvenlik ayarları</p>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900">Otomatik Yedekleme</h4>
+                    <p className="text-sm text-gray-600">Veritabanı otomatik yedeklemesi</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.system.backup_enabled}
+                      onChange={(e) => handleInputChange('system', 'backup_enabled', e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Yedekleme Sıklığı
+                  </label>
+                  <select
+                    value={settings.system.backup_frequency}
+                    onChange={(e) => handleInputChange('system', 'backup_frequency', e.target.value)}
+                    disabled={!settings.system.backup_enabled}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                  >
+                    <option value="hourly">Saatlik</option>
+                    <option value="daily">Günlük</option>
+                    <option value="weekly">Haftalık</option>
+                    <option value="monthly">Aylık</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Maksimum Dosya Boyutu (MB)
+                  </label>
                   <input
-                    type="checkbox"
-                    checked={settings.system.backup_enabled}
-                    onChange={(e) => handleInputChange('system', 'backup_enabled', e.target.checked)}
-                    className="sr-only peer"
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={settings.system.max_file_size}
+                    onChange={(e) => handleInputChange('system', 'max_file_size', parseInt(e.target.value))}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors['system.max_file_size'] ? 'border-red-300' : 'border-gray-300'
+                      }`}
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                </label>
-              </div>
+                  {errors['system.max_file_size'] && (
+                    <p className="text-red-600 text-sm mt-1">{errors['system.max_file_size']}</p>
+                  )}
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Yedekleme Sıklığı
-                </label>
-                <select
-                  value={settings.system.backup_frequency}
-                  onChange={(e) => handleInputChange('system', 'backup_frequency', e.target.value)}
-                  disabled={!settings.system.backup_enabled}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                >
-                  <option value="hourly">Saatlik</option>
-                  <option value="daily">Günlük</option>
-                  <option value="weekly">Haftalık</option>
-                  <option value="monthly">Aylık</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Maksimum Dosya Boyutu (MB)
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="100"
-                  value={settings.system.max_file_size}
-                  onChange={(e) => handleInputChange('system', 'max_file_size', parseInt(e.target.value))}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors['system.max_file_size'] ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                />
-                {errors['system.max_file_size'] && (
-                  <p className="text-red-600 text-sm mt-1">{errors['system.max_file_size']}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Oturum Süresi (dakika)
-                </label>
-                <input
-                  type="number"
-                  min="15"
-                  max="480"
-                  value={settings.system.session_timeout}
-                  onChange={(e) => handleInputChange('system', 'session_timeout', parseInt(e.target.value))}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors['system.session_timeout'] ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                />
-                {errors['system.session_timeout'] && (
-                  <p className="text-red-600 text-sm mt-1">{errors['system.session_timeout']}</p>
-                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Oturum Süresi (dakika)
+                  </label>
+                  <input
+                    type="number"
+                    min="15"
+                    max="480"
+                    value={settings.system.session_timeout}
+                    onChange={(e) => handleInputChange('system', 'session_timeout', parseInt(e.target.value))}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors['system.session_timeout'] ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                  />
+                  {errors['system.session_timeout'] && (
+                    <p className="text-red-600 text-sm mt-1">{errors['system.session_timeout']}</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
         )}
       </div>
     </DashboardLayout>

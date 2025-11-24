@@ -18,15 +18,13 @@ export async function GET(request: NextRequest) {
         .from('balances')
         .select(`
           *,
-          user:users!balances_user_id_fkey(id, full_name, email, iban)
+          user:users!balances_user_id_fkey(id, full_name, email, iban),
+          personnel:personnel!balances_personnel_id_fkey(id, full_name, email, iban)
         `)
 
       // Apply filters based on user role
-      if (ctx.user.role === 'academician') {
-        // Academicians can only see their own balance
-        query = query.eq('user_id', ctx.user.id)
-      } else if (user_id) {
-        // Admins and finance officers can filter by user_id
+      // Both admin and manager can view all balances
+      if (user_id) {
         query = query.eq('user_id', user_id)
       }
 

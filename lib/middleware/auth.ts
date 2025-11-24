@@ -13,6 +13,8 @@ export interface AuthContext {
   supabase: Awaited<ReturnType<typeof createClient>>
 }
 
+export type AuthenticatedHandler = (req: NextRequest, ctx: AuthContext) => Promise<NextResponse> | NextResponse
+
 /**
  * Authentication middleware for API routes
  */
@@ -146,54 +148,12 @@ export async function withRole(
 /**
  * Admin-only middleware
  */
-export async function withAdmin(
-  request: NextRequest,
-  handler: (req: NextRequest, ctx: AuthContext) => Promise<NextResponse> | NextResponse
-) {
-  return withRole('admin', request, handler)
+export async function withAdmin(request: NextRequest, handler: AuthenticatedHandler) {
+  return withRole(['admin'], request, handler)
 }
 
-/**
- * Finance officer or admin middleware
- */
-export async function withFinanceOrAdmin(
-  request: NextRequest,
-  handler: (req: NextRequest, ctx: AuthContext) => Promise<NextResponse> | NextResponse
-) {
-  return withRole(['admin', 'finance_officer'], request, handler)
-}
-
-/**
- * Project access middleware - checks if user can access specific project
- */
-export async function withProjectAccess(
-  projectId: string,
-  request: NextRequest,
-  handler: (req: NextRequest, ctx: AuthContext) => Promise<NextResponse> | NextResponse
-) {
-  return withAuth(request, async (req, ctx) => {
-    // Admin and finance officers have access to all projects
-    if (ctx.user.role === 'admin' || ctx.user.role === 'finance_officer') {
-      return handler(req, ctx)
-    }
-
-    // Check if user is a representative of the project
-    const { data: representative, error } = await ctx.supabase
-      .from('project_representatives')
-      .select('id')
-      .eq('project_id', projectId)
-      .eq('user_id', ctx.user.id)
-      .single()
-
-    if (error || !representative) {
-      return NextResponse.json(
-        { error: 'Access denied', message: 'You do not have access to this project' },
-        { status: 403 }
-      )
-    }
-
-    return handler(req, ctx)
-  })
+export async function withManager(request: NextRequest, handler: AuthenticatedHandler) {
+  return withRole(['admin', 'manager'], request, handler)
 }
 
 /**
@@ -205,17 +165,14 @@ export async function withBalanceAccess(
   handler: (req: NextRequest, ctx: AuthContext) => Promise<NextResponse> | NextResponse
 ) {
   return withAuth(request, async (req, ctx) => {
-    // Users can access their own balance, finance officers and admins can access all
-    if (ctx.user.id === targetUserId ||
-        ctx.user.role === 'admin' ||
-        ctx.user.role === 'finance_officer') {
-      return handler(req, ctx)
+    // Users can see their own balance, finance officers/admins can see all
+    if (targetUserId !== ctx.user.id &&
+      ctx.user.role !== 'admin' &&
+      ctx.user.role !== 'manager') {
+      return apiResponse.forbidden('Access denied')
     }
 
-    return NextResponse.json(
-      { error: 'Access denied', message: 'You can only access your own balance information' },
-      { status: 403 }
-    )
+    return handler(req, ctx)
   })
 }
 

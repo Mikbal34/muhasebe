@@ -19,7 +19,7 @@ interface User {
   id: string
   full_name: string
   email: string
-  role: 'admin' | 'finance_officer' | 'academician'
+  role: 'admin' | 'manager'
   iban?: string
 }
 
@@ -58,7 +58,7 @@ export default function RequestPaymentPage() {
       const parsedUser = JSON.parse(userData)
       setUser(parsedUser)
 
-      if (parsedUser.role !== 'academician') {
+      if (parsedUser.role !== 'manager') {
         router.push('/dashboard')
         return
       }

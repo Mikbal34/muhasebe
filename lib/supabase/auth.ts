@@ -40,7 +40,7 @@ export const authClient = {
       options: {
         data: {
           full_name: data.full_name,
-          role: data.role || 'academician',
+          role: data.role || 'manager',
           phone: data.phone,
           iban: data.iban,
         },
@@ -209,8 +209,8 @@ export const authServer = {
     const user = await this.getCurrentUser()
     if (!user) return false
 
-    // Admin and finance officers have access to all projects
-    if (user.role === 'admin' || user.role === 'finance_officer') {
+    // Admin and managers have access to all projects
+    if (user.role === 'admin' || user.role === 'manager') {
       return true
     }
 
@@ -235,7 +235,7 @@ export const authServer = {
 
     // Only allow viewing own balance or if user is finance/admin
     if (targetUserId !== currentUser.id &&
-        !['admin', 'finance_officer'].includes(currentUser.role)) {
+      !['admin', 'manager'].includes(currentUser.role)) {
       throw new Error('Access denied')
     }
 
@@ -266,10 +266,10 @@ export const authUtils = {
   },
 
   /**
-   * Check if role has finance privileges
+   * Check if role has manager privileges
    */
-  isFinanceOrAdmin(role: UserRole): boolean {
-    return role === 'admin' || role === 'finance_officer'
+  isManagerOrAdmin(role: UserRole): boolean {
+    return role === 'admin' || role === 'manager'
   },
 
   /**
@@ -278,8 +278,7 @@ export const authUtils = {
   getRoleDisplayName(role: UserRole): string {
     const roleNames: Record<UserRole, string> = {
       admin: 'Sistem Yöneticisi',
-      finance_officer: 'Finans Sorumlusu',
-      academician: 'Akademisyen',
+      manager: 'Yönetici',
     }
     return roleNames[role]
   },
@@ -289,8 +288,8 @@ export const authUtils = {
    */
   getAvailableRoles(currentUserRole: UserRole): UserRole[] {
     if (currentUserRole === 'admin') {
-      return ['admin', 'finance_officer', 'academician']
+      return ['admin', 'manager']
     }
-    return ['academician'] // Default for self-registration
+    return ['manager'] // Default for self-registration
   },
 }

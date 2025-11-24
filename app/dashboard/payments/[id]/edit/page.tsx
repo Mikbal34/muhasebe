@@ -24,7 +24,7 @@ interface User {
   id: string
   full_name: string
   email: string
-  role: 'admin' | 'finance_officer' | 'academician'
+  role: 'admin' | 'manager'
 }
 
 interface PaymentInstruction {
@@ -90,7 +90,7 @@ export default function EditPaymentPage({ params }: { params: { id: string } }) 
       const parsedUser = JSON.parse(userData)
       setUser(parsedUser)
 
-      if (parsedUser.role !== 'admin' && parsedUser.role !== 'finance_officer') {
+      if (parsedUser.role !== 'admin' && parsedUser.role !== 'manager') {
         router.push('/dashboard')
         return
       }

@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
       return validation.error
     }
 
-    const { email, password, full_name, role = 'academician', phone, iban } = validation.data
+    const { email, password, full_name, role = 'manager', phone, iban } = validation.data
 
     // Use admin client to create user
     const supabase = await createAdminClient()

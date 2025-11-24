@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Login request received')
     // Validate request data
     const validation = await validateRequest(request, loginSchema)
     if ('error' in validation) {

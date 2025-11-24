@@ -15,14 +15,19 @@ import {
   FileText,
   TrendingUp,
   User,
-  Crown
+  Crown,
+  Download,
+  CheckCircle,
+  Clock
 } from 'lucide-react'
+import { supabase } from '@/lib/supabase/client'
+import PersonBadge from '@/components/ui/person-badge'
 
 interface User {
   id: string
   full_name: string
   email: string
-  role: 'admin' | 'finance_officer' | 'academician'
+  role: 'admin' | 'manager'
 }
 
 interface Project {
@@ -37,10 +42,19 @@ interface Project {
   created_by_user: {
     full_name: string
   }
+  referee_payment: number
+  referee_payer: 'company' | 'client' | null
+  stamp_duty_payer: 'company' | 'client' | null
+  stamp_duty_amount: number
+  contract_path: string | null
+  has_assignment_permission: boolean
+  assignment_document_path: string | null
+  sent_to_referee: boolean
+  referee_approved: boolean
+  referee_approval_date: string | null
   representatives: Array<{
     id: string
-    share_percentage: number
-    is_lead: boolean
+    role: 'project_leader' | 'researcher'
     user: {
       id: string
       full_name: string
@@ -62,6 +76,7 @@ export default function ProjectDetailPage() {
   const [user, setUser] = useState<User | null>(null)
   const [project, setProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
+  const [approvingReferee, setApprovingReferee] = useState(false)
   const router = useRouter()
   const params = useParams()
 
@@ -99,6 +114,35 @@ export default function ProjectDetailPage() {
       router.push('/dashboard/projects')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleApproveReferee = async () => {
+    if (!project || !user) return
+
+    setApprovingReferee(true)
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`/api/projects/${project.id}/approve-referee`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        // Refresh project data
+        await fetchProject(token!, project.id)
+      } else {
+        alert('Hata: ' + (data.error || 'Hakem onayı işlenirken bir hata oluştu'))
+      }
+    } catch (err) {
+      console.error('Failed to approve referee:', err)
+      alert('Bir hata oluştu')
+    } finally {
+      setApprovingReferee(false)
     }
   }
 
@@ -174,7 +218,30 @@ export default function ProjectDetailPage() {
               {getStatusText(project.status)}
             </span>
 
-            {(user.role === 'admin' || user.role === 'finance_officer') && project.status === 'active' && (
+            {/* Hakem Heyeti Onayı Butonu */}
+            {(user.role === 'admin' || user.role === 'manager') &&
+             project.sent_to_referee &&
+             !project.referee_approved && (
+              <button
+                onClick={handleApproveReferee}
+                disabled={approvingReferee}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:opacity-50"
+              >
+                {approvingReferee ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                    İşleniyor...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Hakem Onayını İşaretle
+                  </>
+                )}
+              </button>
+            )}
+
+            {(user.role === 'admin' || user.role === 'manager') && project.status === 'active' && (
               <Link
                 href={`/dashboard/projects/${project.id}/edit`}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
@@ -183,7 +250,7 @@ export default function ProjectDetailPage() {
                 Düzenle
               </Link>
             )}
-            {(user.role === 'admin' || user.role === 'finance_officer') && project.status !== 'active' && (
+            {(user.role === 'admin' || user.role === 'manager') && project.status !== 'active' && (
               <div className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-500 bg-gray-100 cursor-not-allowed">
                 <Edit className="h-4 w-4 mr-2" />
                 Düzenle
@@ -282,6 +349,90 @@ export default function ProjectDetailPage() {
                   {new Date(project.created_at).toLocaleDateString('tr-TR')}
                 </span>
               </div>
+
+              <div className="flex items-center text-sm">
+                <DollarSign className="h-4 w-4 text-gray-400 mr-3" />
+                <span className="text-gray-600">Hakem Heyeti:</span>
+                <span className="ml-2 font-medium">
+                  {project.referee_payer === 'company' ? 'Şirket' : 'Karşı Taraf'}
+                  {project.referee_payer === 'company' && ` (₺${project.referee_payment.toLocaleString('tr-TR')})`}
+                </span>
+              </div>
+
+              {project.stamp_duty_payer && (
+                <div className="flex items-center text-sm">
+                  <FileText className="h-4 w-4 text-gray-400 mr-3" />
+                  <span className="text-gray-600">Damga Vergisi:</span>
+                  <span className="ml-2 font-medium">
+                    {project.stamp_duty_payer === 'company' ? 'Şirket' : 'Karşı Taraf'}
+                    {project.stamp_duty_payer === 'company' && ` (₺${project.stamp_duty_amount.toLocaleString('tr-TR')})`}
+                  </span>
+                </div>
+              )}
+
+              {/* Hakem Heyeti Durumu */}
+              {project.sent_to_referee && (
+                <div className="flex items-center text-sm">
+                  {project.referee_approved ? (
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-3" />
+                  ) : (
+                    <Clock className="h-4 w-4 text-yellow-500 mr-3" />
+                  )}
+                  <span className="text-gray-600">Hakem Heyeti:</span>
+                  <span className={`ml-2 font-medium ${project.referee_approved ? 'text-green-600' : 'text-yellow-600'}`}>
+                    {project.referee_approved
+                      ? `Onaylandı (${new Date(project.referee_approval_date!).toLocaleDateString('tr-TR')})`
+                      : 'Onay Bekliyor'}
+                  </span>
+                </div>
+              )}
+
+              {/* Sözleşme Belgesi */}
+              {project.contract_path && (
+                <div className="flex items-center text-sm">
+                  <FileText className="h-4 w-4 text-gray-400 mr-3" />
+                  <span className="text-gray-600">Sözleşme:</span>
+                  <a
+                    href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/contracts/${project.contract_path}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-2 font-medium text-blue-600 hover:text-blue-700 flex items-center"
+                  >
+                    <Download className="h-3 w-3 mr-1" />
+                    İndir
+                  </a>
+                </div>
+              )}
+
+              {/* Görevlendirme İzni */}
+              <div className="flex items-center text-sm">
+                {project.has_assignment_permission ? (
+                  <CheckCircle className="h-4 w-4 text-green-500 mr-3" />
+                ) : (
+                  <FileText className="h-4 w-4 text-gray-400 mr-3" />
+                )}
+                <span className="text-gray-600">Görevlendirme İzni:</span>
+                <span className={`ml-2 font-medium ${project.has_assignment_permission ? 'text-green-600' : 'text-gray-600'}`}>
+                  {project.has_assignment_permission ? 'Var' : 'Yok'}
+                </span>
+              </div>
+
+              {/* Görevlendirme Yazısı */}
+              {project.has_assignment_permission && project.assignment_document_path && (
+                <div className="flex items-center text-sm">
+                  <FileText className="h-4 w-4 text-gray-400 mr-3" />
+                  <span className="text-gray-600">Görevlendirme Yazısı:</span>
+                  <a
+                    href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/contracts/${project.assignment_document_path}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-2 font-medium text-blue-600 hover:text-blue-700 flex items-center"
+                  >
+                    <Download className="h-3 w-3 mr-1" />
+                    İndir
+                  </a>
+                </div>
+              )}
             </div>
           </div>
 
@@ -289,30 +440,39 @@ export default function ProjectDetailPage() {
           <div className="bg-white p-6 rounded-lg shadow-sm border">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Proje Temsilcileri</h2>
             <div className="space-y-3">
-              {project.representatives.map((rep) => (
-                <div key={rep.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center">
-                    <div className="h-8 w-8 bg-blue-500 rounded-full flex items-center justify-center mr-3">
-                      <span className="text-sm font-medium text-white">
-                        {rep.user.full_name.charAt(0).toUpperCase()}
-                      </span>
+              {project.representatives.map((rep) => {
+                const person = rep.user || rep.personnel
+                const personType = rep.user_id ? 'user' : 'personnel'
+                const personName = person?.full_name || 'Bilinmiyor'
+                const personEmail = person?.email || ''
+
+                return (
+                  <div key={rep.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center">
+                      <div className="h-8 w-8 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+                        <span className="text-sm font-medium text-white">
+                          {personName.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900 flex items-center gap-2">
+                          {personName}
+                          {rep.role === 'project_leader' && (
+                            <Crown className="h-4 w-4 text-yellow-500" />
+                          )}
+                          <PersonBadge type={personType} />
+                        </p>
+                        <p className="text-sm text-gray-600">{personEmail}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-gray-900 flex items-center">
-                        {rep.user.full_name}
-                        {rep.is_lead && (
-                          <Crown className="h-4 w-4 text-yellow-500 ml-1" />
-                        )}
+                    <div className="text-right">
+                      <p className={`text-sm font-medium ${rep.role === 'project_leader' ? 'text-yellow-600' : 'text-blue-600'}`}>
+                        {rep.role === 'project_leader' ? 'Proje Yürütücüsü' : 'Araştırmacı'}
                       </p>
-                      <p className="text-sm text-gray-600">{rep.user.email}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-blue-600">%{rep.share_percentage}</p>
-                    <p className="text-xs text-gray-500">Pay</p>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         </div>
@@ -339,23 +499,23 @@ export default function ProjectDetailPage() {
                 })
                 .slice(0, 5)
                 .map((income) => (
-                <div key={income.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium text-gray-900">{income.description || 'Gelir'}</p>
-                    <p className="text-sm text-gray-600">
-                      {new Date(income.income_date).toLocaleDateString('tr-TR')}
-                    </p>
+                  <div key={income.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">{income.description || 'Gelir'}</p>
+                      <p className="text-sm text-gray-600">
+                        {new Date(income.income_date).toLocaleDateString('tr-TR')}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-green-600">
+                        ₺{income.gross_amount.toLocaleString('tr-TR')}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Net: ₺{income.net_amount.toLocaleString('tr-TR')}
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-green-600">
-                      ₺{income.gross_amount.toLocaleString('tr-TR')}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Net: ₺{income.net_amount.toLocaleString('tr-TR')}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                ))}
             </div>
           ) : (
             <div className="text-center py-8">

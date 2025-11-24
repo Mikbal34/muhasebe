@@ -23,7 +23,7 @@ interface UserProfile {
   id: string
   full_name: string
   email: string
-  role: 'admin' | 'finance_officer' | 'academician'
+  role: 'admin' | 'manager'
   phone: string | null
   iban: string | null
   is_active: boolean
@@ -259,10 +259,8 @@ export default function ProfilePage() {
     switch (role) {
       case 'admin':
         return { text: 'Sistem Yöneticisi', color: 'bg-purple-100 text-purple-800' }
-      case 'finance_officer':
-        return { text: 'Mali İşler Uzmanı', color: 'bg-blue-100 text-blue-800' }
-      case 'academician':
-        return { text: 'Akademisyen', color: 'bg-green-100 text-green-800' }
+      case 'manager':
+        return { text: 'Yönetici', color: 'bg-blue-100 text-blue-800' }
       default:
         return { text: role, color: 'bg-gray-100 text-gray-800' }
     }

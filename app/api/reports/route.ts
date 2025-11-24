@@ -5,9 +5,9 @@ import { apiResponse, validateRequest, withAuth } from '@/lib/middleware/auth'
 // GET /api/reports - List generated reports
 export async function GET(request: NextRequest) {
   return withAuth(request, async (req, ctx) => {
-    // Only admins and finance officers can access reports
-    if (!['admin', 'finance_officer'].includes(ctx.user.role)) {
-      return apiResponse.forbidden('Only admins and finance officers can access reports')
+    // Only admins and managers can view reports
+    if (!['admin', 'manager'].includes(ctx.user.role)) {
+      return apiResponse.forbidden('Only admins and managers can view reports')
     }
 
     const { searchParams } = new URL(request.url)
@@ -58,9 +58,9 @@ export async function GET(request: NextRequest) {
 // POST /api/reports - Generate new report
 export async function POST(request: NextRequest) {
   return withAuth(request, async (req, ctx) => {
-    // Only admins and finance officers can generate reports
-    if (!['admin', 'finance_officer'].includes(ctx.user.role)) {
-      return apiResponse.forbidden('Only admins and finance officers can generate reports')
+    // Only admins and managers can create reports
+    if (!['admin', 'manager'].includes(ctx.user.role)) {
+      return apiResponse.forbidden('Only admins and managers can create reports')
     }
 
     // Validate request data

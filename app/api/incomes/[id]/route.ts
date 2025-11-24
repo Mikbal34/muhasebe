@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { apiResponse, withAuth } from '@/lib/middleware/auth'
+import { updateIncomeCollectionSchema } from '@/lib/schemas/validation'
 
 // GET /api/incomes/[id] - Get single income detail
 export async function GET(
@@ -41,20 +42,7 @@ export async function GET(
         return apiResponse.error('Failed to fetch income', error.message, 500)
       }
 
-      // Check access permissions
-      if (ctx.user.role === 'academician') {
-        // Check if academician is a representative of this project
-        const { data: representative } = await ctx.supabase
-          .from('project_representatives')
-          .select('id')
-          .eq('project_id', (income as any).project_id)
-          .eq('user_id', ctx.user.id)
-          .single()
-
-        if (!representative) {
-          return apiResponse.forbidden('You do not have access to this income record')
-        }
-      }
+      // Note: Both admin and manager can view all income records
 
       return apiResponse.success({ income })
     } catch (error: any) {
@@ -70,9 +58,9 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   return withAuth(request, async (req, ctx) => {
-    // Only admins and finance officers can delete incomes
-    if (!['admin', 'finance_officer'].includes(ctx.user.role)) {
-      return apiResponse.forbidden('Only admins and finance officers can delete incomes')
+    // Only admins and managers can delete incomes
+    if (!['admin', 'manager'].includes(ctx.user.role)) {
+      return apiResponse.forbidden('Only admins and managers can delete incomes')
     }
 
     const { id } = params
@@ -106,6 +94,106 @@ export async function DELETE(
       return apiResponse.success(null, 'Income deleted successfully')
     } catch (error: any) {
       console.error('Income deletion error:', error)
+      return apiResponse.error('Internal server error', error.message, 500)
+    }
+  })
+}
+
+// PATCH /api/incomes/[id] - Update income collection amount
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  return withAuth(request, async (req, ctx) => {
+    // Only admins and managers can update collection
+    if (!['admin', 'manager'].includes(ctx.user.role)) {
+      return apiResponse.forbidden('Only admins and managers can update income collection')
+    }
+
+    const { id } = params
+
+    try {
+      const body = await request.json()
+
+      // Validate request body
+      const validation = updateIncomeCollectionSchema.safeParse(body)
+      if (!validation.success) {
+        return apiResponse.error(
+          'Validation failed',
+          'The provided data is invalid',
+          400,
+          validation.error.errors.map((e) => e.message)
+        )
+      }
+
+      const { collected_amount, collection_date } = validation.data
+
+      // Get the income to check gross_amount constraint
+      const { data: existingIncome, error: fetchError } = await ctx.supabase
+        .from('incomes')
+        .select('gross_amount, collected_amount')
+        .eq('id', id)
+        .single()
+
+      if (fetchError) {
+        if (fetchError.code === 'PGRST116') {
+          return apiResponse.notFound('Income not found')
+        }
+        return apiResponse.error('Failed to fetch income', fetchError.message, 500)
+      }
+
+      // Validate collected_amount doesn't exceed gross_amount
+      if (collected_amount > existingIncome.gross_amount) {
+        return apiResponse.error(
+          'Validation failed',
+          'Tahsil edilen tutar brüt tutardan fazla olamaz',
+          400
+        )
+      }
+
+      // Update the income
+      const updateData: any = {
+        collected_amount,
+      }
+
+      // Only add collection_date if provided
+      if (collection_date !== undefined && collection_date !== null) {
+        updateData.collection_date = collection_date
+      }
+
+      const { data: updatedIncome, error: updateError } = await ctx.supabase
+        .from('incomes')
+        .update(updateData)
+        .eq('id', id)
+        .select(`
+          *,
+          project:projects(id, code, name),
+          created_by_user:users!incomes_created_by_fkey(id, full_name)
+        `)
+        .single()
+
+      if (updateError) {
+        console.error('Income update error:', updateError)
+        return apiResponse.error('Failed to update income', updateError.message, 500)
+      }
+
+      // Log the collection update
+      await ctx.supabase.from('audit_logs').insert({
+        user_id: ctx.user.id,
+        action: 'update_income_collection',
+        table_name: 'incomes',
+        record_id: id,
+        changes: {
+          collected_amount: {
+            old: existingIncome.collected_amount,
+            new: collected_amount,
+          },
+        },
+      })
+
+      return apiResponse.success({ income: updatedIncome }, 'Tahsilat kaydı başarıyla güncellendi')
+    } catch (error: any) {
+      console.error('Income collection update error:', error)
       return apiResponse.error('Internal server error', error.message, 500)
     }
   })

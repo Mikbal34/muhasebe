@@ -1,8 +1,9 @@
 import { z } from 'zod'
 
 // Basic schemas
-export const userRoleSchema = z.enum(['admin', 'finance_officer', 'academician'])
+export const userRoleSchema = z.enum(['admin', 'manager'])
 export const projectStatusSchema = z.enum(['active', 'completed', 'cancelled'])
+export const projectRepresentativeRoleSchema = z.enum(['project_leader', 'researcher'])
 export const paymentInstructionStatusSchema = z.enum(['pending', 'approved', 'processing', 'completed', 'rejected'])
 export const balanceTransactionTypeSchema = z.enum(['income', 'payment', 'debt', 'adjustment'])
 export const reportTypeSchema = z.enum(['project', 'academician', 'company', 'payments'])
@@ -13,7 +14,7 @@ export const registerSchema = z.object({
   email: z.string().email('Geçersiz e-posta adresi'),
   password: z.string().min(8, 'Şifre en az 8 karakter olmalı').max(100, 'Şifre çok uzun'),
   full_name: z.string().min(1, 'Ad soyad gerekli').max(255, 'Ad soyad çok uzun'),
-  role: userRoleSchema.default('academician'),
+  role: userRoleSchema.default('manager'),
   phone: z.string().optional(),
   iban: z.string().length(26, 'IBAN 26 karakter olmalı').regex(/^TR\d{24}$/, 'Geçersiz IBAN formatı').optional(),
 })
@@ -25,9 +26,12 @@ export const loginSchema = z.object({
 
 // Project schemas
 export const projectRepresentativeSchema = z.object({
-  user_id: z.string().uuid('Geçersiz kullanıcı ID'),
-  share_percentage: z.number().min(0, 'Pay yüzdesi 0\'dan küçük olamaz').max(100, 'Pay yüzdesi 100\'den büyük olamaz'),
-  is_lead: z.boolean().default(false),
+  user_id: z.string().uuid('Geçersiz kullanıcı ID').nullable().optional(),
+  personnel_id: z.string().uuid('Geçersiz personel ID').nullable().optional(),
+  role: projectRepresentativeRoleSchema.default('researcher'),
+}).refine(data => data.user_id || data.personnel_id, {
+  message: 'Kullanıcı ID veya Personel ID gereklidir',
+  path: ['user_id']
 })
 
 export const createProjectSchema = z.object({
@@ -38,13 +42,23 @@ export const createProjectSchema = z.object({
   status: projectStatusSchema.default('active'),
   company_rate: z.number().min(0, 'Şirket komisyonu negatif olamaz').max(100, 'Şirket komisyonu %100\'den fazla olamaz').default(15),
   vat_rate: z.number().min(0, 'KDV oranı negatif olamaz').max(100, 'KDV oranı %100\'den fazla olamaz').default(18),
+  referee_payment: z.number().min(0, 'Hakem heyeti ödemesi negatif olamaz').default(0),
+  referee_payer: z.enum(['company', 'client']).nullable().optional(),
+  stamp_duty_payer: z.enum(['company', 'client']).nullable().optional(),
+  stamp_duty_amount: z.number().min(0, 'Damga vergisi negatif olamaz').default(0),
+  contract_path: z.string().nullable().optional(),
+  sent_to_referee: z.boolean().default(false),
+  referee_approved: z.boolean().default(false),
+  referee_approval_date: z.string().nullable().optional(),
+  has_assignment_permission: z.boolean().default(false),
+  assignment_document_path: z.string().nullable().optional(),
   representatives: z.array(projectRepresentativeSchema).min(1, 'En az bir temsilci gerekli'),
 }).refine(data => {
-  const totalShare = data.representatives.reduce((sum, rep) => sum + rep.share_percentage, 0)
-  const expectedAcademicianTotal = 100 - data.company_rate
-  return Math.abs(totalShare - expectedAcademicianTotal) < 0.01
+  // Ensure exactly one project leader
+  const leaders = data.representatives.filter(rep => rep.role === 'project_leader')
+  return leaders.length === 1
 }, {
-  message: 'Akademisyen payları toplamı şirket komisyonu düşüldükten sonra kalan yüzdeye eşit olmalı',
+  message: 'Tam olarak bir proje yürütücüsü seçilmelidir',
   path: ['representatives']
 })
 
@@ -57,6 +71,26 @@ export const createIncomeSchema = z.object({
   income_date: z.string().date('Geçersiz gelir tarihi'),
 })
 
+export const updateIncomeCollectionSchema = z.object({
+  collected_amount: z.number().min(0, 'Tahsil edilen tutar negatif olamaz'),
+  collection_date: z.string().date('Geçersiz tahsilat tarihi').nullable().optional(),
+})
+
+// Expense schemas
+export const createExpenseSchema = z.object({
+  project_id: z.string().uuid('Geçersiz proje ID'),
+  amount: z.number().positive('Tutar pozitif olmalı'),
+  description: z.string().min(1, 'Açıklama gerekli').max(1000, 'Açıklama çok uzun'),
+  expense_date: z.string().date('Geçersiz gider tarihi').optional(),
+})
+
+export const updateExpenseSchema = z.object({
+  project_id: z.string().uuid('Geçersiz proje ID').optional(),
+  amount: z.number().positive('Tutar pozitif olmalı').optional(),
+  description: z.string().min(1, 'Açıklama gerekli').max(1000, 'Açıklama çok uzun').optional(),
+  expense_date: z.string().date('Geçersiz gider tarihi').optional(),
+})
+
 // Payment instruction schemas
 export const paymentInstructionItemSchema = z.object({
   income_distribution_id: z.string().uuid('Geçersiz dağıtım ID').nullable().optional(),
@@ -65,11 +99,14 @@ export const paymentInstructionItemSchema = z.object({
 })
 
 export const createPaymentInstructionSchema = z.object({
-  user_id: z.string().uuid('Geçersiz kullanıcı ID'),
+  user_id: z.string().uuid('Geçersiz kullanıcı ID').nullable().optional(),
+  personnel_id: z.string().uuid('Geçersiz personel ID').nullable().optional(),
   total_amount: z.number().positive('Toplam tutar pozitif olmalı'),
   status: paymentInstructionStatusSchema.default('pending'),
   notes: z.string().max(1000, 'Notlar çok uzun').nullable().optional(),
   items: z.array(paymentInstructionItemSchema).min(1, 'En az bir kalem gerekli'),
+}).refine(data => data.user_id || data.personnel_id, {
+  message: 'Kullanıcı ID veya personel ID gerekli',
 })
 
 // Report schemas
@@ -115,9 +152,17 @@ export const projectQuerySchema = z.object({
   status: projectStatusSchema.optional(),
   search: z.string().optional(),
   created_by: z.string().uuid().optional(),
+  representative_id: z.string().uuid().optional(),
 }).merge(paginationSchema.partial())
 
 export const incomeQuerySchema = z.object({
+  project_id: z.string().uuid().optional(),
+  start_date: z.string().date().optional(),
+  end_date: z.string().date().optional(),
+  created_by: z.string().uuid().optional(),
+}).merge(paginationSchema.partial())
+
+export const expenseQuerySchema = z.object({
   project_id: z.string().uuid().optional(),
   start_date: z.string().date().optional(),
   end_date: z.string().date().optional(),
@@ -179,10 +224,13 @@ export type RegisterForm = z.infer<typeof registerSchema>
 export type LoginForm = z.infer<typeof loginSchema>
 export type CreateProjectForm = z.infer<typeof createProjectSchema>
 export type CreateIncomeForm = z.infer<typeof createIncomeSchema>
+export type CreateExpenseForm = z.infer<typeof createExpenseSchema>
+export type UpdateExpenseForm = z.infer<typeof updateExpenseSchema>
 export type CreatePaymentInstructionForm = z.infer<typeof createPaymentInstructionSchema>
 export type CreateReportForm = z.infer<typeof createReportSchema>
 export type ProjectQuery = z.infer<typeof projectQuerySchema>
 export type IncomeQuery = z.infer<typeof incomeQuerySchema>
+export type ExpenseQuery = z.infer<typeof expenseQuerySchema>
 export type PaymentQuery = z.infer<typeof paymentQuerySchema>
 export type BalanceQuery = z.infer<typeof balanceQuerySchema>
 export type TransactionQuery = z.infer<typeof transactionQuerySchema>

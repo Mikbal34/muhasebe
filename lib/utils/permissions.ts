@@ -59,44 +59,9 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     ...Object.values(Permission),
   ],
 
-  finance_officer: [
-    // User Management (limited)
-    Permission.VIEW_ALL_USERS,
-
-    // Project Management (view only)
-    Permission.VIEW_ALL_PROJECTS,
-
-    // Income Management (full access)
-    Permission.VIEW_ALL_INCOMES,
-    Permission.CREATE_INCOME,
-    Permission.UPDATE_INCOME,
-    Permission.DELETE_INCOME,
-
-    // Balance Management (full access)
-    Permission.VIEW_ALL_BALANCES,
-    Permission.UPDATE_BALANCE,
-    Permission.VIEW_BALANCE_TRANSACTIONS,
-    Permission.CREATE_BALANCE_ADJUSTMENT,
-
-    // Payment Instructions (full access)
-    Permission.VIEW_ALL_PAYMENT_INSTRUCTIONS,
-    Permission.CREATE_PAYMENT_INSTRUCTION,
-    Permission.UPDATE_PAYMENT_INSTRUCTION,
-    Permission.APPROVE_PAYMENT_INSTRUCTION,
-    Permission.EXPORT_PAYMENT_INSTRUCTIONS,
-
-    // Reporting (full access)
-    Permission.VIEW_ALL_REPORTS,
-    Permission.CREATE_REPORT,
-    Permission.EXPORT_REPORT,
-    Permission.VIEW_COMPANY_REPORTS,
-    Permission.VIEW_FINANCIAL_SUMMARY,
-  ],
-
-  academician: [
-    // Limited permissions - only own data
-    Permission.CREATE_REPORT, // Can create reports for own projects
-    Permission.EXPORT_REPORT, // Can export own reports
+  manager: [
+    // Full access to everything (same as admin)
+    ...Object.values(Permission),
   ],
 }
 
@@ -132,7 +97,7 @@ export function getRolePermissions(role: UserRole): Permission[] {
  * Permission checker class for easier usage
  */
 export class PermissionChecker {
-  constructor(private userRole: UserRole) {}
+  constructor(private userRole: UserRole) { }
 
   can(permission: Permission): boolean {
     return hasPermission(this.userRole, permission)
@@ -182,12 +147,12 @@ export class PermissionChecker {
     return this.userRole === 'admin'
   }
 
-  isFinanceOrAdmin(): boolean {
-    return this.userRole === 'admin' || this.userRole === 'finance_officer'
+  isManager(): boolean {
+    return this.userRole === 'manager'
   }
 
-  isAcademician(): boolean {
-    return this.userRole === 'academician'
+  isManagerOrAdmin(): boolean {
+    return this.userRole === 'admin' || this.userRole === 'manager'
   }
 }
 
@@ -317,18 +282,12 @@ export function getRoleInfo(role: UserRole) {
       name: 'Sistem Yöneticisi',
       description: 'Tüm sistem işlevlerine erişim',
       color: 'red',
-      priority: 3,
-    },
-    finance_officer: {
-      name: 'Finans Sorumlusu',
-      description: 'Gelir ve ödeme yönetimi',
-      color: 'blue',
       priority: 2,
     },
-    academician: {
-      name: 'Akademisyen',
-      description: 'Proje temsilcisi',
-      color: 'green',
+    manager: {
+      name: 'Yönetici',
+      description: 'Tüm sistem işlevlerine erişim',
+      color: 'blue',
       priority: 1,
     },
   }

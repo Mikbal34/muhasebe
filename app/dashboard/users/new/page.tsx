@@ -23,7 +23,7 @@ interface User {
   id: string
   full_name: string
   email: string
-  role: 'admin' | 'finance_officer' | 'academician'
+  role: 'admin' | 'manager'
 }
 
 export default function NewUserPage() {
@@ -33,7 +33,7 @@ export default function NewUserPage() {
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
-    role: 'academician' as 'admin' | 'finance_officer' | 'academician'
+    role: 'manager' as 'admin' | 'manager' | 'manager'
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null)
@@ -162,7 +162,7 @@ export default function NewUserPage() {
     setFormData({
       full_name: '',
       email: '',
-      role: 'academician'
+      role: 'manager'
     })
     router.push('/dashboard/users')
   }
@@ -176,14 +176,14 @@ export default function NewUserPage() {
           text: 'Yönetici',
           description: 'Tam sistem erişimi'
         }
-      case 'finance_officer':
+      case 'manager':
         return {
           color: 'bg-blue-100 text-blue-800',
           icon: Building2,
           text: 'Mali İşler',
           description: 'Mali işlemler ve raporlar'
         }
-      case 'academician':
+      case 'manager':
         return {
           color: 'bg-green-100 text-green-800',
           icon: GraduationCap,
@@ -308,7 +308,7 @@ export default function NewUserPage() {
                 Kullanıcı Rolü *
               </label>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {(['admin', 'finance_officer', 'academician'] as const).map((role) => {
+                {(['admin', 'manager', 'manager'] as const).map((role) => {
                   const roleInfo = getRoleInfo(role)
                   const RoleIcon = roleInfo.icon
                   const isSelected = formData.role === role

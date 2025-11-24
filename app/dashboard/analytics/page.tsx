@@ -27,12 +27,13 @@ import {
   ProgressBar,
   ActivityTimeline
 } from '@/components/ui/chart-components'
+import { StatCardSkeleton, ChartSkeleton, Skeleton } from '@/components/ui/skeleton'
 
 interface User {
   id: string
   full_name: string
   email: string
-  role: 'admin' | 'finance_officer' | 'academician'
+  role: 'admin' | 'manager'
 }
 
 interface AnalyticsData {
@@ -92,7 +93,7 @@ export default function AnalyticsPage() {
       setUser(parsedUser)
 
       // Only admin and finance officers can view analytics
-      if (parsedUser.role === 'academician') {
+      if (parsedUser.role === 'manager') {
         router.push('/dashboard')
         return
       }
@@ -281,8 +282,8 @@ export default function AnalyticsPage() {
 
     users.forEach(user => {
       if (user.role === 'admin') roleMap['Yönetici']++
-      else if (user.role === 'finance_officer') roleMap['Mali İşler']++
-      else if (user.role === 'academician') roleMap['Akademisyen']++
+      else if (user.role === 'manager') roleMap['Yönetici']++
+      else if (user.role === 'manager') roleMap['Akademisyen']++
     })
 
     return Object.entries(roleMap).map(([role, count]) => ({ role, count }))
@@ -300,12 +301,29 @@ export default function AnalyticsPage() {
 
   if (loading || !user || !analyticsData) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Yükleniyor...</p>
+      <DashboardLayout user={user || { id: '', full_name: 'Yükleniyor...', email: '', role: 'admin' }}>
+        <div className="space-y-6">
+          {/* Header Skeleton */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <Skeleton className="h-8 w-32 mb-2" />
+              <Skeleton className="h-5 w-96" />
+            </div>
+            <Skeleton className="h-10 w-48" />
+          </div>
+
+          {/* Stat Cards Skeleton */}
+          <StatCardSkeleton count={4} />
+
+          {/* Charts Grid Skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ChartSkeleton height="h-80" />
+            <ChartSkeleton height="h-80" />
+            <ChartSkeleton height="h-80" />
+            <ChartSkeleton height="h-80" />
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     )
   }
 
@@ -478,10 +496,9 @@ export default function AnalyticsPage() {
               {analyticsData.users.byRole.map((item, index) => (
                 <div key={index} className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <div className={`w-3 h-3 rounded-full mr-3 ${
-                      item.role === 'Yönetici' ? 'bg-purple-500' :
+                    <div className={`w-3 h-3 rounded-full mr-3 ${item.role === 'Yönetici' ? 'bg-purple-500' :
                       item.role === 'Mali İşler' ? 'bg-blue-500' : 'bg-green-500'
-                    }`} />
+                      }`} />
                     <span className="text-sm text-gray-700">{item.role}</span>
                   </div>
                   <span className="text-sm font-medium text-gray-900">{item.count}</span>

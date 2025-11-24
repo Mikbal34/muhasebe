@@ -55,7 +55,7 @@ interface User {
   id: string
   full_name: string
   email: string
-  role: 'admin' | 'finance_officer' | 'academician'
+  role: 'admin' | 'manager'
 }
 
 export default function IncomeDetailPage() {
@@ -177,7 +177,7 @@ export default function IncomeDetailPage() {
             <h1 className="text-2xl font-bold text-gray-900">Gelir Detayı</h1>
           </div>
 
-          {user && (user.role === 'admin' || user.role === 'finance_officer') && (
+          {user && (user.role === 'admin' || user.role === 'manager') && (
             <div className="flex gap-2">
               <Link
                 href={`/dashboard/incomes/${id}/edit`}

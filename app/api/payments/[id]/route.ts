@@ -11,19 +11,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
   return withAuth(request, async (req, ctx) => {
     try {
-      // Check if user has access to this payment instruction
-      if (ctx.user.role === 'academician') {
-        const { data: hasAccess } = await ctx.supabase
-          .from('payment_instructions')
-          .select('id')
-          .eq('id', id)
-          .eq('user_id', ctx.user.id)
-          .single()
-
-        if (!hasAccess) {
-          return apiResponse.forbidden('You do not have access to this payment instruction')
-        }
-      }
+      // Note: Both admin and manager can view all payment instructions
 
       const { data: payment, error } = await ctx.supabase
         .from('payment_instructions')
@@ -38,7 +26,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             income_distribution:income_distributions(
               id,
               amount,
-              share_percentage,
               income:incomes(
                 id,
                 description,
@@ -73,9 +60,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   const { id } = params
 
   return withAuth(request, async (req, ctx) => {
-    // Only admins and finance officers can update payment instructions
-    if (!['admin', 'finance_officer'].includes(ctx.user.role)) {
-      return apiResponse.forbidden('Only admins and finance officers can update payment instructions')
+    // Only admins and managers can update payment instructions
+    if (!['admin', 'manager'].includes(ctx.user.role)) {
+      return apiResponse.forbidden('Only admins and managers can update payment instructions')
     }
 
     try {

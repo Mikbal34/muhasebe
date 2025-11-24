@@ -4,9 +4,9 @@ const ExcelJS = require('exceljs')
 
 export async function POST(request: NextRequest) {
   return withAuth(request, async (req, ctx) => {
-    // Only admins and finance officers can export reports
-    if (!['admin', 'finance_officer'].includes(ctx.user.role)) {
-      return apiResponse.forbidden('Only admins and finance officers can export reports')
+    // Only admins and managers can export reports
+    if (!['admin', 'manager'].includes(ctx.user.role)) {
+      return apiResponse.forbidden('Only admins and managers can export reports')
     }
 
     try {
