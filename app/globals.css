@@ -24,6 +24,24 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.5rem;
+
+    /* Modern Dashboard Theme - Teal Accent */
+    --sidebar-bg: 217.2 32.6% 17.5%; /* #1E293B - slate-800 */
+    --sidebar-text: 214.3 31.8% 81.4%; /* #CBD5E1 - slate-300 */
+    --sidebar-hover: 215.3 25% 26.7%; /* #334155 - slate-700 */
+    --sidebar-active-bg: 173 80% 40% / 0.1; /* teal-500 with opacity */
+    --sidebar-active-text: 173 80% 70%; /* teal-400 */
+
+    --accent-teal: 173 80% 40%; /* #14B8A6 - teal-500 */
+    --accent-teal-light: 172 66% 72%; /* #5EEAD4 - teal-300 */
+    --accent-teal-dark: 173 58% 39%; /* #0D9488 - teal-600 */
+
+    --accent-cyan: 188 95% 43%; /* #06B6D4 - cyan-500 */
+    --accent-cyan-light: 187 92% 69%; /* #67E8F9 - cyan-300 */
+    --accent-cyan-dark: 188 94% 37%; /* #0891B2 - cyan-600 */
+
+    --chart-gradient-start: 173 80% 40%;
+    --chart-gradient-end: 188 95% 43%;
   }
 
   .dark {

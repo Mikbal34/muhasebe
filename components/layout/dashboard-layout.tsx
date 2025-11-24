@@ -175,7 +175,7 @@ export default function DashboardLayout({ children, user: propUser }: DashboardL
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -188,17 +188,17 @@ export default function DashboardLayout({ children, user: propUser }: DashboardL
       <div className="lg:flex lg:h-screen">
         {/* Sidebar */}
         <aside className={`
-          fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out
+          fixed inset-y-0 left-0 z-50 w-64 bg-sidebar shadow-lg transform transition-transform duration-300 ease-in-out
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          lg:translate-x-0 lg:static lg:inset-auto lg:h-screen lg:flex lg:flex-col lg:shadow-md
+          lg:translate-x-0 lg:static lg:inset-auto lg:h-screen lg:flex lg:flex-col lg:shadow-xl
         `}>
-          <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
-            <h1 className="text-lg font-semibold text-gray-900">
+          <div className="flex items-center justify-between h-16 px-4 border-b border-slate-700">
+            <h1 className="text-lg font-semibold text-white">
               Gelir Dağıtım
             </h1>
             <button
               onClick={() => setSidebarOpen(false)}
-              className="lg:hidden p-1 rounded-md text-gray-400 hover:text-gray-500"
+              className="lg:hidden p-1 rounded-md text-slate-400 hover:text-slate-300"
             >
               <X className="h-6 w-6" />
             </button>
@@ -224,17 +224,17 @@ export default function DashboardLayout({ children, user: propUser }: DashboardL
                       <button
                         onClick={() => setOpenMenus({ ...openMenus, [item.title]: !isOpen })}
                         className={`
-                          w-full group flex items-center justify-between px-2 py-2 text-sm font-medium rounded-md transition-colors
+                          w-full group flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200
                           ${isSubmenuActive
-                            ? 'bg-blue-50 text-blue-700'
-                            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                            ? 'bg-sidebar-active text-accent-teal'
+                            : 'text-slate-300 hover:bg-sidebar-hover hover:text-white'
                           }
                         `}
                       >
                         <div className="flex items-center">
                           <Icon className={`
-                            mr-3 h-5 w-5 flex-shrink-0
-                            ${isSubmenuActive ? 'text-blue-500' : 'text-gray-400 group-hover:text-gray-500'}
+                            mr-3 h-5 w-5 flex-shrink-0 transition-colors
+                            ${isSubmenuActive ? 'text-accent-teal' : 'text-slate-400 group-hover:text-accent-teal'}
                           `} />
                           <span>{item.title}</span>
                         </div>
@@ -256,17 +256,17 @@ export default function DashboardLayout({ children, user: propUser }: DashboardL
                                 key={subItem.href}
                                 href={subItem.href}
                                 className={`
-                                  group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors
+                                  group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200
                                   ${isSubActive
-                                    ? 'bg-blue-100 text-blue-700'
-                                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                                    ? 'bg-sidebar-active text-accent-teal-light'
+                                    : 'text-slate-400 hover:bg-sidebar-hover hover:text-slate-200'
                                   }
                                 `}
                                 onClick={() => setSidebarOpen(false)}
                               >
                                 <SubIcon className={`
-                                  mr-3 h-4 w-4 flex-shrink-0
-                                  ${isSubActive ? 'text-blue-500' : 'text-gray-400 group-hover:text-gray-500'}
+                                  mr-3 h-4 w-4 flex-shrink-0 transition-colors
+                                  ${isSubActive ? 'text-accent-teal-light' : 'text-slate-500 group-hover:text-accent-teal-light'}
                                 `} />
                                 {subItem.title}
                               </Link>
@@ -283,17 +283,17 @@ export default function DashboardLayout({ children, user: propUser }: DashboardL
                     key={item.href}
                     href={item.href as any}
                     className={`
-                      group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors
+                      group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200
                       ${isActive
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                        ? 'bg-sidebar-active text-accent-teal'
+                        : 'text-slate-300 hover:bg-sidebar-hover hover:text-white'
                       }
                     `}
                     onClick={() => setSidebarOpen(false)}
                   >
                     <Icon className={`
-                      mr-3 h-5 w-5 flex-shrink-0
-                      ${isActive ? 'text-blue-500' : 'text-gray-400 group-hover:text-gray-500'}
+                      mr-3 h-5 w-5 flex-shrink-0 transition-colors
+                      ${isActive ? 'text-accent-teal' : 'text-slate-400 group-hover:text-accent-teal'}
                     `} />
                     {item.title}
                   </Link>
@@ -303,25 +303,25 @@ export default function DashboardLayout({ children, user: propUser }: DashboardL
           </nav>
 
           {/* User section */}
-          <div className="mt-auto p-4 border-t border-gray-200">
+          <div className="mt-auto p-4 border-t border-slate-700">
             <div className="flex items-center">
               <Link
                 href="/dashboard/profile"
-                className="flex items-center flex-1 min-w-0 p-2 rounded-md hover:bg-gray-100 transition-colors"
+                className="flex items-center flex-1 min-w-0 p-2 rounded-lg hover:bg-sidebar-hover transition-all duration-200"
                 onClick={() => setSidebarOpen(false)}
               >
                 <div className="flex-shrink-0">
-                  <div className="h-8 w-8 bg-blue-500 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-medium text-white">
+                  <div className="h-9 w-9 bg-gradient-to-br from-accent-teal to-accent-cyan rounded-full flex items-center justify-center ring-2 ring-accent-teal/20">
+                    <span className="text-sm font-semibold text-white">
                       {user?.full_name?.charAt(0).toUpperCase() || 'U'}
                     </span>
                   </div>
                 </div>
                 <div className="ml-3 flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
+                  <p className="text-sm font-medium text-white truncate">
                     {user?.full_name || 'Kullanıcı'}
                   </p>
-                  <p className="text-xs text-gray-500 capitalize">
+                  <p className="text-xs text-slate-400 capitalize">
                     {user?.role === 'admin' ? 'Yönetici (Admin)' :
                       user?.role === 'manager' ? 'Yönetici' : 'Kullanıcı'}
                   </p>
@@ -329,7 +329,7 @@ export default function DashboardLayout({ children, user: propUser }: DashboardL
               </Link>
               <button
                 onClick={handleLogout}
-                className="ml-2 flex-shrink-0 p-1 text-gray-400 hover:text-gray-500"
+                className="ml-2 flex-shrink-0 p-2 text-slate-400 hover:text-accent-teal hover:bg-sidebar-hover rounded-lg transition-all duration-200"
                 title="Çıkış Yap"
               >
                 <LogOut className="h-5 w-5" />

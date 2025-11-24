@@ -52,6 +52,22 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        // Modern Dashboard Colors
+        sidebar: {
+          DEFAULT: '#1E293B', // slate-800
+          hover: '#334155', // slate-700
+          active: 'rgba(20, 184, 166, 0.1)', // teal with opacity
+        },
+        'accent-teal': {
+          DEFAULT: '#14B8A6', // teal-500
+          light: '#5EEAD4', // teal-300
+          dark: '#0D9488', // teal-600
+        },
+        'accent-cyan': {
+          DEFAULT: '#06B6D4', // cyan-500
+          light: '#67E8F9', // cyan-300
+          dark: '#0891B2', // cyan-600
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',

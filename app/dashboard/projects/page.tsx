@@ -225,70 +225,77 @@ export default function ProjectsPage() {
   return (
     <DashboardLayout user={user}>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Projeler</h1>
-            <p className="text-gray-600">Tüm projeleri görüntüleyin ve yönetin</p>
-          </div>
-
-          <div className="flex items-center space-x-3">
-            <div className="bg-white border rounded-lg p-1 flex items-center space-x-1">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}
-                title="Izgara Görünümü"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-1.5 rounded-md transition-colors ${viewMode === 'list' ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}
-                title="Liste Görünümü"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-              </button>
+        {/* Header - Modern Design */}
+        <div className="bg-gradient-to-br from-white to-slate-50 rounded-2xl shadow-lg p-6 border border-slate-200">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex items-center gap-4">
+              <div className="h-14 w-14 bg-gradient-to-br from-accent-teal to-accent-cyan rounded-xl flex items-center justify-center shadow-lg">
+                <Building2 className="h-7 w-7 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-slate-900">Projeler</h1>
+                <p className="text-slate-600 font-medium">Tüm projeleri görüntüleyin ve yönetin</p>
+              </div>
             </div>
 
-            <ExportButton
-              onExport={(format) => exportData(filteredProjects, format)}
-              isExporting={isExporting}
-              data={filteredProjects}
-              size="sm"
-            />
+            <div className="flex items-center gap-3">
+              <div className="bg-white border-2 border-slate-300 rounded-xl p-1.5 flex items-center gap-1 shadow-sm">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-2 rounded-lg transition-all duration-200 ${viewMode === 'grid' ? 'bg-accent-teal text-white shadow-md' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'}`}
+                  title="Izgara Görünümü"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-2 rounded-lg transition-all duration-200 ${viewMode === 'list' ? 'bg-accent-teal text-white shadow-md' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'}`}
+                  title="Liste Görünümü"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                </button>
+              </div>
 
-            {['admin', 'manager'].includes(user.role) && (
-              <Link
-                href="/dashboard/projects/new"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Yeni Proje
-              </Link>
-            )}
+              <ExportButton
+                onExport={(format) => exportData(filteredProjects, format)}
+                isExporting={isExporting}
+                data={filteredProjects}
+                size="sm"
+              />
+
+              {['admin', 'manager'].includes(user.role) && (
+                <Link
+                  href="/dashboard/projects/new"
+                  className="inline-flex items-center px-5 py-3 border-2 border-transparent text-sm font-bold rounded-xl text-white bg-gradient-to-r from-accent-teal to-accent-cyan hover:shadow-lg transition-all duration-200 hover:scale-105"
+                >
+                  <Plus className="h-5 w-5 mr-2" />
+                  Yeni Proje
+                </Link>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
+        {/* Filters - Modern Design */}
+        <div className="bg-gradient-to-br from-white to-slate-50 rounded-xl shadow-md p-6 border border-slate-200">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-accent-teal h-5 w-5" />
               <input
                 type="text"
                 placeholder="Proje adı, kodu veya akademisyen ara..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="pl-10 w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-teal focus:border-accent-teal transition-all duration-200 text-slate-900 placeholder-slate-400"
               />
             </div>
 
             <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-accent-teal h-5 w-5" />
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="pl-10 w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-teal focus:border-accent-teal transition-all duration-200 text-slate-900 appearance-none cursor-pointer"
               >
                 <option value="">Tüm Durumlar</option>
                 <option value="active">Aktif</option>
@@ -298,11 +305,11 @@ export default function ProjectsPage() {
             </div>
 
             <div className="relative">
-              <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 text-accent-teal h-5 w-5" />
               <select
                 value={representativeFilter}
                 onChange={(e) => setRepresentativeFilter(e.target.value)}
-                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="pl-10 w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-teal focus:border-accent-teal transition-all duration-200 text-slate-900 appearance-none cursor-pointer"
               >
                 <option value="">Tüm Temsilciler</option>
                 {academicians.map(academician => (
@@ -313,9 +320,11 @@ export default function ProjectsPage() {
               </select>
             </div>
 
-            <div className="text-sm text-gray-500 flex items-center">
-              <Building2 className="h-4 w-4 mr-1" />
-              {filteredProjects.length} proje görüntüleniyor
+            <div className="col-span-full flex items-center justify-between bg-white rounded-lg p-3 border border-slate-200 shadow-sm">
+              <div className="flex items-center text-sm text-slate-700 font-medium">
+                <Building2 className="h-5 w-5 mr-2 text-accent-teal" />
+                {filteredProjects.length} proje görüntüleniyor
+              </div>
             </div>
           </div>
         </div>
@@ -324,35 +333,35 @@ export default function ProjectsPage() {
         {viewMode === 'grid' ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {filteredProjects.map((project) => (
-              <div key={project.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow">
+              <div key={project.id} className="bg-gradient-to-br from-white to-slate-50 rounded-xl shadow-md border border-slate-200 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] group">
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-bold text-slate-900 mb-1">
                         {project.name}
                       </h3>
-                      <p className="text-sm text-gray-500">{project.code}</p>
+                      <p className="text-sm font-medium text-accent-teal">{project.code}</p>
                     </div>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(project.status)}`}>
+                    <span className={`px-3 py-1.5 text-xs font-bold rounded-full shadow-sm ${getStatusColor(project.status)}`}>
                       {getStatusText(project.status)}
                     </span>
                   </div>
 
                   <div className="space-y-3 mb-6">
-                    <div className="flex items-center justify-between text-sm text-gray-600">
-                      <div className="flex items-center">
-                        <DollarSign className="h-4 w-4 mr-2" />
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center text-slate-700 font-medium">
+                        <DollarSign className="h-4 w-4 mr-2 text-accent-teal" />
                         Bütçe: ₺{project.budget.toLocaleString('tr-TR')}
                       </div>
-                      <div className="text-xs text-gray-500">
-                        {project.budget > 0 ? Math.round((project.total_received / project.budget) * 100) : 0}% tamamlandı
+                      <div className="text-xs font-bold text-accent-teal bg-accent-teal/10 px-2 py-1 rounded-full">
+                        {project.budget > 0 ? Math.round((project.total_received / project.budget) * 100) : 0}%
                       </div>
                     </div>
 
-                    {/* Progress Bar */}
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    {/* Progress Bar - Modern with Gradient */}
+                    <div className="w-full bg-slate-200 rounded-full h-2.5 shadow-inner">
                       <div
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        className="bg-gradient-to-r from-accent-teal to-accent-cyan h-2.5 rounded-full transition-all duration-300 shadow-md"
                         style={{
                           width: `${project.budget > 0 ? Math.min((project.total_received / project.budget) * 100, 100) : 0}%`
                         }}
@@ -360,46 +369,52 @@ export default function ProjectsPage() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div className="text-green-600">
-                        <div className="font-medium">Gelen</div>
-                        <div>₺{project.total_received.toLocaleString('tr-TR')}</div>
+                      <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-100">
+                        <div className="font-bold text-emerald-700 text-xs uppercase tracking-wide mb-1">Gelen</div>
+                        <div className="text-emerald-800 font-bold">₺{project.total_received.toLocaleString('tr-TR')}</div>
                       </div>
-                      <div className="text-orange-600">
-                        <div className="font-medium">Kalan</div>
-                        <div>₺{project.remaining_budget.toLocaleString('tr-TR')}</div>
+                      <div className="bg-orange-50 rounded-lg p-3 border border-orange-100">
+                        <div className="font-bold text-orange-700 text-xs uppercase tracking-wide mb-1">Kalan</div>
+                        <div className="text-orange-800 font-bold">₺{project.remaining_budget.toLocaleString('tr-TR')}</div>
                       </div>
                     </div>
 
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Calendar className="h-4 w-4 mr-2" />
+                    <div className="flex items-center text-sm text-slate-600 font-medium">
+                      <Calendar className="h-4 w-4 mr-2 text-accent-teal" />
                       {new Date(project.start_date).toLocaleDateString('tr-TR')}
                       {project.end_date && ` - ${new Date(project.end_date).toLocaleDateString('tr-TR')}`}
                     </div>
 
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Users className="h-4 w-4 mr-2" />
+                    <div className="flex items-center text-sm text-slate-600 font-medium">
+                      <Users className="h-4 w-4 mr-2 text-accent-teal" />
                       {project.representatives.length} temsilci
                     </div>
                   </div>
 
                   {/* Representatives Preview */}
-                  <div className="mb-6">
-                    <h4 className="text-sm font-medium text-gray-900 mb-2">Temsilciler</h4>
-                    <div className="space-y-1">
+                  <div className="mb-6 bg-white rounded-lg p-4 border border-slate-200 shadow-sm">
+                    <h4 className="text-sm font-bold text-slate-900 mb-3 flex items-center">
+                      <Users className="h-4 w-4 mr-1 text-accent-teal" />
+                      Temsilciler
+                    </h4>
+                    <div className="space-y-2">
                       {project.representatives.slice(0, 2).map((rep) => {
                         const personName = rep.user?.full_name || rep.personnel?.full_name || 'Bilinmiyor'
                         const isLeader = rep.role === 'project_leader'
                         return (
-                          <div key={rep.id} className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">
+                          <div key={rep.id} className="flex items-center text-sm bg-slate-50 rounded-lg p-2">
+                            <div className="h-6 w-6 bg-gradient-to-br from-accent-teal to-accent-cyan rounded-full flex items-center justify-center text-white text-xs font-bold mr-2">
+                              {personName.charAt(0)}
+                            </div>
+                            <span className="text-slate-700 font-medium">
                               {personName}
-                              {isLeader && <span className="text-blue-600"> (Yürütücü)</span>}
+                              {isLeader && <span className="text-accent-teal font-bold"> (Yürütücü)</span>}
                             </span>
                           </div>
                         )
                       })}
                       {project.representatives.length > 2 && (
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-slate-500 font-medium ml-8">
                           +{project.representatives.length - 2} diğer temsilci
                         </p>
                       )}
@@ -407,13 +422,13 @@ export default function ProjectsPage() {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex justify-end space-x-2">
+                  <div className="flex justify-end space-x-2 pt-4 border-t border-slate-200">
                     <Link
                       href={`/dashboard/projects/${project.id}` as any}
-                      className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                      className="p-2.5 text-slate-600 hover:text-accent-teal hover:bg-accent-teal/10 rounded-lg transition-all duration-200 hover:scale-110"
                       title="Görüntüle"
                     >
-                      <Eye className="h-4 w-4" />
+                      <Eye className="h-5 w-5" />
                     </Link>
 
                     {(['admin', 'manager'].includes(user.role)) && (
@@ -421,17 +436,17 @@ export default function ProjectsPage() {
                         {project.status === 'active' ? (
                           <Link
                             href={`/dashboard/projects/${project.id}/edit` as any}
-                            className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
+                            className="p-2.5 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all duration-200 hover:scale-110"
                             title="Düzenle"
                           >
-                            <Edit className="h-4 w-4" />
+                            <Edit className="h-5 w-5" />
                           </Link>
                         ) : (
                           <div
-                            className="p-2 text-gray-400 cursor-not-allowed rounded-md"
+                            className="p-2.5 text-slate-400 cursor-not-allowed rounded-lg"
                             title="Tamamlanan projeler düzenlenemez"
                           >
-                            <Edit className="h-4 w-4" />
+                            <Edit className="h-5 w-5" />
                           </div>
                         )}
 
@@ -447,11 +462,11 @@ export default function ProjectsPage() {
                               'Bakiye geçmişi'
                             ]
                           })}
-                          className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                          className="p-2.5 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 hover:scale-110"
                           title="Sil"
                           disabled={isDeleting}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-5 w-5" />
                         </button>
                       </>
                     )}
@@ -461,52 +476,52 @@ export default function ProjectsPage() {
             ))}
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+          <div className="bg-gradient-to-br from-white to-slate-50 rounded-xl shadow-md border border-slate-200 overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-slate-200">
+                <thead className="bg-gradient-to-r from-slate-100 to-slate-50">
                   <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-900 uppercase tracking-wider">
                       Proje
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-900 uppercase tracking-wider">
                       Durum
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-900 uppercase tracking-wider">
                       Bütçe / Kalan
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-900 uppercase tracking-wider">
                       Tarih
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-900 uppercase tracking-wider">
                       Temsilciler
                     </th>
-                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-4 text-right text-xs font-bold text-slate-900 uppercase tracking-wider">
                       İşlemler
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white divide-y divide-slate-200">
                   {filteredProjects.map((project) => (
-                    <tr key={project.id} className="hover:bg-gray-50">
+                    <tr key={project.id} className="hover:bg-accent-teal/5 transition-colors duration-150">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex flex-col">
-                          <span className="text-sm font-medium text-gray-900">{project.name}</span>
-                          <span className="text-sm text-gray-500">{project.code}</span>
+                          <span className="text-sm font-bold text-slate-900">{project.name}</span>
+                          <span className="text-sm font-medium text-accent-teal">{project.code}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(project.status)}`}>
+                        <span className={`px-3 py-1.5 text-xs font-bold rounded-full shadow-sm ${getStatusColor(project.status)}`}>
                           {getStatusText(project.status)}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex flex-col text-sm">
-                          <span className="text-gray-900">₺{project.budget.toLocaleString('tr-TR')}</span>
-                          <span className="text-orange-600 text-xs">Kalan: ₺{project.remaining_budget.toLocaleString('tr-TR')}</span>
+                          <span className="text-slate-900 font-bold">₺{project.budget.toLocaleString('tr-TR')}</span>
+                          <span className="text-orange-600 text-xs font-medium">Kalan: ₺{project.remaining_budget.toLocaleString('tr-TR')}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 font-medium">
                         {new Date(project.start_date).toLocaleDateString('tr-TR')}
                       </td>
                       <td className="px-6 py-4">
@@ -517,7 +532,7 @@ export default function ProjectsPage() {
                             return (
                               <div
                                 key={rep.id}
-                                className="inline-block h-8 w-8 rounded-full ring-2 ring-white bg-gray-100 flex items-center justify-center text-xs font-medium text-gray-600"
+                                className="inline-block h-8 w-8 rounded-full ring-2 ring-white bg-gradient-to-br from-accent-teal to-accent-cyan flex items-center justify-center text-xs font-bold text-white shadow-sm hover:scale-110 transition-transform"
                                 title={`${fullName} (%${rep.share_percentage})`}
                               >
                                 {fullName.charAt(0)}
@@ -525,7 +540,7 @@ export default function ProjectsPage() {
                             )
                           })}
                           {project.representatives.length > 3 && (
-                            <div className="inline-block h-8 w-8 rounded-full ring-2 ring-white bg-gray-100 flex items-center justify-center text-xs font-medium text-gray-500">
+                            <div className="inline-block h-8 w-8 rounded-full ring-2 ring-white bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-700">
                               +{project.representatives.length - 3}
                             </div>
                           )}
@@ -535,10 +550,10 @@ export default function ProjectsPage() {
                         <div className="flex justify-end space-x-2">
                           <Link
                             href={`/dashboard/projects/${project.id}` as any}
-                            className="text-blue-600 hover:text-blue-900"
+                            className="p-2 text-slate-600 hover:text-accent-teal hover:bg-accent-teal/10 rounded-lg transition-all duration-200 hover:scale-110"
                             title="Görüntüle"
                           >
-                            <Eye className="h-4 w-4" />
+                            <Eye className="h-5 w-5" />
                           </Link>
 
                           {(['admin', 'manager'].includes(user.role)) && (
@@ -546,14 +561,14 @@ export default function ProjectsPage() {
                               {project.status === 'active' ? (
                                 <Link
                                   href={`/dashboard/projects/${project.id}/edit` as any}
-                                  className="text-green-600 hover:text-green-900"
+                                  className="p-2 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all duration-200 hover:scale-110"
                                   title="Düzenle"
                                 >
-                                  <Edit className="h-4 w-4" />
+                                  <Edit className="h-5 w-5" />
                                 </Link>
                               ) : (
-                                <span className="text-gray-400 cursor-not-allowed">
-                                  <Edit className="h-4 w-4" />
+                                <span className="p-2 text-slate-400 cursor-not-allowed rounded-lg">
+                                  <Edit className="h-5 w-5" />
                                 </span>
                               )}
 
@@ -569,11 +584,11 @@ export default function ProjectsPage() {
                                     'Bakiye geçmişi'
                                   ]
                                 })}
-                                className="text-red-600 hover:text-red-900"
+                                className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 hover:scale-110"
                                 title="Sil"
                                 disabled={isDeleting}
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 className="h-5 w-5" />
                               </button>
                             </>
                           )}
@@ -588,12 +603,14 @@ export default function ProjectsPage() {
         )}
 
         {filteredProjects.length === 0 && (
-          <div className="text-center py-12">
-            <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <div className="bg-gradient-to-br from-white to-slate-50 rounded-2xl shadow-md border border-slate-200 text-center py-16">
+            <div className="h-20 w-20 bg-gradient-to-br from-accent-teal/20 to-accent-cyan/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <Building2 className="h-10 w-10 text-accent-teal" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">
               {searchTerm || statusFilter ? 'Proje bulunamadı' : 'Henüz proje yok'}
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-slate-600 font-medium mb-6 max-w-md mx-auto">
               {searchTerm || statusFilter
                 ? 'Arama kriterlerinizi değiştirmeyi deneyin'
                 : 'İlk projeyi oluşturmak için butona tıklayın'
@@ -602,9 +619,9 @@ export default function ProjectsPage() {
             {['admin', 'manager'].includes(user.role) && !searchTerm && !statusFilter && (
               <Link
                 href="/dashboard/projects/new"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                className="inline-flex items-center px-6 py-3 border-2 border-transparent text-sm font-bold rounded-xl text-white bg-gradient-to-r from-accent-teal to-accent-cyan hover:shadow-lg transition-all duration-200 hover:scale-105"
               >
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="h-5 w-5 mr-2" />
                 Yeni Proje Oluştur
               </Link>
             )}
