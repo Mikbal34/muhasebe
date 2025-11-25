@@ -19,7 +19,8 @@ import {
   CheckCircle,
   XCircle,
   Wallet,
-  Briefcase
+  Briefcase,
+  Download
 } from 'lucide-react'
 import { StatCardSkeleton, TableSkeleton, Skeleton } from '@/components/ui/skeleton'
 
@@ -56,6 +57,7 @@ export default function PersonnelPage() {
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [selectedPersonnel, setSelectedPersonnel] = useState<PersonnelData | null>(null)
+  const [exporting, setExporting] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -151,6 +153,42 @@ export default function PersonnelPage() {
     inactive: personnel.filter(p => !p.is_active).length,
   }
 
+  const handleExportExcel = async () => {
+    const token = localStorage.getItem('token')
+    if (!token) return
+
+    setExporting(true)
+    try {
+      const response = await fetch('/api/reports/export/personnel', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+      })
+
+      if (!response.ok) {
+        throw new Error('Export failed')
+      }
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `personel_listesi_${new Date().toLocaleDateString('tr-TR').replace(/\./g, '-')}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Export error:', error)
+      alert('Excel dosyası oluşturulurken bir hata oluştu')
+    } finally {
+      setExporting(false)
+    }
+  }
+
   if (loading || !user) {
     return (
       <DashboardLayout user={user || { id: '', full_name: 'Yükleniyor...', email: '', role: 'admin' }}>
@@ -193,13 +231,23 @@ export default function PersonnelPage() {
               <p className="text-sm text-slate-600">Proje personellerini görüntüleyin ve yönetin</p>
             </div>
 
-            <Link
-              href="/dashboard/personnel/new"
-              className="inline-flex items-center px-3 py-2 text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 transition-colors"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Yeni Personel
-            </Link>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleExportExcel}
+                disabled={exporting}
+                className="inline-flex items-center px-3 py-2 border border-slate-300 text-sm font-semibold rounded text-slate-700 bg-white hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                {exporting ? 'İndiriliyor...' : 'Dışa Aktar'}
+              </button>
+              <Link
+                href="/dashboard/personnel/new"
+                className="inline-flex items-center px-3 py-2 text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 transition-colors"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Yeni Personel
+              </Link>
+            </div>
           </div>
         </div>
 

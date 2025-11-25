@@ -73,9 +73,9 @@ export async function GET(request: NextRequest) {
 // POST /api/notifications - Create a new notification (admin only)
 export async function POST(request: NextRequest) {
   return withAuth(request, async (req, ctx) => {
-    // Only admins can create notifications manually
-    if (ctx.user.role !== 'admin') {
-      return apiResponse.forbidden('Only admins can create notifications')
+    // Only admins and managers can create notifications manually
+    if (!['admin', 'manager'].includes(ctx.user.role)) {
+      return apiResponse.forbidden('Only admins and managers can create notifications')
     }
 
     try {

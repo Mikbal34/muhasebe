@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { apiResponse, withAuth } from '@/lib/middleware/auth'
+import { createAdminClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
   return withAuth(request, async (req, ctx) => {
@@ -39,9 +40,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   return withAuth(request, async (req, ctx) => {
-    // Only admins can create users
-    if (ctx.user.role !== 'admin') {
-      return apiResponse.forbidden('Only admins can create users')
+    // Only admins and managers can create users
+    if (!['admin', 'manager'].includes(ctx.user.role)) {
+      return apiResponse.forbidden('Only admins and managers can create users')
     }
 
     try {
@@ -53,34 +54,59 @@ export async function POST(request: NextRequest) {
         return apiResponse.error('Full name, email and role are required', undefined, 400)
       }
 
-      // Check if user already exists
-      const { data: existingUser } = await ctx.supabase
-        .from('users')
-        .select('id')
-        .eq('email', email)
-        .single()
+      // Create admin client for auth operations (requires service role key)
+      const adminSupabase = await createAdminClient()
 
-      if (existingUser) {
-        return apiResponse.error('User with this email already exists', undefined, 400)
+      // Check if user already exists in auth.users (handles orphan users from failed attempts)
+      const { data: existingAuthUsers } = await adminSupabase.auth.admin.listUsers()
+      const existingAuthUser = existingAuthUsers?.users?.find(u => u.email === email)
+
+      if (existingAuthUser) {
+        // Check if profile exists
+        const { data: existingProfile } = await adminSupabase
+          .from('users')
+          .select('id')
+          .eq('id', existingAuthUser.id)
+          .single()
+
+        if (existingProfile) {
+          return apiResponse.error('User with this email already exists', undefined, 400)
+        }
+
+        // Auth user exists but no profile - orphan from failed attempt, delete it
+        console.log('Cleaning up orphan auth user:', existingAuthUser.id)
+        await adminSupabase.auth.admin.deleteUser(existingAuthUser.id)
       }
 
       // Generate random password
       const randomPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12).toUpperCase() + '123!'
 
       // Create user in Supabase Auth with generated password
-      const { data: authUser, error: authError } = await ctx.supabase.auth.admin.createUser({
+      console.log('Creating auth user with email:', email)
+      const { data: authUser, error: authError } = await adminSupabase.auth.admin.createUser({
         email,
         password: randomPassword,
-        email_confirm: true
+        email_confirm: true,
+        user_metadata: {
+          full_name
+        }
       })
 
       if (authError) {
         console.error('Auth user creation error:', authError)
-        return apiResponse.error('Failed to create user', authError.message, 500)
+        console.error('Auth error details:', JSON.stringify(authError, null, 2))
+        return apiResponse.error('Failed to create user', authError.message || 'Unknown auth error', 500)
       }
 
-      // Create user profile
-      const { data: userProfile, error: profileError } = await (ctx.supabase as any)
+      if (!authUser?.user) {
+        console.error('No user returned from createUser')
+        return apiResponse.error('Failed to create user', 'No user data returned', 500)
+      }
+
+      console.log('Auth user created successfully:', authUser.user.id)
+
+      // Create user profile (use adminSupabase to bypass RLS)
+      const { data: userProfile, error: profileError } = await adminSupabase
         .from('users')
         .insert({
           id: authUser.user.id,
@@ -94,17 +120,9 @@ export async function POST(request: NextRequest) {
       if (profileError) {
         console.error('User profile creation error:', profileError)
         // Clean up auth user if profile creation fails
-        await ctx.supabase.auth.admin.deleteUser(authUser.user.id)
+        await adminSupabase.auth.admin.deleteUser(authUser.user.id)
         return apiResponse.error('Failed to create user profile', profileError.message, 500)
       }
-
-      // Log password for development (in production, send via email service)
-      console.log(`\n🔐 NEW USER CREATED 🔐`)
-      console.log(`Email: ${email}`)
-      console.log(`Password: ${randomPassword}`)
-      console.log(`Full Name: ${full_name}`)
-      console.log(`Role: ${role}`)
-      console.log(`-------------------\n`)
 
       return apiResponse.success(
         {

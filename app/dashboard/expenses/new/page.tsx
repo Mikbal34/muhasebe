@@ -6,6 +6,7 @@ import DashboardLayout from '@/components/layout/dashboard-layout'
 import { MoneyInput } from '@/components/ui/money-input'
 import Link from 'next/link'
 import { Receipt, ArrowLeft, Save, Building2, Calendar, FileText } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface User {
   id: string
@@ -19,7 +20,10 @@ interface Project {
   code: string
   name: string
   status: string
+  company_rate: number
 }
+
+type ExpenseType = 'genel' | 'proje'
 
 export default function NewExpensePage() {
   const [user, setUser] = useState<User | null>(null)
@@ -29,10 +33,12 @@ export default function NewExpensePage() {
   const router = useRouter()
 
   const [formData, setFormData] = useState({
+    expense_type: 'proje' as ExpenseType,
     project_id: '',
     amount: 0,
     description: '',
-    expense_date: new Date().toISOString().split('T')[0]
+    expense_date: new Date().toISOString().split('T')[0],
+    is_tto_expense: true
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -80,11 +86,41 @@ export default function NewExpensePage() {
     }
   }
 
+  // Get selected project for calculation preview
+  const selectedProject = projects.find(p => p.id === formData.project_id)
+
+  // Calculate TTO and distributable amounts
+  const calculateAmounts = () => {
+    if (!selectedProject || formData.amount <= 0) return null
+
+    if (formData.expense_type === 'genel') {
+      return {
+        ttoAmount: formData.amount,
+        distributableAmount: 0
+      }
+    }
+
+    if (formData.is_tto_expense) {
+      const rate = selectedProject.company_rate || 15
+      const ttoAmount = formData.amount * rate / 100
+      const distributableAmount = formData.amount - ttoAmount
+      return { ttoAmount, distributableAmount }
+    } else {
+      return {
+        ttoAmount: 0,
+        distributableAmount: formData.amount
+      }
+    }
+  }
+
+  const amounts = calculateAmounts()
+
   const validate = () => {
     const newErrors: Record<string, string> = {}
 
-    if (!formData.project_id) {
-      newErrors.project_id = 'Proje seçimi zorunludur'
+    // Proje gideri için proje seçimi zorunlu
+    if (formData.expense_type === 'proje' && !formData.project_id) {
+      newErrors.project_id = 'Proje gideri için proje seçimi zorunludur'
     }
 
     if (formData.amount <= 0) {
@@ -114,13 +150,26 @@ export default function NewExpensePage() {
 
     try {
       const token = localStorage.getItem('token')
+
+      // Build request body based on expense type
+      const requestBody = {
+        expense_type: formData.expense_type,
+        amount: formData.amount,
+        description: formData.description,
+        expense_date: formData.expense_date,
+        // Only include project_id for proje type
+        ...(formData.expense_type === 'proje' && { project_id: formData.project_id }),
+        // Only include is_tto_expense for proje type
+        ...(formData.expense_type === 'proje' && { is_tto_expense: formData.is_tto_expense })
+      }
+
       const response = await fetch('/api/expenses', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(requestBody)
       })
 
       const data = await response.json()
@@ -141,12 +190,73 @@ export default function NewExpensePage() {
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Yükleniyor...</p>
+      <DashboardLayout user={user || { id: '', full_name: 'Yükleniyor...', email: '', role: 'manager' }}>
+        <div className="max-w-3xl mx-auto space-y-4">
+          {/* Header Skeleton */}
+          <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-9 w-9 rounded" />
+              <div>
+                <Skeleton className="h-6 w-40 mb-1" />
+                <Skeleton className="h-4 w-64" />
+              </div>
+            </div>
+          </div>
+
+          {/* Form Skeleton */}
+          <div className="bg-white rounded-lg shadow-sm border border-slate-200">
+            <div className="p-4 space-y-4">
+              {/* Expense Type */}
+              <div>
+                <Skeleton className="h-4 w-24 mb-2" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-10 flex-1 rounded-md" />
+                  <Skeleton className="h-10 flex-1 rounded-md" />
+                </div>
+              </div>
+
+              {/* Project */}
+              <div>
+                <Skeleton className="h-4 w-16 mb-2" />
+                <Skeleton className="h-10 w-full rounded-md" />
+              </div>
+
+              {/* TTO Toggle */}
+              <div>
+                <Skeleton className="h-4 w-32 mb-2" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-10 flex-1 rounded-md" />
+                  <Skeleton className="h-10 flex-1 rounded-md" />
+                </div>
+              </div>
+
+              {/* Amount */}
+              <div>
+                <Skeleton className="h-4 w-20 mb-2" />
+                <Skeleton className="h-10 w-full rounded-md" />
+              </div>
+
+              {/* Description */}
+              <div>
+                <Skeleton className="h-4 w-20 mb-2" />
+                <Skeleton className="h-24 w-full rounded-md" />
+              </div>
+
+              {/* Date */}
+              <div>
+                <Skeleton className="h-4 w-24 mb-2" />
+                <Skeleton className="h-10 w-full rounded-md" />
+              </div>
+            </div>
+
+            {/* Form Actions */}
+            <div className="px-4 py-4 border-t border-slate-200 flex justify-end gap-2">
+              <Skeleton className="h-10 w-16 rounded" />
+              <Skeleton className="h-10 w-32 rounded" />
+            </div>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     )
   }
 
@@ -164,7 +274,7 @@ export default function NewExpensePage() {
             </Link>
             <div>
               <h1 className="text-xl font-bold text-slate-900">Yeni Gider Ekle</h1>
-              <p className="text-sm text-slate-600">Projeye ait gider kaydı oluşturun</p>
+              <p className="text-sm text-slate-600">Genel veya proje gideri kaydı oluşturun</p>
             </div>
           </div>
         </div>
@@ -172,33 +282,109 @@ export default function NewExpensePage() {
         {/* Form */}
         <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border border-slate-200">
           <div className="p-4 space-y-4">
-            {/* Project Selection */}
+            {/* Expense Type Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Building2 className="inline h-4 w-4 mr-1" />
-                Proje *
+                Gider Tipi *
               </label>
-              <select
-                className={`w-full px-4 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.project_id ? 'border-red-500' : 'border-gray-300'
-                }`}
-                value={formData.project_id}
-                onChange={(e) => {
-                  setFormData({ ...formData, project_id: e.target.value })
-                  setErrors({ ...errors, project_id: '' })
-                }}
-              >
-                <option value="">Proje seçiniz...</option>
-                {projects.map(project => (
-                  <option key={project.id} value={project.id}>
-                    {project.code} - {project.name}
-                  </option>
-                ))}
-              </select>
-              {errors.project_id && (
-                <p className="mt-1 text-sm text-red-600">{errors.project_id}</p>
-              )}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, expense_type: 'genel', project_id: '' })}
+                  className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    formData.expense_type === 'genel'
+                      ? 'bg-purple-600 text-white hover:bg-purple-700'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  Genel Gider
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, expense_type: 'proje' })}
+                  className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    formData.expense_type === 'proje'
+                      ? 'bg-teal-600 text-white hover:bg-teal-700'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  Proje Gideri
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-slate-500">
+                {formData.expense_type === 'genel'
+                  ? 'Genel giderler %100 TTO bakiyesinden düşer ve projeyle ilişkilendirilmez.'
+                  : 'Proje giderleri seçilen projeyle ilişkilendirilir.'}
+              </p>
             </div>
+
+            {/* Project Selection - Only for Proje type */}
+            {formData.expense_type === 'proje' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Building2 className="inline h-4 w-4 mr-1" />
+                  Proje *
+                </label>
+                <select
+                  className={`w-full px-4 py-2 border rounded-md focus:ring-teal-500 focus:border-teal-500 ${
+                    errors.project_id ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  value={formData.project_id}
+                  onChange={(e) => {
+                    setFormData({ ...formData, project_id: e.target.value })
+                    setErrors({ ...errors, project_id: '' })
+                  }}
+                >
+                  <option value="">Proje seçiniz...</option>
+                  {projects.map(project => (
+                    <option key={project.id} value={project.id}>
+                      {project.code} - {project.name} (TTO: %{project.company_rate})
+                    </option>
+                  ))}
+                </select>
+                {errors.project_id && (
+                  <p className="mt-1 text-sm text-red-600">{errors.project_id}</p>
+                )}
+              </div>
+            )}
+
+            {/* TTO Expense Toggle - Only for Proje type */}
+            {formData.expense_type === 'proje' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  TTO Gideri mi? <span className="text-xs text-slate-500">(Ortak gider)</span>
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, is_tto_expense: true })}
+                    className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                      formData.is_tto_expense
+                        ? 'bg-teal-600 text-white hover:bg-teal-700'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    Evet (Ortak Gider)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, is_tto_expense: false })}
+                    className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                      !formData.is_tto_expense
+                        ? 'bg-orange-500 text-white hover:bg-orange-600'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    Hayır (Karşı Gider)
+                  </button>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">
+                  {formData.is_tto_expense
+                    ? 'Ortak gider: TTO kendi payını öder, kalan dağıtılabilir miktardan düşer.'
+                    : 'Karşı gider: TTO ödemez, tamamı dağıtılabilir miktardan düşer.'}
+                </p>
+              </div>
+            )}
 
             {/* Amount */}
             <div>
@@ -226,8 +412,8 @@ export default function NewExpensePage() {
                 Açıklama *
               </label>
               <textarea
-                rows={4}
-                className={`w-full px-4 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 ${
+                rows={3}
+                className={`w-full px-4 py-2 border rounded-md focus:ring-teal-500 focus:border-teal-500 ${
                   errors.description ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="Gider açıklaması (örn: Ofis kira ödemesi, Ekipman alımı, vs.)"
@@ -250,7 +436,7 @@ export default function NewExpensePage() {
               </label>
               <input
                 type="date"
-                className={`w-full px-4 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 ${
+                className={`w-full px-4 py-2 border rounded-md focus:ring-teal-500 focus:border-teal-500 ${
                   errors.expense_date ? 'border-red-500' : 'border-gray-300'
                 }`}
                 value={formData.expense_date}
@@ -263,6 +449,65 @@ export default function NewExpensePage() {
                 <p className="mt-1 text-sm text-red-600">{errors.expense_date}</p>
               )}
             </div>
+
+            {/* Calculation Preview */}
+            {formData.amount > 0 && (
+              <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                <h4 className="text-sm font-medium text-slate-700 mb-3">Hesaplama Önizlemesi</h4>
+
+                {formData.expense_type === 'genel' ? (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-600">TTO&apos;dan Düşecek (%100):</span>
+                    <span className="text-sm font-semibold text-red-600">
+                      ₺{formData.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                ) : selectedProject && amounts ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-600">Toplam Gider:</span>
+                      <span className="text-sm font-semibold text-slate-900">
+                        ₺{formData.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+
+                    {formData.is_tto_expense ? (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-slate-600">
+                            TTO Payı (%{selectedProject.company_rate}):
+                          </span>
+                          <span className="text-sm font-semibold text-red-600">
+                            ₺{amounts.ttoAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-slate-600">Dağıtılabilir Pay:</span>
+                          <span className="text-sm font-semibold text-amber-600">
+                            ₺{amounts.distributableAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-slate-600">Dağıtılabilirden Düşecek:</span>
+                        <span className="text-sm font-semibold text-amber-600">
+                          ₺{amounts.distributableAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    )}
+
+                    <p className="text-xs text-slate-500 mt-2 pt-2 border-t border-slate-200">
+                      {formData.is_tto_expense
+                        ? 'TTO payı otomatik düşülür. Dağıtılabilir pay manuel dağıtım için saklanır.'
+                        : 'TTO bu giderden pay ödemez. Tamamı dağıtılabilir miktardan düşecektir.'}
+                    </p>
+                  </div>
+                ) : formData.expense_type === 'proje' && !selectedProject ? (
+                  <p className="text-sm text-slate-500">Hesaplama için proje seçiniz.</p>
+                ) : null}
+              </div>
+            )}
           </div>
 
           {/* Form Actions */}

@@ -243,7 +243,7 @@ function ManualBalanceAllocationPageContent() {
         <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
           <div className="flex items-center gap-3">
             <Link
-              href="/dashboard"
+              href="/dashboard/incomes"
               className="p-2 hover:bg-slate-100 rounded transition-colors text-slate-600 hover:text-slate-900"
             >
               <ArrowLeft className="h-5 w-5" />

@@ -5,9 +5,9 @@ import { apiResponse, withAuth } from '@/lib/middleware/auth'
 export async function GET(request: NextRequest) {
   return withAuth(request, async (req, ctx) => {
     try {
-      // Only admin can access dashboard metrics
-      if (ctx.user.role !== 'admin') {
-        return apiResponse.error('Unauthorized', 'Only admin can access dashboard metrics', 403)
+      // Only admins and managers can access dashboard metrics
+      if (!['admin', 'manager'].includes(ctx.user.role)) {
+        return apiResponse.error('Unauthorized', 'Only admins and managers can access dashboard metrics', 403)
       }
 
       // 1. Get total budget from active projects

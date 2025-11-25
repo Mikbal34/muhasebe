@@ -14,12 +14,11 @@ import {
   Trash2,
   Users,
   Calendar,
-  DollarSign
+  DollarSign,
+  Download
 } from 'lucide-react'
 import { DeleteConfirmationModal } from '@/components/ui/confirmation-modal'
 import { useDeleteConfirmation } from '@/hooks/useDeleteConfirmation'
-import { ExportButton } from '@/components/ui/export-button'
-import { useProjectsExport } from '@/hooks/useExport'
 import { ProjectCardSkeleton, TableSkeleton, Skeleton } from '@/components/ui/skeleton'
 
 interface User {
@@ -96,7 +95,7 @@ export default function ProjectsPage() {
   })
 
   // Export functionality
-  const { exportData, isExporting, exportError } = useProjectsExport()
+  const [exportingKunye, setExportingKunye] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -189,6 +188,42 @@ export default function ProjectsPage() {
   // View mode state
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
 
+  const handleExportProjectCard = async () => {
+    const token = localStorage.getItem('token')
+    if (!token) return
+
+    setExportingKunye(true)
+    try {
+      const response = await fetch('/api/reports/export/project-card', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+      })
+
+      if (!response.ok) {
+        throw new Error('Export failed')
+      }
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `proje_kunyesi_${new Date().toLocaleDateString('tr-TR').replace(/\./g, '-')}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Export error:', error)
+      alert('Excel dosyası oluşturulurken bir hata oluştu')
+    } finally {
+      setExportingKunye(false)
+    }
+  }
+
   if (loading || !user) {
     return (
       <DashboardLayout user={user || { id: '', full_name: 'Yükleniyor...', email: '', role: 'manager' }}>
@@ -251,12 +286,14 @@ export default function ProjectsPage() {
                 </button>
               </div>
 
-              <ExportButton
-                onExport={(format) => exportData(filteredProjects, format)}
-                isExporting={isExporting}
-                data={filteredProjects}
-                size="sm"
-              />
+              <button
+                onClick={handleExportProjectCard}
+                disabled={exportingKunye}
+                className="inline-flex items-center px-3 py-2 border border-slate-300 text-sm font-semibold rounded text-slate-700 bg-white hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                {exportingKunye ? 'İndiriliyor...' : 'Dışa Aktar'}
+              </button>
 
               {['admin', 'manager'].includes(user.role) && (
                 <Link

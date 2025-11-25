@@ -45,14 +45,14 @@ export function ConfirmationModal({
       case 'info':
         return {
           icon: Info,
-          iconColor: 'text-blue-600 bg-blue-100',
-          confirmButtonColor: 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
+          iconColor: 'text-teal-600 bg-teal-100',
+          confirmButtonColor: 'bg-teal-600 hover:bg-teal-700 focus:ring-teal-500'
         }
       case 'success':
         return {
           icon: CheckCircle,
-          iconColor: 'text-green-600 bg-green-100',
-          confirmButtonColor: 'bg-green-600 hover:bg-green-700 focus:ring-green-500'
+          iconColor: 'text-emerald-600 bg-emerald-100',
+          confirmButtonColor: 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500'
         }
       default:
         return {
@@ -82,14 +82,14 @@ export function ConfirmationModal({
         <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
 
         {/* Modal panel */}
-        <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+        <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6 border border-slate-200">
           <div className="flex justify-between items-start mb-4">
             <div className="flex items-center">
               <div className={`flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full ${config.iconColor}`}>
                 <IconComponent className="h-6 w-6" />
               </div>
               <div className="ml-3">
-                <h3 className="text-lg font-medium text-gray-900">
+                <h3 className="text-lg font-medium text-slate-900">
                   {title}
                 </h3>
               </div>
@@ -97,14 +97,14 @@ export function ConfirmationModal({
             <button
               onClick={onClose}
               disabled={loading}
-              className="text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 rounded-full p-1"
+              className="text-slate-400 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-500 rounded-full p-1"
             >
               <X className="h-5 w-5" />
             </button>
           </div>
 
           <div className="mb-6">
-            <p className="text-sm text-gray-600 leading-relaxed">
+            <p className="text-sm text-slate-600 leading-relaxed">
               {message}
             </p>
             {children && (
@@ -130,7 +130,7 @@ export function ConfirmationModal({
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="w-full inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:w-auto sm:text-sm disabled:opacity-50"
+              className="w-full inline-flex justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-base font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 sm:w-auto sm:text-sm disabled:opacity-50"
             >
               {cancelText}
             </button>
@@ -177,7 +177,7 @@ export function DeleteConfirmationModal({
     >
       {description && (
         <div className="mt-2">
-          <p className="text-sm text-gray-500">{description}</p>
+          <p className="text-sm text-slate-500">{description}</p>
         </div>
       )}
 
@@ -201,7 +201,7 @@ export function DeleteConfirmationModal({
 
       <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
         <p className="text-sm text-red-700 font-medium">
-          ⚠️ Bu işlem geri alınamaz!
+          Bu işlem geri alınamaz!
         </p>
       </div>
     </ConfirmationModal>
@@ -243,8 +243,8 @@ export function StatusChangeModal({
       loading={loading}
     >
       {description && (
-        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-          <p className="text-sm text-blue-700">{description}</p>
+        <div className="mt-4 p-3 bg-teal-50 border border-teal-200 rounded-md">
+          <p className="text-sm text-teal-700">{description}</p>
         </div>
       )}
     </ConfirmationModal>
@@ -285,8 +285,8 @@ export function BulkActionModal({
       type={type}
       loading={loading}
     >
-      <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-md">
-        <p className="text-sm text-gray-700">
+      <div className="mt-4 p-3 bg-slate-50 border border-slate-200 rounded-md">
+        <p className="text-sm text-slate-700">
           <strong>{selectedCount}</strong> öğe seçildi
         </p>
       </div>

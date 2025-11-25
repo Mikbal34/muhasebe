@@ -81,43 +81,66 @@ export async function POST(request: NextRequest) {
       return validation.error
     }
 
-    const { project_id, amount, description, expense_date } = validation.data
+    const {
+      expense_type = 'proje',
+      project_id,
+      amount,
+      description,
+      expense_date,
+      is_tto_expense = true
+    } = validation.data
 
     try {
-      // Check if project exists
-      const { data: project, error: projectError } = await ctx.supabase
-        .from('projects')
-        .select('id, code, name')
-        .eq('id', project_id)
-        .single()
+      // Genel gider için proje kontrolü
+      if (expense_type === 'genel' && project_id) {
+        return apiResponse.error('Genel gider proje ile ilişkilendirilemez', undefined, 400)
+      }
 
-      if (projectError) {
-        if (projectError.code === 'PGRST116') {
-          return apiResponse.notFound('Project not found')
+      // Proje gideri için proje kontrolü
+      if (expense_type === 'proje' && !project_id) {
+        return apiResponse.error('Proje gideri için proje seçimi zorunludur', undefined, 400)
+      }
+
+      // Proje seçilmişse varlığını kontrol et
+      let project = null
+      if (project_id) {
+        const { data, error: projectError } = await ctx.supabase
+          .from('projects')
+          .select('id, code, name, company_rate')
+          .eq('id', project_id)
+          .single()
+
+        if (projectError) {
+          if (projectError.code === 'PGRST116') {
+            return apiResponse.notFound('Proje bulunamadı')
+          }
+          return apiResponse.error('Proje kontrolü başarısız', projectError.message, 500)
         }
-        return apiResponse.error('Failed to check project', projectError.message, 500)
+        project = data
       }
 
       // Create expense
       const { data: expense, error: expenseError } = await (ctx.supabase as any)
         .from('expenses')
         .insert({
-          project_id,
+          expense_type,
+          project_id: expense_type === 'genel' ? null : project_id,
           amount,
           description,
           expense_date: expense_date || new Date().toISOString().split('T')[0],
+          is_tto_expense: expense_type === 'genel' ? true : is_tto_expense,
           created_by: ctx.user.id
         })
         .select(`
           *,
-          project:projects(id, name, code),
+          project:projects(id, name, code, company_rate),
           created_by_user:users!created_by(full_name)
         `)
         .single()
 
       if (expenseError) {
         console.error('Expense creation error:', expenseError)
-        return apiResponse.error('Failed to create expense', expenseError.message, 500)
+        return apiResponse.error('Gider oluşturulamadı', expenseError.message, 500)
       }
 
       // Create audit log
@@ -127,16 +150,29 @@ export async function POST(request: NextRequest) {
         p_entity_type: 'expense',
         p_entity_id: expense.id,
         p_new_values: {
-          project_id,
+          expense_type,
+          project_id: expense_type === 'genel' ? null : project_id,
           amount,
           description,
+          is_tto_expense: expense_type === 'genel' ? true : is_tto_expense,
           expense_date: expense_date || new Date().toISOString().split('T')[0]
         }
       })
 
+      // Mesaj oluştur
+      let successMessage = ''
+      if (expense_type === 'genel') {
+        successMessage = `₺${amount.toLocaleString('tr-TR')} tutarında genel gider oluşturuldu`
+      } else {
+        const ttoAmount = is_tto_expense ? amount * ((project as any)?.company_rate || 15) / 100 : 0
+        successMessage = is_tto_expense
+          ? `₺${amount.toLocaleString('tr-TR')} tutarında proje gideri oluşturuldu (TTO payı: ₺${ttoAmount.toLocaleString('tr-TR')})`
+          : `₺${amount.toLocaleString('tr-TR')} tutarında karşı gider oluşturuldu`
+      }
+
       return apiResponse.success(
         { expense },
-        `Expense of ₺${amount.toLocaleString('tr-TR')} created successfully`
+        successMessage
       )
     } catch (error: any) {
       console.error('Expense creation error:', error)

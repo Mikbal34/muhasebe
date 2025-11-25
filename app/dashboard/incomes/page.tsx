@@ -21,7 +21,8 @@ import {
   Coins,
   ChevronDown,
   ChevronRight,
-  Banknote
+  Banknote,
+  Download
 } from 'lucide-react'
 import { StatCardSkeleton, AccordionGroupSkeleton, Skeleton } from '@/components/ui/skeleton'
 
@@ -42,6 +43,9 @@ interface Income {
   description: string | null
   income_date: string
   created_at: string
+  is_fsmh_income: boolean
+  income_type: 'ozel' | 'kamu'
+  is_tto_income: boolean
   project: {
     id: string
     code: string
@@ -71,6 +75,8 @@ export default function IncomesPage() {
   const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({})
   const [collectionModalOpen, setCollectionModalOpen] = useState(false)
   const [selectedIncome, setSelectedIncome] = useState<Income | null>(null)
+  const [exporting, setExporting] = useState(false)
+  const [actionDropdownOpen, setActionDropdownOpen] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -88,7 +94,7 @@ export default function IncomesPage() {
     } catch (err) {
       router.push('/login')
     }
-  }, [router])
+  }, [])
 
   const fetchIncomes = async (token: string) => {
     try {
@@ -170,6 +176,44 @@ export default function IncomesPage() {
     }
   }
 
+  const handleExportExcel = async () => {
+    const token = localStorage.getItem('token')
+    if (!token) return
+
+    setExporting(true)
+    try {
+      const response = await fetch('/api/reports/export/income', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          project_id: projectFilter || undefined
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Export failed')
+      }
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `proje_bazli_gelir_${new Date().toLocaleDateString('tr-TR').replace(/\./g, '-')}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Export error:', error)
+      alert('Excel dosyası oluşturulurken bir hata oluştu')
+    } finally {
+      setExporting(false)
+    }
+  }
+
   if (loading || !user) {
     return (
       <DashboardLayout user={user || { id: '', full_name: 'Yükleniyor...', email: '', role: 'manager' }}>
@@ -217,20 +261,50 @@ export default function IncomesPage() {
 
             {(user.role === 'admin' || user.role === 'manager') && (
               <div className="flex items-center gap-2">
-                <Link
-                  href="/dashboard/balances/allocate"
-                  className="inline-flex items-center px-3 py-2 border border-slate-300 text-sm font-semibold rounded text-slate-700 bg-white hover:bg-slate-50 transition-colors"
+                <button
+                  onClick={handleExportExcel}
+                  disabled={exporting}
+                  className="inline-flex items-center px-3 py-2 border border-slate-300 text-sm font-semibold rounded text-slate-700 bg-white hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Coins className="h-4 w-4 mr-2" />
-                  Gelir Dağılımı
-                </Link>
-                <Link
-                  href="/dashboard/incomes/new"
-                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 transition-colors"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Yeni Gelir
-                </Link>
+                  <Download className="h-4 w-4 mr-2" />
+                  {exporting ? 'İndiriliyor...' : 'Dışa Aktar'}
+                </button>
+                <div className="relative inline-block">
+                  <button
+                    onClick={() => setActionDropdownOpen(!actionDropdownOpen)}
+                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 transition-colors"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Yeni İşlem
+                    <ChevronDown className="h-4 w-4 ml-1" />
+                  </button>
+
+                  {actionDropdownOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setActionDropdownOpen(false)} />
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-slate-200 z-50">
+                        <div className="py-1">
+                          <Link
+                            href="/dashboard/incomes/new"
+                            className="flex items-center w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 transition-colors"
+                            onClick={() => setActionDropdownOpen(false)}
+                          >
+                            <Plus className="h-4 w-4 mr-3 text-teal-600" />
+                            Yeni Gelir
+                          </Link>
+                          <Link
+                            href="/dashboard/balances/allocate"
+                            className="flex items-center w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 transition-colors"
+                            onClick={() => setActionDropdownOpen(false)}
+                          >
+                            <Coins className="h-4 w-4 mr-3 text-amber-600" />
+                            Gelir Dağılımı
+                          </Link>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -384,6 +458,9 @@ export default function IncomesPage() {
                                 Açıklama
                               </th>
                               <th className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
+                                Tip
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
                                 Brüt Tutar
                               </th>
                               <th className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
@@ -415,6 +492,29 @@ export default function IncomesPage() {
                                   <td className="px-4 py-3">
                                     <div className="text-sm font-medium text-slate-900">
                                       {income.description || '-'}
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <div className="flex flex-wrap gap-1">
+                                      {income.is_fsmh_income && (
+                                        <span className="text-xs font-semibold px-2 py-0.5 rounded bg-purple-100 text-purple-700">
+                                          FSMH
+                                        </span>
+                                      )}
+                                      <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                                        income.income_type === 'kamu'
+                                          ? 'bg-blue-100 text-blue-700'
+                                          : 'bg-slate-100 text-slate-700'
+                                      }`}>
+                                        {income.income_type === 'kamu' ? 'Kamu' : 'Özel'}
+                                      </span>
+                                      <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                                        income.is_tto_income
+                                          ? 'bg-teal-100 text-teal-700'
+                                          : 'bg-amber-100 text-amber-700'
+                                      }`}>
+                                        {income.is_tto_income ? 'TTO' : 'TTO Dışı'}
+                                      </span>
                                     </div>
                                   </td>
                                   <td className="px-4 py-3 whitespace-nowrap">

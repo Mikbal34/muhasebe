@@ -7,9 +7,9 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   return withAuth(request, async (req, ctx) => {
-    // Only admins can delete expenses
-    if (ctx.user.role !== 'admin') {
-      return apiResponse.forbidden('Only admins can delete expenses')
+    // Only admins and managers can delete expenses
+    if (!['admin', 'manager'].includes(ctx.user.role)) {
+      return apiResponse.forbidden('Only admins and managers can delete expenses')
     }
 
     const { id } = params

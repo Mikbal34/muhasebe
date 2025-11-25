@@ -31,6 +31,10 @@ export type ReportFormat = 'excel' | 'pdf'
 
 export type PersonType = 'user' | 'personnel'
 
+export type IncomeType = 'ozel' | 'kamu'
+
+export type ExpenseType = 'genel' | 'proje'
+
 export interface Database {
   public: {
     Tables: {
@@ -42,6 +46,13 @@ export interface Database {
           role: UserRole
           phone: string | null
           iban: string | null
+          tc_no: string | null
+          title: string | null
+          gender: string | null
+          start_date: string | null
+          faculty: string | null
+          department: string | null
+          university: string | null
           is_active: boolean
           created_at: string
           updated_at: string
@@ -53,6 +64,13 @@ export interface Database {
           role?: UserRole
           phone?: string | null
           iban?: string | null
+          tc_no?: string | null
+          title?: string | null
+          gender?: string | null
+          start_date?: string | null
+          faculty?: string | null
+          department?: string | null
+          university?: string | null
           is_active?: boolean
           created_at?: string
           updated_at?: string
@@ -64,6 +82,13 @@ export interface Database {
           role?: UserRole
           phone?: string | null
           iban?: string | null
+          tc_no?: string | null
+          title?: string | null
+          gender?: string | null
+          start_date?: string | null
+          faculty?: string | null
+          department?: string | null
+          university?: string | null
           is_active?: boolean
           created_at?: string
           updated_at?: string
@@ -78,6 +103,12 @@ export interface Database {
           phone: string | null
           iban: string | null
           tc_no: string | null
+          title: string | null
+          gender: string | null
+          start_date: string | null
+          faculty: string | null
+          department: string | null
+          university: string | null
           is_active: boolean
           notes: string | null
           created_at: string
@@ -90,6 +121,12 @@ export interface Database {
           phone?: string | null
           iban?: string | null
           tc_no?: string | null
+          title?: string | null
+          gender?: string | null
+          start_date?: string | null
+          faculty?: string | null
+          department?: string | null
+          university?: string | null
           is_active?: boolean
           notes?: string | null
           created_at?: string
@@ -102,6 +139,12 @@ export interface Database {
           phone?: string | null
           iban?: string | null
           tc_no?: string | null
+          title?: string | null
+          gender?: string | null
+          start_date?: string | null
+          faculty?: string | null
+          department?: string | null
+          university?: string | null
           is_active?: boolean
           notes?: string | null
           created_at?: string
@@ -131,6 +174,11 @@ export interface Database {
           referee_approval_date: string | null
           has_assignment_permission: boolean
           assignment_document_path: string | null
+          total_commission_due: number
+          total_commission_collected: number
+          contract_date: string | null
+          extension_date: string | null
+          detailed_name: string | null
         }
         Insert: {
           id?: string
@@ -152,6 +200,11 @@ export interface Database {
           referee_approval_date?: string | null
           has_assignment_permission?: boolean
           assignment_document_path?: string | null
+          total_commission_due?: number
+          total_commission_collected?: number
+          contract_date?: string | null
+          extension_date?: string | null
+          detailed_name?: string | null
         }
         Update: {
           id?: string
@@ -173,6 +226,11 @@ export interface Database {
           referee_approval_date?: string | null
           has_assignment_permission?: boolean
           assignment_document_path?: string | null
+          total_commission_due?: number
+          total_commission_collected?: number
+          contract_date?: string | null
+          extension_date?: string | null
+          detailed_name?: string | null
         }
         Relationships: [
           {
@@ -238,6 +296,9 @@ export interface Database {
           income_date: string
           created_at: string
           created_by: string
+          is_fsmh_income: boolean
+          income_type: IncomeType
+          is_tto_income: boolean
         }
         Insert: {
           id?: string
@@ -250,6 +311,9 @@ export interface Database {
           income_date: string
           created_at?: string
           created_by: string
+          is_fsmh_income?: boolean
+          income_type?: IncomeType
+          is_tto_income?: boolean
         }
         Update: {
           id?: string
@@ -262,6 +326,9 @@ export interface Database {
           income_date?: string
           created_at?: string
           created_by?: string
+          is_fsmh_income?: boolean
+          income_type?: IncomeType
+          is_tto_income?: boolean
         }
         Relationships: [
           {
@@ -283,30 +350,36 @@ export interface Database {
       expenses: {
         Row: {
           id: string
-          project_id: string
+          expense_type: ExpenseType
+          project_id: string | null
           amount: number
           description: string
           expense_date: string
+          is_tto_expense: boolean
           created_by: string
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
-          project_id: string
+          expense_type?: ExpenseType
+          project_id?: string | null
           amount: number
           description: string
           expense_date?: string
+          is_tto_expense?: boolean
           created_by: string
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
-          project_id?: string
+          expense_type?: ExpenseType
+          project_id?: string | null
           amount?: number
           description?: string
           expense_date?: string
+          is_tto_expense?: boolean
           created_by?: string
           created_at?: string
           updated_at?: string
@@ -786,13 +859,19 @@ export interface Database {
           email: string
           phone: string | null
           iban: string | null
+          tc_no: string | null
+          title: string | null
+          gender: string | null
+          start_date: string | null
+          faculty: string | null
+          department: string | null
+          university: string | null
           person_type: PersonType
           is_active: boolean
           created_at: string
           updated_at: string
           user_role: string | null
           notes: string | null
-          tc_no: string | null
         }
       }
     }

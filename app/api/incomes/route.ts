@@ -91,7 +91,16 @@ export async function POST(request: NextRequest) {
       return validation.error
     }
 
-    const { project_id, gross_amount, vat_rate = 18, description, income_date } = validation.data
+    const {
+      project_id,
+      gross_amount,
+      vat_rate = 18,
+      description,
+      income_date,
+      is_fsmh_income = false,
+      income_type = 'ozel',
+      is_tto_income = true
+    } = validation.data
 
     try {
       // Check if project exists and get representatives
@@ -99,7 +108,8 @@ export async function POST(request: NextRequest) {
         .from('projects')
         .select(`
           id, name, code, status, budget, company_rate, vat_rate,
-          sent_to_referee, referee_approved,
+          sent_to_referee, referee_approved, remaining_budget,
+          total_commission_due, total_commission_collected,
           representatives:project_representatives(
             id, user_id, personnel_id, role,
             user:users(id, full_name, email),
@@ -150,6 +160,24 @@ export async function POST(request: NextRequest) {
         )
       }
 
+      // TTO Geliri Kontrolü: TTO dışı gelir olarak işaretlenmek isteniyorsa
+      // kalan bütçe, kalan komisyon alacağını karşılayabilmeli
+      if (!is_tto_income) {
+        const currentRemainingBudget = (project as any).remaining_budget ?? (project as any).budget
+        const newRemainingBudget = currentRemainingBudget - gross_amount
+        const totalCommissionDue = (project as any).total_commission_due ?? 0
+        const totalCommissionCollected = (project as any).total_commission_collected ?? 0
+        const remainingCommission = totalCommissionDue - totalCommissionCollected
+
+        if (newRemainingBudget < remainingCommission) {
+          return apiResponse.error(
+            'TTO Geliri Olarak İşaretlenmeli',
+            `Bu gelir TTO geliri olarak işaretlenmelidir. Kalan bütçe (₺${newRemainingBudget.toLocaleString('tr-TR')}) komisyon alacağını (₺${remainingCommission.toLocaleString('tr-TR')}) karşılayamıyor. Komisyon hiçbir zaman ödenmemiş bırakılamaz.`,
+            400
+          )
+        }
+      }
+
       // Use user's provided VAT rate (don't override with project default)
       const finalVatRate = vat_rate
 
@@ -165,6 +193,9 @@ export async function POST(request: NextRequest) {
           vat_rate: finalVatRate, // Use user's provided VAT rate
           description,
           income_date,
+          is_fsmh_income,
+          income_type,
+          is_tto_income,
           created_by: ctx.user.id
         })
         .select(`

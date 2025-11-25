@@ -97,8 +97,8 @@ export default function DashboardPage() {
       setUser(parsedUser)
       fetchDashboardStats(token)
 
-      // Fetch TTO financials if user is admin
-      if (parsedUser.role === 'admin') {
+      // Fetch TTO financials if user is admin or manager
+      if (['admin', 'manager'].includes(parsedUser.role)) {
         fetchTTOFinancials(token)
         fetchDashboardMetrics(token)
       }
@@ -385,8 +385,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* TTO Dashboard (Admin Only) */}
-        {user.role === 'admin' && dashboardMetrics && (
+        {/* TTO Dashboard (Admin and Manager) */}
+        {['admin', 'manager'].includes(user.role) && dashboardMetrics && (
           <div className="space-y-6">
             <div>
               <h2 className="text-lg font-bold text-slate-900">Finansal Gösterge Tablosu</h2>

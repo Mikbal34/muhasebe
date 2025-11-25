@@ -38,9 +38,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   const { id } = params
 
   return withAuth(request, async (req, ctx) => {
-    // Only admins can delete users
-    if (ctx.user.role !== 'admin') {
-      return apiResponse.forbidden('Only admins can delete users')
+    // Only admins and managers can delete users
+    if (!['admin', 'manager'].includes(ctx.user.role)) {
+      return apiResponse.forbidden('Only admins and managers can delete users')
     }
 
     // Prevent admin from deleting themselves
@@ -86,9 +86,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   const { id } = params
 
   return withAuth(request, async (req, ctx) => {
-    // Only admins can update other users
-    if (ctx.user.role !== 'admin' && ctx.user.id !== id) {
-      return apiResponse.forbidden('Only admins can update other users')
+    // Only admins and managers can update other users
+    if (!['admin', 'manager'].includes(ctx.user.role) && ctx.user.id !== id) {
+      return apiResponse.forbidden('Only admins and managers can update other users')
     }
 
     try {
@@ -97,7 +97,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
       // Allow partial updates
       if (body.full_name !== undefined) updateData.full_name = body.full_name
-      if (body.role !== undefined && ctx.user.role === 'admin') updateData.role = body.role
+      if (body.role !== undefined && ['admin', 'manager'].includes(ctx.user.role)) updateData.role = body.role
       if (body.phone !== undefined) updateData.phone = body.phone
       if (body.iban !== undefined) updateData.iban = body.iban
 

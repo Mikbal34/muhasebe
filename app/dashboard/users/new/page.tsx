@@ -33,7 +33,7 @@ export default function NewUserPage() {
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
-    role: 'manager' as 'admin' | 'manager' | 'manager'
+    role: 'manager' as 'admin' | 'manager'
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null)
@@ -55,8 +55,8 @@ export default function NewUserPage() {
       const parsedUser = JSON.parse(userData)
       setUser(parsedUser)
 
-      // Only admin can create users
-      if (parsedUser.role !== 'admin') {
+      // Only admin and manager can create users
+      if (!['admin', 'manager'].includes(parsedUser.role)) {
         router.push('/dashboard/users')
         return
       }
@@ -181,14 +181,7 @@ export default function NewUserPage() {
           color: 'bg-blue-100 text-blue-800',
           icon: Building2,
           text: 'Mali İşler',
-          description: 'Mali işlemler ve raporlar'
-        }
-      case 'manager':
-        return {
-          color: 'bg-green-100 text-green-800',
-          icon: GraduationCap,
-          text: 'Akademisyen',
-          description: 'Proje ve ödeme görüntüleme'
+          description: 'Tam sistem erişimi'
         }
       default:
         return {
@@ -211,7 +204,7 @@ export default function NewUserPage() {
     )
   }
 
-  if (user.role !== 'admin') {
+  if (!['admin', 'manager'].includes(user.role)) {
     return (
       <DashboardLayout user={user}>
         <div className="text-center py-12">
@@ -306,8 +299,8 @@ export default function NewUserPage() {
               <label className="block text-sm font-medium text-gray-700 mb-4">
                 Kullanıcı Rolü *
               </label>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {(['admin', 'manager', 'manager'] as const).map((role) => {
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {(['admin', 'manager'] as const).map((role) => {
                   const roleInfo = getRoleInfo(role)
                   const RoleIcon = roleInfo.icon
                   const isSelected = formData.role === role

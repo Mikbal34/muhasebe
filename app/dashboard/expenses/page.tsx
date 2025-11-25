@@ -16,7 +16,8 @@ import {
   DollarSign,
   TrendingDown,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Download
 } from 'lucide-react'
 import { StatCardSkeleton, AccordionGroupSkeleton, Skeleton } from '@/components/ui/skeleton'
 
@@ -27,17 +28,21 @@ interface User {
   role: 'admin' | 'manager'
 }
 
+type ExpenseType = 'genel' | 'proje'
+
 interface Expense {
   id: string
+  expense_type: ExpenseType
   amount: number
   description: string
   expense_date: string
+  is_tto_expense: boolean
   created_at: string
   project: {
     id: string
     code: string
     name: string
-  }
+  } | null
   created_by_user: {
     full_name: string
   }
@@ -50,6 +55,7 @@ export default function ExpensesPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [projectFilter, setProjectFilter] = useState<string>('')
   const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({})
+  const [exporting, setExporting] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -113,45 +119,98 @@ export default function ExpensesPage() {
   }
 
   const filteredExpenses = expenses.filter(expense => {
-    const matchesSearch = expense.project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         expense.project.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const projectName = expense.project?.name || 'Genel Gider'
+    const projectCode = expense.project?.code || ''
+    const matchesSearch = projectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         projectCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          expense.description.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesProject = !projectFilter || expense.project.id === projectFilter
+    const matchesProject = !projectFilter ||
+                          (projectFilter === 'genel' && !expense.project) ||
+                          (expense.project?.id === projectFilter)
     return matchesSearch && matchesProject
   })
 
-  // Get unique projects for filter
+  // Get unique projects for filter (excluding genel gider)
   const projects = Array.from(
-    new Set(expenses.map(expense => JSON.stringify({ id: expense.project.id, name: expense.project.name, code: expense.project.code })))
+    new Set(expenses
+      .filter(expense => expense.project)
+      .map(expense => JSON.stringify({ id: expense.project!.id, name: expense.project!.name, code: expense.project!.code })))
   ).map(str => JSON.parse(str))
+
+  // Check if we have any genel gider
+  const hasGenelGider = expenses.some(e => e.expense_type === 'genel')
 
   const totalStats = filteredExpenses.reduce((acc, expense) => ({
     totalAmount: acc.totalAmount + expense.amount,
     count: acc.count + 1
   }), { totalAmount: 0, count: 0 })
 
-  // Group expenses by project
+  // Group expenses by project (genel gider grouped separately)
   const expensesByProject = filteredExpenses.reduce((acc, expense) => {
-    const projectKey = expense.project.id
+    const projectKey = expense.project?.id || 'genel'
     if (!acc[projectKey]) {
       acc[projectKey] = {
         project: expense.project,
         expenses: [],
-        totalAmount: 0
+        totalAmount: 0,
+        isGenel: expense.expense_type === 'genel'
       }
     }
     acc[projectKey].expenses.push(expense)
     acc[projectKey].totalAmount += expense.amount
     return acc
-  }, {} as Record<string, { project: any; expenses: Expense[]; totalAmount: number }>)
+  }, {} as Record<string, { project: any; expenses: Expense[]; totalAmount: number; isGenel: boolean }>)
 
-  const projectGroups = Object.values(expensesByProject)
+  // Sort groups: Genel Giderler first, then by project name
+  const projectGroups = Object.values(expensesByProject).sort((a, b) => {
+    if (a.isGenel) return -1
+    if (b.isGenel) return 1
+    return (a.project?.name || '').localeCompare(b.project?.name || '')
+  })
 
   const toggleProject = (projectId: string) => {
     setExpandedProjects(prev => ({
       ...prev,
       [projectId]: !prev[projectId]
     }))
+  }
+
+  const handleExportExcel = async () => {
+    const token = localStorage.getItem('token')
+    if (!token) return
+
+    setExporting(true)
+    try {
+      const response = await fetch('/api/reports/export/expense', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          project_id: projectFilter && projectFilter !== 'genel' ? projectFilter : undefined
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Export failed')
+      }
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `proje_bazli_gider_${new Date().toLocaleDateString('tr-TR').replace(/\./g, '-')}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Export error:', error)
+      alert('Excel dosyası oluşturulurken bir hata oluştu')
+    } finally {
+      setExporting(false)
+    }
   }
 
   if (loading || !user) {
@@ -205,17 +264,27 @@ export default function ExpensesPage() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h1 className="text-xl font-bold text-slate-900">Giderler</h1>
-              <p className="text-sm text-slate-600">Proje giderlerini görüntüleyin ve yönetin</p>
+              <p className="text-sm text-slate-600">Genel ve proje giderlerini görüntüleyin ve yönetin</p>
             </div>
 
             {(user.role === 'admin' || user.role === 'manager') && (
-              <Link
-                href="/dashboard/expenses/new"
-                className="inline-flex items-center px-3 py-2 bg-teal-600 text-white text-sm font-semibold rounded hover:bg-teal-700 transition-colors"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Yeni Gider
-              </Link>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleExportExcel}
+                  disabled={exporting}
+                  className="inline-flex items-center px-3 py-2 border border-slate-300 text-sm font-semibold rounded text-slate-700 bg-white hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  {exporting ? 'İndiriliyor...' : 'Dışa Aktar'}
+                </button>
+                <Link
+                  href="/dashboard/expenses/new"
+                  className="inline-flex items-center px-3 py-2 bg-teal-600 text-white text-sm font-semibold rounded hover:bg-teal-700 transition-colors"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Yeni Gider
+                </Link>
+              </div>
             )}
           </div>
         </div>
@@ -262,7 +331,10 @@ export default function ExpensesPage() {
                 value={projectFilter}
                 onChange={(e) => setProjectFilter(e.target.value)}
               >
-                <option value="">Tüm Projeler</option>
+                <option value="">Tüm Giderler</option>
+                {hasGenelGider && (
+                  <option value="genel">Genel Giderler</option>
+                )}
                 {projects.map(project => (
                   <option key={project.id} value={project.id}>
                     {project.code} - {project.name}
@@ -293,13 +365,14 @@ export default function ExpensesPage() {
             </div>
           ) : (
             projectGroups.map((group) => {
-              const isExpanded = expandedProjects[group.project.id]
+              const groupKey = group.isGenel ? 'genel' : group.project?.id
+              const isExpanded = expandedProjects[groupKey]
 
               return (
-                <div key={group.project.id} className="bg-white rounded-lg shadow-sm border overflow-hidden">
+                <div key={groupKey} className="bg-white rounded-lg shadow-sm border overflow-hidden">
                   {/* Project Header (Accordion Toggle) */}
                   <button
-                    onClick={() => toggleProject(group.project.id)}
+                    onClick={() => toggleProject(groupKey)}
                     className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex items-center gap-4 flex-1">
@@ -309,12 +382,27 @@ export default function ExpensesPage() {
                         ) : (
                           <ChevronRight className="h-5 w-5 text-gray-600" />
                         )}
-                        <Building2 className="h-5 w-5 text-blue-600" />
+                        {group.isGenel ? (
+                          <Receipt className="h-5 w-5 text-purple-600" />
+                        ) : (
+                          <Building2 className="h-5 w-5 text-blue-600" />
+                        )}
                       </div>
 
                       <div className="text-left">
-                        <h3 className="text-base font-semibold text-gray-900">{group.project.name}</h3>
-                        <p className="text-sm text-gray-500">{group.project.code}</p>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-base font-semibold text-gray-900">
+                            {group.isGenel ? 'Genel Giderler' : group.project?.name}
+                          </h3>
+                          {group.isGenel && (
+                            <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 rounded">
+                              TTO
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-500">
+                          {group.isGenel ? 'Proje dışı genel giderler' : group.project?.code}
+                        </p>
                       </div>
                     </div>
 
@@ -343,6 +431,9 @@ export default function ExpensesPage() {
                                 Açıklama
                               </th>
                               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Tip
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Tutar
                               </th>
                               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -364,6 +455,26 @@ export default function ExpensesPage() {
                                 <td className="px-6 py-4">
                                   <div className="text-sm text-gray-900">
                                     {expense.description}
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="flex flex-wrap gap-1">
+                                    <span className={`px-2 py-0.5 text-xs font-medium rounded ${
+                                      expense.expense_type === 'genel'
+                                        ? 'bg-purple-100 text-purple-700'
+                                        : 'bg-blue-100 text-blue-700'
+                                    }`}>
+                                      {expense.expense_type === 'genel' ? 'Genel' : 'Proje'}
+                                    </span>
+                                    {expense.expense_type === 'proje' && (
+                                      <span className={`px-2 py-0.5 text-xs font-medium rounded ${
+                                        expense.is_tto_expense
+                                          ? 'bg-teal-100 text-teal-700'
+                                          : 'bg-amber-100 text-amber-700'
+                                      }`}>
+                                        {expense.is_tto_expense ? 'Ortak' : 'Karşı'}
+                                      </span>
+                                    )}
                                   </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">

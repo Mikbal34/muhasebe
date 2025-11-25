@@ -114,7 +114,8 @@ const navigationItems = [
 ]
 
 export default function DashboardLayout({ children, user: propUser }: DashboardLayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false) // Mobile sidebar
+  const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false) // Desktop sidebar
   const [user, setUser] = useState(propUser)
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({})
   const pathname = usePathname()
@@ -125,13 +126,22 @@ export default function DashboardLayout({ children, user: propUser }: DashboardL
       const storedUser = localStorage.getItem('user')
       if (storedUser) {
         try {
-          setUser(JSON.parse(storedUser))
+          const parsed = JSON.parse(storedUser)
+          setUser(parsed)
+          // Manager için sidebar varsayılan kapalı
+          if (parsed.role === 'manager') {
+            setDesktopSidebarCollapsed(true)
+          }
         } catch (error) {
           console.error('Failed to parse stored user:', error)
         }
       }
     } else {
       setUser(propUser)
+      // Manager için sidebar varsayılan kapalı
+      if (propUser.role === 'manager') {
+        setDesktopSidebarCollapsed(true)
+      }
     }
   }, [propUser])
 
@@ -184,24 +194,46 @@ export default function DashboardLayout({ children, user: propUser }: DashboardL
         />
       )}
 
+      {/* Desktop sidebar backdrop (for manager when sidebar is open) */}
+      {!desktopSidebarCollapsed && user?.role === 'manager' && (
+        <div
+          className="hidden lg:block fixed inset-0 z-40 bg-black bg-opacity-30"
+          onClick={() => setDesktopSidebarCollapsed(true)}
+        />
+      )}
+
       {/* Desktop Layout */}
       <div className="lg:flex lg:h-screen">
         {/* Sidebar */}
         <aside className={`
-          fixed inset-y-0 left-0 z-50 w-64 bg-sidebar shadow-lg transform transition-transform duration-300 ease-in-out
+          fixed inset-y-0 left-0 z-50 w-64 bg-sidebar shadow-lg transform transition-all duration-300 ease-in-out
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          lg:translate-x-0 lg:static lg:inset-auto lg:h-screen lg:flex lg:flex-col lg:shadow-xl
+          ${user?.role === 'manager'
+            ? desktopSidebarCollapsed
+              ? 'lg:-translate-x-full'
+              : 'lg:translate-x-0 lg:shadow-xl'
+            : 'lg:translate-x-0 lg:static lg:inset-auto lg:h-screen lg:flex lg:flex-col lg:shadow-xl'}
         `}>
           <div className="flex items-center justify-between h-16 px-4 border-b border-slate-700">
             <h1 className="text-lg font-semibold text-white">
               Gelir Dağıtım
             </h1>
+            {/* Mobile close button */}
             <button
               onClick={() => setSidebarOpen(false)}
               className="lg:hidden p-1 rounded-md text-slate-400 hover:text-slate-300"
             >
               <X className="h-6 w-6" />
             </button>
+            {/* Desktop close button for manager */}
+            {user?.role === 'manager' && (
+              <button
+                onClick={() => setDesktopSidebarCollapsed(true)}
+                className="hidden lg:block p-1 rounded-md text-slate-400 hover:text-slate-300"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            )}
           </div>
 
           <nav className="flex-1 mt-4 px-2 overflow-y-auto">
@@ -216,7 +248,11 @@ export default function DashboardLayout({ children, user: propUser }: DashboardL
                   pathname === sub.href || pathname.startsWith(sub.href + '/')
                 )
 
-                const isActive = item.href && (pathname === item.href || pathname.startsWith(item.href + '/'))
+                const isActive = item.href && (
+                  item.href === '/dashboard'
+                    ? pathname === '/dashboard'
+                    : (pathname === item.href || pathname.startsWith(item.href + '/'))
+                )
 
                 if (hasSubmenu) {
                   return (
@@ -343,12 +379,24 @@ export default function DashboardLayout({ children, user: propUser }: DashboardL
           {/* Top navigation bar */}
           <header className="bg-white shadow-sm border-b border-gray-200 lg:shadow-none">
             <div className="flex items-center justify-between h-16 px-4">
+              {/* Mobile menu button */}
               <button
                 onClick={() => setSidebarOpen(true)}
                 className="lg:hidden p-1 rounded-md text-gray-400 hover:text-gray-500"
               >
                 <Menu className="h-6 w-6" />
               </button>
+
+              {/* Desktop sidebar toggle button (only for manager) */}
+              {user?.role === 'manager' && (
+                <button
+                  onClick={() => setDesktopSidebarCollapsed(!desktopSidebarCollapsed)}
+                  className="hidden lg:flex p-2 rounded-md text-slate-500 hover:text-teal-600 hover:bg-slate-100 transition-colors"
+                  title={desktopSidebarCollapsed ? 'Menüyü Aç' : 'Menüyü Kapat'}
+                >
+                  <Menu className="h-5 w-5" />
+                </button>
+              )}
 
               <div className="flex-1 lg:flex lg:items-center lg:justify-between">
                 <div className="min-w-0 flex-1">

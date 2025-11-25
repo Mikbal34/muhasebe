@@ -8,6 +8,7 @@ export const paymentInstructionStatusSchema = z.enum(['pending', 'approved', 'pr
 export const balanceTransactionTypeSchema = z.enum(['income', 'payment', 'debt', 'adjustment'])
 export const reportTypeSchema = z.enum(['project', 'academician', 'company', 'payments'])
 export const reportFormatSchema = z.enum(['excel', 'pdf'])
+export const incomeTypeSchema = z.enum(['ozel', 'kamu'])
 
 // Authentication schemas
 export const registerSchema = z.object({
@@ -69,6 +70,10 @@ export const createIncomeSchema = z.object({
   vat_rate: z.number().min(0, 'KDV oranı 0\'dan küçük olamaz').max(100, 'KDV oranı 100\'den büyük olamaz').default(18),
   description: z.string().max(1000, 'Açıklama çok uzun').nullable().optional(),
   income_date: z.string().date('Geçersiz gelir tarihi'),
+  // Yeni alanlar
+  is_fsmh_income: z.boolean().default(false),
+  income_type: incomeTypeSchema.default('ozel'),
+  is_tto_income: z.boolean().default(true),
 })
 
 export const updateIncomeCollectionSchema = z.object({
@@ -77,18 +82,34 @@ export const updateIncomeCollectionSchema = z.object({
 })
 
 // Expense schemas
+export const expenseTypeSchema = z.enum(['genel', 'proje'])
+
 export const createExpenseSchema = z.object({
-  project_id: z.string().uuid('Geçersiz proje ID'),
+  expense_type: expenseTypeSchema.default('proje'),
+  project_id: z.string().uuid('Geçersiz proje ID').nullable().optional(),
   amount: z.number().positive('Tutar pozitif olmalı'),
   description: z.string().min(1, 'Açıklama gerekli').max(1000, 'Açıklama çok uzun'),
   expense_date: z.string().date('Geçersiz gider tarihi').optional(),
+  is_tto_expense: z.boolean().default(true),
+}).refine(data => {
+  // Genel giderde project_id olmamalı
+  if (data.expense_type === 'genel') {
+    return data.project_id === null || data.project_id === undefined
+  }
+  // Proje giderinde project_id zorunlu
+  return !!data.project_id
+}, {
+  message: 'Proje gideri için proje seçimi zorunludur',
+  path: ['project_id']
 })
 
 export const updateExpenseSchema = z.object({
-  project_id: z.string().uuid('Geçersiz proje ID').optional(),
+  expense_type: expenseTypeSchema.optional(),
+  project_id: z.string().uuid('Geçersiz proje ID').nullable().optional(),
   amount: z.number().positive('Tutar pozitif olmalı').optional(),
   description: z.string().min(1, 'Açıklama gerekli').max(1000, 'Açıklama çok uzun').optional(),
   expense_date: z.string().date('Geçersiz gider tarihi').optional(),
+  is_tto_expense: z.boolean().optional(),
 })
 
 // Payment instruction schemas

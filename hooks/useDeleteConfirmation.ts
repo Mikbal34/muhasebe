@@ -1,5 +1,24 @@
 import { useState, useCallback } from 'react'
-import { useAuthenticatedApiCall } from './useApiError'
+
+// Simple authenticated delete helper
+async function authenticatedDelete(url: string): Promise<boolean> {
+  const token = localStorage.getItem('token')
+  if (!token) return false
+
+  try {
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    const data = await response.json()
+    return data.success === true
+  } catch {
+    return false
+  }
+}
 
 export interface DeleteItem {
   id: string
@@ -25,8 +44,6 @@ export function useDeleteConfirmation({
   const [itemToDelete, setItemToDelete] = useState<DeleteItem | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  const { delete: deleteItem } = useAuthenticatedApiCall()
-
   const showDeleteModal = useCallback((item: DeleteItem) => {
     setItemToDelete(item)
     setIsModalOpen(true)
@@ -45,7 +62,7 @@ export function useDeleteConfirmation({
     setIsDeleting(true)
 
     try {
-      const result = await deleteItem(`${apiEndpoint}/${itemToDelete.id}`)
+      const result = await authenticatedDelete(`${apiEndpoint}/${itemToDelete.id}`)
 
       if (result) {
         setIsModalOpen(false)
@@ -59,7 +76,7 @@ export function useDeleteConfirmation({
     } finally {
       setIsDeleting(false)
     }
-  }, [itemToDelete, deleteItem, apiEndpoint, entityName, onSuccess, onError])
+  }, [itemToDelete, apiEndpoint, entityName, onSuccess, onError])
 
   return {
     isModalOpen,
@@ -95,8 +112,6 @@ export function useBulkDelete({
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteProgress, setDeleteProgress] = useState({ current: 0, total: 0 })
 
-  const { delete: deleteItem } = useAuthenticatedApiCall()
-
   const showBulkDeleteModal = useCallback((items: BulkDeleteItem[]) => {
     setItemsToDelete(items)
     setIsModalOpen(true)
@@ -124,13 +139,13 @@ export function useBulkDelete({
       setDeleteProgress({ current: i + 1, total: itemsToDelete.length })
 
       try {
-        const result = await deleteItem(`${apiEndpoint}/${item.id}`)
+        const result = await authenticatedDelete(`${apiEndpoint}/${item.id}`)
         if (result) {
           deletedCount++
         } else {
           failedCount++
         }
-      } catch (error) {
+      } catch {
         failedCount++
       }
 
@@ -150,7 +165,7 @@ export function useBulkDelete({
     } else {
       onError?.(`${failedCount} ${entityName} silinemedi.`, failedCount)
     }
-  }, [itemsToDelete, deleteItem, apiEndpoint, entityName, onSuccess, onError])
+  }, [itemsToDelete, apiEndpoint, entityName, onSuccess, onError])
 
   return {
     isModalOpen,

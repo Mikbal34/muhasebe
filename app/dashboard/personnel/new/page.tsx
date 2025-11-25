@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import Link from 'next/link'
-import { ArrowLeft, Save, User, Mail, Phone, CreditCard, IdCard, FileText } from 'lucide-react'
+import { ArrowLeft, Save, User, Mail, Phone, CreditCard, IdCard, FileText, Building2, GraduationCap, Calendar } from 'lucide-react'
 
 interface User {
   id: string
@@ -24,6 +24,12 @@ export default function NewPersonnelPage() {
     tc_no: '',
     notes: '',
     is_active: true,
+    title: '',
+    gender: '',
+    start_date: '',
+    faculty: '',
+    department: '',
+    university: 'Yıldız Teknik Üniversitesi',
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const router = useRouter()
@@ -96,6 +102,12 @@ export default function NewPersonnelPage() {
         phone: formData.phone || null,
         tc_no: formData.tc_no || null,
         notes: formData.notes || null,
+        title: formData.title || null,
+        gender: formData.gender || null,
+        start_date: formData.start_date || null,
+        faculty: formData.faculty || null,
+        department: formData.department || null,
+        university: formData.university || null,
       }
 
       const response = await fetch('/api/personnel', {
@@ -193,6 +205,63 @@ export default function NewPersonnelPage() {
               {errors.tc_no && <p className="mt-1 text-sm text-red-600">{errors.tc_no}</p>}
               <p className="mt-1 text-xs text-gray-500">Ödeme işlemleri için gerekli olabilir</p>
             </div>
+
+            {/* Unvan ve Cinsiyet - Yan Yana */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Unvan */}
+              <div>
+                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+                  Unvan
+                </label>
+                <select
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                >
+                  <option value="">Seçiniz</option>
+                  <option value="Prof. Dr.">Prof. Dr.</option>
+                  <option value="Doç. Dr.">Doç. Dr.</option>
+                  <option value="Dr. Öğr. Üyesi">Dr. Öğr. Üyesi</option>
+                  <option value="Dr.">Dr.</option>
+                  <option value="Araş. Gör. Dr.">Araş. Gör. Dr.</option>
+                  <option value="Araş. Gör.">Araş. Gör.</option>
+                  <option value="Öğr. Gör.">Öğr. Gör.</option>
+                  <option value="Uzman">Uzman</option>
+                </select>
+              </div>
+
+              {/* Cinsiyet */}
+              <div>
+                <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">
+                  Cinsiyet
+                </label>
+                <select
+                  id="gender"
+                  value={formData.gender}
+                  onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                >
+                  <option value="">Seçiniz</option>
+                  <option value="ERKEK">Erkek</option>
+                  <option value="KADIN">Kadın</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Başlama Tarihi */}
+            <div>
+              <label htmlFor="start_date" className="block text-sm font-medium text-gray-700 mb-1">
+                Başlama Tarihi
+              </label>
+              <input
+                type="date"
+                id="start_date"
+                value={formData.start_date}
+                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
+            </div>
           </div>
 
           {/* İletişim Bilgileri */}
@@ -258,6 +327,59 @@ export default function NewPersonnelPage() {
               />
               {errors.iban && <p className="mt-1 text-sm text-red-600">{errors.iban}</p>}
               <p className="mt-1 text-xs text-gray-500">Gelir dağılımı ödemelerini almak için gerekli</p>
+            </div>
+          </div>
+
+          {/* Kurum Bilgileri */}
+          <div className="space-y-4">
+            <h2 className="text-base font-semibold text-gray-900 border-b pb-2">Kurum Bilgileri</h2>
+
+            {/* Üniversite */}
+            <div>
+              <label htmlFor="university" className="block text-sm font-medium text-gray-700 mb-1">
+                Üniversite
+              </label>
+              <input
+                type="text"
+                id="university"
+                value={formData.university}
+                onChange={(e) => setFormData({ ...formData, university: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                placeholder="Yıldız Teknik Üniversitesi"
+              />
+            </div>
+
+            {/* Fakülte ve Bölüm - Yan Yana */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Fakülte */}
+              <div>
+                <label htmlFor="faculty" className="block text-sm font-medium text-gray-700 mb-1">
+                  Fakülte
+                </label>
+                <input
+                  type="text"
+                  id="faculty"
+                  value={formData.faculty}
+                  onChange={(e) => setFormData({ ...formData, faculty: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  placeholder="Mühendislik Fakültesi"
+                />
+              </div>
+
+              {/* Bölüm */}
+              <div>
+                <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-1">
+                  Bölüm
+                </label>
+                <input
+                  type="text"
+                  id="department"
+                  value={formData.department}
+                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  placeholder="Bilgisayar Mühendisliği"
+                />
+              </div>
             </div>
           </div>
 
