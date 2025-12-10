@@ -20,6 +20,7 @@ import { MoneyInput } from '@/components/ui/money-input'
 import { supabase } from '@/lib/supabase/client'
 import PersonPicker, { Person, PersonType } from '@/components/ui/person-picker'
 import PersonBadge from '@/components/ui/person-badge'
+import { PaymentPlanSection, Installment } from '@/components/projects/payment-plan-section'
 
 interface User {
   id: string
@@ -87,11 +88,16 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
     end_date: '',
     company_rate: '10',
     vat_rate: '18',
+    has_withholding_tax: false,
+    withholding_tax_rate: '0',
     referee_payment: '0',
     referee_payer: 'company',
     stamp_duty_payer: 'company',
     stamp_duty_amount: '0',
-    has_assignment_permission: false
+    has_assignment_permission: false,
+    sent_to_referee: false,
+    referee_approved: false,
+    referee_approval_date: ''
   })
 
   const [representatives, setRepresentatives] = useState<ProjectRepresentative[]>([])
@@ -101,6 +107,11 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
   const [selectedPersonId, setSelectedPersonId] = useState('')
   const [uploadingAssignment, setUploadingAssignment] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  // Payment plan state
+  const [hasPaymentPlan, setHasPaymentPlan] = useState(false)
+  const [installments, setInstallments] = useState<Installment[]>([])
+  const [savingInstallments, setSavingInstallments] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -153,11 +164,16 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
           end_date: projectData.end_date ? projectData.end_date.split('T')[0] : '',
           company_rate: projectData.company_rate.toString(),
           vat_rate: projectData.vat_rate.toString(),
+          has_withholding_tax: projectData.has_withholding_tax || false,
+          withholding_tax_rate: (projectData.withholding_tax_rate || 0).toString(),
           referee_payment: (projectData.referee_payment || 0).toString(),
           referee_payer: projectData.referee_payer || 'company',
           stamp_duty_payer: projectData.stamp_duty_payer || 'company',
           stamp_duty_amount: (projectData.stamp_duty_amount || 0).toString(),
-          has_assignment_permission: projectData.has_assignment_permission || false
+          has_assignment_permission: projectData.has_assignment_permission || false,
+          sent_to_referee: projectData.sent_to_referee || false,
+          referee_approved: projectData.referee_approved || false,
+          referee_approval_date: projectData.referee_approval_date ? projectData.referee_approval_date.split('T')[0] : ''
         })
 
         // Populate representatives - handle both users and personnel
@@ -183,6 +199,28 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
             }
           }
         }))
+
+        // Fetch installments for this project
+        try {
+          const installmentsResponse = await fetch(`/api/projects/${params.id}/installments`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+          const installmentsData = await installmentsResponse.json()
+
+          if (installmentsData.success && installmentsData.data.installments?.length > 0) {
+            setHasPaymentPlan(true)
+            setInstallments(installmentsData.data.installments.map((inst: any) => ({
+              id: inst.id,
+              installment_number: inst.installment_number,
+              gross_amount: inst.gross_amount,
+              income_date: inst.income_date,
+              description: inst.description,
+              collected_amount: inst.collected_amount || 0
+            })))
+          }
+        } catch (err) {
+          console.error('Failed to fetch installments:', err)
+        }
       } else {
         console.error('Project not found or failed to load:', data)
         alert('Proje yüklenirken bir hata oluştu: ' + (data.error || 'Bilinmeyen hata'))
@@ -348,13 +386,18 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
           budget: parseFloat(formData.budget),
           company_rate: parseFloat(formData.company_rate),
           vat_rate: parseFloat(formData.vat_rate),
-          referee_payment: formData.referee_payer === 'company' ? parseFloat(formData.referee_payment) : 0,
+          has_withholding_tax: formData.has_withholding_tax,
+          withholding_tax_rate: formData.has_withholding_tax ? parseFloat(formData.withholding_tax_rate) : 0,
+          referee_payment: parseFloat(formData.referee_payment) || 0,
           referee_payer: formData.referee_payer,
           stamp_duty_payer: formData.stamp_duty_payer,
-          stamp_duty_amount: formData.stamp_duty_payer === 'company' ? parseFloat(formData.stamp_duty_amount) : 0,
+          stamp_duty_amount: parseFloat(formData.stamp_duty_amount) || 0,
           contract_path: uploadedContractPath,
           has_assignment_permission: formData.has_assignment_permission,
           assignment_document_path: uploadedAssignmentPath,
+          sent_to_referee: formData.sent_to_referee,
+          referee_approved: formData.referee_approved,
+          referee_approval_date: formData.referee_approved && formData.referee_approval_date ? formData.referee_approval_date : null,
           representatives: representatives.map(rep => ({
             user_id: rep.user_id,
             personnel_id: rep.personnel_id,
@@ -366,6 +409,34 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
       const data = await response.json()
 
       if (data.success) {
+        // Update installments if there are any changes
+        if (hasPaymentPlan && installments.length > 0) {
+          const editableInstallments = installments.filter(inst => (inst.collected_amount || 0) === 0)
+
+          if (editableInstallments.length > 0) {
+            const installmentsResponse = await fetch(`/api/projects/${params.id}/installments`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                installments: editableInstallments.map(inst => ({
+                  id: inst.id,
+                  gross_amount: inst.gross_amount,
+                  income_date: inst.income_date,
+                  description: inst.description
+                }))
+              })
+            })
+
+            const installmentsData = await installmentsResponse.json()
+            if (!installmentsData.success) {
+              console.warn('Taksitler güncellenirken hata:', installmentsData.error)
+            }
+          }
+        }
+
         router.push('/dashboard/projects')
       } else {
         setErrors({ submit: data.error || 'Proje güncellenemedi' })
@@ -485,7 +556,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
                 </select>
               </div>
 
-              <div className={formData.referee_payer === 'company' ? '' : 'hidden'}>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Hakem Heyeti Ödemesi (₺)
                 </label>
@@ -494,6 +565,11 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
                   onChange={(value) => setFormData({ ...formData, referee_payment: value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+                <p className="mt-1 text-xs text-gray-500">
+                  {formData.referee_payer === 'company'
+                    ? 'Bu tutar her tahsilatta oransal olarak şirket payından düşülecektir.'
+                    : 'Bu tutar her tahsilatta oransal olarak dağıtılabilir miktardan düşülecektir.'}
+                </p>
               </div>
 
               <div>
@@ -511,6 +587,70 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
                 />
               </div>
 
+              {/* KDV ve Tevkifat */}
+              <div className="md:col-span-2 border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">KDV Bilgileri</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      KDV Oranı (%)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      value={formData.vat_rate}
+                      onChange={(e) => setFormData({ ...formData, vat_rate: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div className="flex flex-col justify-end">
+                    <div className="flex items-center">
+                      <input
+                        id="has_withholding_tax"
+                        type="checkbox"
+                        checked={formData.has_withholding_tax}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          has_withholding_tax: e.target.checked,
+                          withholding_tax_rate: e.target.checked ? formData.withholding_tax_rate : '0'
+                        })}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <label htmlFor="has_withholding_tax" className="ml-2 block text-sm text-gray-900">
+                        Tevkifat Uygulanıyor
+                      </label>
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">
+                      KDV tevkifatı varsa işaretleyin
+                    </p>
+                  </div>
+
+                  {formData.has_withholding_tax && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Tevkifat Oranı (%)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value={formData.withholding_tax_rate}
+                        onChange={(e) => setFormData({ ...formData, withholding_tax_rate: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Örn: 50 (5/10 için)"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        KDV tutarının yüzde kaçı tevkif edilecek?
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Damga Vergisini Kim Ödeyecek?
@@ -525,7 +665,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
                 </select>
               </div>
 
-              <div className={formData.stamp_duty_payer === 'company' ? '' : 'hidden'}>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Damga Vergisi Tutarı (₺)
                 </label>
@@ -534,6 +674,11 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
                   onChange={(value) => setFormData({ ...formData, stamp_duty_amount: value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+                <p className="mt-1 text-xs text-gray-500">
+                  {formData.stamp_duty_payer === 'company'
+                    ? 'Bu tutar her tahsilatta oransal olarak şirket payından düşülecektir.'
+                    : 'Bu tutar her tahsilatta oransal olarak dağıtılabilir miktardan düşülecektir.'}
+                </p>
               </div>
 
               <div>
@@ -560,6 +705,64 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 {errors.end_date && <p className="mt-1 text-sm text-red-600">{errors.end_date}</p>}
+              </div>
+
+              {/* Hakem Heyeti Durumu */}
+              <div className="md:col-span-2 border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Hakem Heyeti Durumu</h3>
+
+                <div className="space-y-4">
+                  <div className="flex items-center">
+                    <input
+                      id="sent_to_referee"
+                      type="checkbox"
+                      checked={formData.sent_to_referee}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        sent_to_referee: e.target.checked,
+                        // Gönderilmedi ise onay da kaldırılsın
+                        referee_approved: e.target.checked ? formData.referee_approved : false,
+                        referee_approval_date: e.target.checked ? formData.referee_approval_date : ''
+                      })}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="sent_to_referee" className="ml-2 block text-sm text-gray-900">
+                      Hakem heyetine gönderildi
+                    </label>
+                  </div>
+
+                  <div className="flex items-center">
+                    <input
+                      id="referee_approved"
+                      type="checkbox"
+                      checked={formData.referee_approved}
+                      disabled={!formData.sent_to_referee}
+                      onChange={(e) => setFormData({ ...formData, referee_approved: e.target.checked })}
+                      className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${!formData.sent_to_referee ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    />
+                    <label htmlFor="referee_approved" className={`ml-2 block text-sm ${!formData.sent_to_referee ? 'text-gray-400' : 'text-gray-900'}`}>
+                      Hakem heyeti onayı alındı
+                    </label>
+                  </div>
+
+                  {formData.referee_approved && (
+                    <div className="max-w-xs">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Onay Tarihi
+                      </label>
+                      <input
+                        type="date"
+                        value={formData.referee_approval_date}
+                        onChange={(e) => setFormData({ ...formData, referee_approval_date: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  )}
+
+                  <p className="text-sm text-gray-600">
+                    ⚠️ Hakem heyeti onayı olmadan gelir kaydı yapılamaz.
+                  </p>
+                </div>
               </div>
 
               {/* Mevcut Sözleşme Belgesi Gösterimi */}
@@ -824,6 +1027,19 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
               <p className="mt-2 text-sm text-red-600">{errors.representatives}</p>
             )}
           </div>
+
+          {/* Payment Plan - Read Only View with Edit Capability */}
+          {hasPaymentPlan && (
+            <PaymentPlanSection
+              budget={parseFloat(formData.budget) || 0}
+              startDate={formData.start_date}
+              enabled={true}
+              installments={installments}
+              onEnabledChange={() => {}} // Can't disable existing plan
+              onInstallmentsChange={setInstallments}
+              readOnly={false}
+            />
+          )}
 
           {/* Submit */}
           <div className="flex justify-end space-x-2">

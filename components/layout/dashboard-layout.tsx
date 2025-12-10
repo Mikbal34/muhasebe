@@ -185,7 +185,7 @@ export default function DashboardLayout({ children, user: propUser }: DashboardL
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="h-screen bg-slate-50 overflow-hidden">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -203,7 +203,7 @@ export default function DashboardLayout({ children, user: propUser }: DashboardL
       )}
 
       {/* Desktop Layout */}
-      <div className="lg:flex lg:h-screen">
+      <div className="flex h-full overflow-hidden">
         {/* Sidebar */}
         <aside className={`
           fixed inset-y-0 left-0 z-50 w-64 bg-sidebar shadow-lg transform transition-all duration-300 ease-in-out
@@ -212,7 +212,7 @@ export default function DashboardLayout({ children, user: propUser }: DashboardL
             ? desktopSidebarCollapsed
               ? 'lg:-translate-x-full'
               : 'lg:translate-x-0 lg:shadow-xl'
-            : 'lg:translate-x-0 lg:static lg:inset-auto lg:h-screen lg:flex lg:flex-col lg:shadow-xl'}
+            : 'lg:translate-x-0 lg:static lg:inset-auto lg:h-full lg:flex lg:flex-col lg:shadow-xl'}
         `}>
           <div className="flex items-center justify-between h-16 px-4 border-b border-slate-700">
             <h1 className="text-lg font-semibold text-white">
@@ -375,9 +375,9 @@ export default function DashboardLayout({ children, user: propUser }: DashboardL
         </aside>
 
         {/* Main content */}
-        <div className="flex-1 lg:flex lg:flex-col lg:min-h-screen lg:overflow-hidden">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
           {/* Top navigation bar */}
-          <header className="bg-white shadow-sm border-b border-gray-200 lg:shadow-none">
+          <header className="flex-shrink-0 bg-white shadow-sm border-b border-gray-200 lg:shadow-none">
             <div className="flex items-center justify-between h-16 px-4">
               {/* Mobile menu button */}
               <button
@@ -412,10 +412,8 @@ export default function DashboardLayout({ children, user: propUser }: DashboardL
           </header>
 
           {/* Main content area */}
-          <main className="flex-1 p-4 lg:p-6 overflow-auto lg:overflow-y-auto">
-            <div className="lg:pl-0">
-              {children}
-            </div>
+          <main className="flex-1 h-0 p-4 lg:p-6 overflow-y-auto">
+            {children}
           </main>
         </div>
       </div>

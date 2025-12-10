@@ -62,17 +62,18 @@ export async function GET(request: NextRequest) {
         return apiResponse.error('Failed to fetch representatives', repsError.message, 500)
       }
 
-      // Get project incomes
+      // Get project incomes (including collected_amount for tahsilat bazlı hesaplama)
+      // vat_amount artık tevkifat düşülmüş halde geliyor (migration 066 ile)
       const { data: incomes, error: incomesError } = await supabase
         .from('incomes')
-        .select('id, gross_amount, vat_amount')
+        .select('id, gross_amount, vat_amount, vat_rate, collected_amount, withholding_tax_amount')
         .eq('project_id', projectId)
 
       if (incomesError) {
         return apiResponse.error('Failed to fetch incomes', incomesError.message, 500)
       }
 
-      // Get project commissions
+      // Get project commissions (for reference only)
       const { data: commissions, error: commissionsError } = await supabase
         .from('commissions')
         .select('amount, income_id')
@@ -82,19 +83,97 @@ export async function GET(request: NextRequest) {
         return apiResponse.error('Failed to fetch commissions', commissionsError.message, 500)
       }
 
-      // Calculate financial summary
+      // Get project expenses (giderler)
+      const { data: expenses, error: expensesError } = await supabase
+        .from('expenses')
+        .select('id, amount, is_tto_expense, expense_share_type')
+        .eq('project_id', projectId)
+
+      if (expensesError) {
+        return apiResponse.error('Failed to fetch expenses', expensesError.message, 500)
+      }
+
+      // Calculate financial summary - TAHSILAT BAZLI
+      // Toplam brüt ve KDV (tüm gelirlerden - bilgi amaçlı)
       const totalGross = (incomes || []).reduce((sum: Decimal, inc: any) =>
         sum.plus(new Decimal(inc.gross_amount || 0)), new Decimal(0)
       )
       const totalVAT = (incomes || []).reduce((sum: Decimal, inc: any) =>
         sum.plus(new Decimal(inc.vat_amount || 0)), new Decimal(0)
       )
+
+      // Toplam tahsil edilen
+      const totalCollected = (incomes || []).reduce((sum: Decimal, inc: any) =>
+        sum.plus(new Decimal(inc.collected_amount || 0)), new Decimal(0)
+      )
+
+      // Tahsil edilenden KDV hesapla
+      // vat_amount artık tevkifat düşülmüş değeri içeriyor (migration 066)
+      // Oran hesabı: collected / gross * vat_amount (kısmi tahsilat için)
+      const collectedVAT = (incomes || []).reduce((sum: Decimal, inc: any) => {
+        const collected = new Decimal(inc.collected_amount || 0)
+        const gross = new Decimal(inc.gross_amount || 1) // divide by zero koruması
+        const vatAmount = new Decimal(inc.vat_amount || 0)
+
+        // Kısmi tahsilat oranı
+        const collectionRatio = gross.isZero() ? new Decimal(0) : collected.dividedBy(gross)
+
+        // Tahsil edilen kısma düşen KDV (tevkifat zaten düşülmüş)
+        return sum.plus(vatAmount.times(collectionRatio))
+      }, new Decimal(0))
+
+      // Tahsil edilen net tutar
+      const collectedNet = totalCollected.minus(collectedVAT)
+
+      // Tahsil edilenden komisyon hesapla
+      const commissionRate = new Decimal(project.company_rate || 0)
+      const collectedCommission = collectedNet.times(commissionRate).dividedBy(100)
+
+      // Dağıtılabilir = Tahsil Edilen Net - Komisyon
+      let distributableAmount = collectedNet.minus(collectedCommission)
+
+      // =====================================================
+      // GİDERLERİ DAĞITILABILIR MİKTARDAN DÜŞ
+      // =====================================================
+
+      // 1. Karşı taraf giderleri (client) - direkt dağıtılabilirden düşülür
+      const clientExpenses = (expenses || [])
+        .filter((exp: any) => !exp.is_tto_expense && (exp.expense_share_type === 'client' || !exp.expense_share_type))
+        .reduce((sum: Decimal, exp: any) => sum.plus(new Decimal(exp.amount || 0)), new Decimal(0))
+
+      // 2. Ortak giderlerin temsilci payı - dağıtılabilirden düşülür
+      // TTO payı zaten trigger ile TTO bakiyesinden düşülüyor
+      const sharedExpenses = (expenses || [])
+        .filter((exp: any) => !exp.is_tto_expense && exp.expense_share_type === 'shared')
+        .reduce((sum: Decimal, exp: any) => sum.plus(new Decimal(exp.amount || 0)), new Decimal(0))
+
+      // Ortak giderin temsilci payı = Toplam × (100 - company_rate) / 100
+      const sharedExpensesRepPortion = sharedExpenses.times(new Decimal(100).minus(commissionRate)).dividedBy(100)
+
+      // Toplam gider düşümü
+      const totalExpenseDeduction = clientExpenses.plus(sharedExpensesRepPortion)
+      distributableAmount = distributableAmount.minus(totalExpenseDeduction)
+
+      // =====================================================
+      // DAMGA VERGİSİ VE HAKEM HEYETİ DÜŞÜMÜ
+      // Karşı taraf (client) ödüyorsa dağıtılabilirden düşülür
+      // =====================================================
+      const stampDutyClientDeducted = new Decimal((project as any).stamp_duty_client_deducted || 0)
+      const refereeClientDeducted = new Decimal((project as any).referee_client_deducted || 0)
+      const totalStampRefereeDeduction = stampDutyClientDeducted.plus(refereeClientDeducted)
+      distributableAmount = distributableAmount.minus(totalStampRefereeDeduction)
+
+      // Negatife düşmemesi için
+      if (distributableAmount.isNegative()) {
+        distributableAmount = new Decimal(0)
+      }
+
+      // Referans için tüm komisyonların toplamı
       const totalCommission = (commissions || []).reduce((sum: Decimal, comm: any) =>
         sum.plus(new Decimal(comm.amount || 0)), new Decimal(0)
       )
 
       const netAmount = totalGross.minus(totalVAT)
-      const distributableAmount = netAmount.minus(totalCommission)
 
       // Get all manual allocations for this project
       const { data: allocations, error: allocationsError } = await supabase
@@ -180,10 +259,26 @@ export async function GET(request: NextRequest) {
           name: (project as any).name,
         },
         financial_summary: {
+          // Tüm gelirler (bilgi amaçlı)
           total_gross: totalGross.toNumber(),
           total_vat: totalVAT.toNumber(),
           net_amount: netAmount.toNumber(),
           total_commission: totalCommission.toNumber(),
+          // Tahsil edilen bazlı (asıl hesaplama)
+          total_collected: totalCollected.toNumber(),
+          collected_vat: collectedVAT.toNumber(),
+          collected_net: collectedNet.toNumber(),
+          collected_commission: collectedCommission.toNumber(),
+          // Giderler
+          client_expenses: clientExpenses.toNumber(),
+          shared_expenses: sharedExpenses.toNumber(),
+          shared_expenses_rep_portion: sharedExpensesRepPortion.toNumber(),
+          total_expense_deduction: totalExpenseDeduction.toNumber(),
+          // Damga vergisi ve hakem heyeti (karşı taraf ödüyorsa)
+          stamp_duty_client_deducted: stampDutyClientDeducted.toNumber(),
+          referee_client_deducted: refereeClientDeducted.toNumber(),
+          total_stamp_referee_deduction: totalStampRefereeDeduction.toNumber(),
+          // Dağıtılabilir (tahsil edilenden - giderler)
           distributable_amount: distributableAmount.toNumber(),
           total_allocated: totalAllocated.toNumber(),
           remaining_amount: distributableAmount.minus(totalAllocated).toNumber(),

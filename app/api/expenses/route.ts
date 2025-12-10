@@ -87,7 +87,8 @@ export async function POST(request: NextRequest) {
       amount,
       description,
       expense_date,
-      is_tto_expense = true
+      is_tto_expense = true,
+      expense_share_type = 'client'
     } = validation.data
 
     try {
@@ -129,6 +130,7 @@ export async function POST(request: NextRequest) {
           description,
           expense_date: expense_date || new Date().toISOString().split('T')[0],
           is_tto_expense: expense_type === 'genel' ? true : is_tto_expense,
+          expense_share_type: expense_type === 'genel' || is_tto_expense ? null : expense_share_type,
           created_by: ctx.user.id
         })
         .select(`
@@ -163,11 +165,16 @@ export async function POST(request: NextRequest) {
       let successMessage = ''
       if (expense_type === 'genel') {
         successMessage = `₺${amount.toLocaleString('tr-TR')} tutarında genel gider oluşturuldu`
+      } else if (is_tto_expense) {
+        const ttoAmount = amount * ((project as any)?.company_rate || 15) / 100
+        successMessage = `₺${amount.toLocaleString('tr-TR')} tutarında TTO gideri oluşturuldu (TTO payı: ₺${ttoAmount.toLocaleString('tr-TR')})`
+      } else if (expense_share_type === 'shared') {
+        const companyRate = (project as any)?.company_rate || 15
+        const ttoAmount = amount * companyRate / 100
+        const repAmount = amount * (100 - companyRate) / 100
+        successMessage = `₺${amount.toLocaleString('tr-TR')} tutarında ortak gider oluşturuldu (TTO: ₺${ttoAmount.toLocaleString('tr-TR')}, Temsilciler: ₺${repAmount.toLocaleString('tr-TR')})`
       } else {
-        const ttoAmount = is_tto_expense ? amount * ((project as any)?.company_rate || 15) / 100 : 0
-        successMessage = is_tto_expense
-          ? `₺${amount.toLocaleString('tr-TR')} tutarında proje gideri oluşturuldu (TTO payı: ₺${ttoAmount.toLocaleString('tr-TR')})`
-          : `₺${amount.toLocaleString('tr-TR')} tutarında karşı gider oluşturuldu`
+        successMessage = `₺${amount.toLocaleString('tr-TR')} tutarında karşı taraf gideri oluşturuldu (dağıtılabilir miktardan düşülecek)`
       }
 
       return apiResponse.success(

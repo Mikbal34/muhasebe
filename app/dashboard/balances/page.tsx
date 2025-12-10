@@ -7,14 +7,14 @@ import Link from 'next/link'
 import {
   PiggyBank,
   Search,
-  Filter,
-  Eye,
   Calendar,
   DollarSign,
   TrendingUp,
   TrendingDown,
   CreditCard,
-  History
+  History,
+  FileText,
+  Gavel
 } from 'lucide-react'
 import PersonBadge from '@/components/ui/person-badge'
 import { ListItemSkeleton, DetailCardSkeleton, Skeleton } from '@/components/ui/skeleton'
@@ -130,7 +130,15 @@ export default function BalancesPage() {
            person.email.toLowerCase().includes(searchTerm.toLowerCase())
   })
 
-  const getTransactionTypeInfo = (type: string) => {
+  const getTransactionTypeInfo = (type: string, description?: string | null) => {
+    // Özel gider türlerini kontrol et
+    if (description?.includes('Damga vergisi')) {
+      return { color: 'text-orange-600', icon: FileText, text: 'Damga Vergisi' }
+    }
+    if (description?.includes('Hakem heyeti')) {
+      return { color: 'text-purple-600', icon: Gavel, text: 'Hakem Heyeti' }
+    }
+
     switch (type) {
       case 'income':
         return { color: 'text-green-600', icon: TrendingUp, text: 'Gelir' }
@@ -310,7 +318,7 @@ export default function BalancesPage() {
                 transactions.length > 0 ? (
                   <div className="divide-y divide-gray-100">
                     {transactions.map((transaction) => {
-                      const typeInfo = getTransactionTypeInfo(transaction.type)
+                      const typeInfo = getTransactionTypeInfo(transaction.type, transaction.description)
                       const TypeIcon = typeInfo.icon
 
                       return (
@@ -440,6 +448,7 @@ export default function BalancesPage() {
             </div>
           </div>
         )}
+
       </div>
     </DashboardLayout>
   )

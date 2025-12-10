@@ -48,6 +48,17 @@ interface FinancialSummary {
   total_vat: number
   net_amount: number
   total_commission: number
+  // Tahsil edilen bazlı
+  total_collected: number
+  collected_vat: number
+  collected_net: number
+  collected_commission: number
+  // Giderler
+  client_expenses: number
+  shared_expenses: number
+  shared_expenses_rep_portion: number
+  total_expense_deduction: number
+  // Dağıtılabilir
   distributable_amount: number
   total_allocated: number
   remaining_amount: number
@@ -302,57 +313,67 @@ function ManualBalanceAllocationPageContent() {
                 Proje Finansal Özet
               </h2>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                  <p className="text-xs text-slate-600 uppercase">Brüt Gelir</p>
-                  <p className="text-base font-semibold text-slate-900">
-                    ₺{financialSummary.total_gross.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+              {/* Tahsil Edilen Bazlı Hesaplama */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                  <p className="text-xs text-blue-600 uppercase">Tahsil Edilen</p>
+                  <p className="text-base font-semibold text-blue-700">
+                    ₺{(financialSummary.total_collected || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Toplam: ₺{financialSummary.total_gross.toLocaleString('tr-TR', { minimumFractionDigits: 0 })}
                   </p>
                 </div>
 
                 <div className="bg-red-50 p-3 rounded-lg border border-red-100">
                   <p className="text-xs text-red-600 uppercase">KDV</p>
                   <p className="text-base font-semibold text-red-700">
-                    -₺{financialSummary.total_vat.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                    -₺{(financialSummary.collected_vat || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
 
                 <div className="bg-orange-50 p-3 rounded-lg border border-orange-100">
                   <p className="text-xs text-orange-600 uppercase">Şirket Komisyonu</p>
                   <p className="text-base font-semibold text-orange-700">
-                    -₺{financialSummary.total_commission.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                    -₺{(financialSummary.collected_commission || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
 
-                <div className="bg-teal-50 p-3 rounded-lg border border-teal-100">
-                  <p className="text-xs text-teal-600 uppercase">Dağıtılabilir Tutar</p>
-                  <p className="text-base font-semibold text-teal-700">
-                    ₺{financialSummary.distributable_amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-                  </p>
-                </div>
-              </div>
+                {(financialSummary.total_expense_deduction || 0) > 0 && (
+                  <div className="bg-purple-50 p-3 rounded-lg border border-purple-100">
+                    <p className="text-xs text-purple-600 uppercase">Proje Giderleri</p>
+                    <p className="text-base font-semibold text-purple-700">
+                      -₺{(financialSummary.total_expense_deduction || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {(financialSummary.client_expenses || 0) > 0 && `Karşı taraf: ₺${financialSummary.client_expenses.toLocaleString('tr-TR')}`}
+                      {(financialSummary.client_expenses || 0) > 0 && (financialSummary.shared_expenses_rep_portion || 0) > 0 && ' + '}
+                      {(financialSummary.shared_expenses_rep_portion || 0) > 0 && `Ortak: ₺${financialSummary.shared_expenses_rep_portion.toLocaleString('tr-TR')}`}
+                    </p>
+                  </div>
+                )}
 
-              <div className="mt-4 pt-4 border-t border-slate-200 grid grid-cols-3 gap-4">
-                <div>
-                  <p className="text-xs text-slate-600 uppercase">Toplam Dağıtılan</p>
-                  <p className="text-base font-semibold text-slate-900">
+                <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-100">
+                  <p className="text-xs text-indigo-600 uppercase">Dağıtılan</p>
+                  <p className="text-base font-semibold text-indigo-700">
                     ₺{financialSummary.total_allocated.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                   </p>
-                </div>
-
-                <div>
-                  <p className="text-xs text-slate-600 uppercase">Kalan Tutar</p>
-                  <p className={`text-base font-semibold ${financialSummary.remaining_amount >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                    ₺{financialSummary.remaining_amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                  <p className="text-xs text-slate-500 mt-1">
+                    %{financialSummary.distributable_amount > 0
+                      ? ((financialSummary.total_allocated / financialSummary.distributable_amount) * 100).toFixed(1)
+                      : 0}
                   </p>
                 </div>
 
-                <div>
-                  <p className="text-xs text-slate-600 uppercase">Dağıtım Oranı</p>
-                  <p className="text-base font-semibold text-slate-900">
-                    {financialSummary.distributable_amount > 0
-                      ? ((financialSummary.total_allocated / financialSummary.distributable_amount) * 100).toFixed(1)
-                      : 0}%
+                <div className={`p-3 rounded-lg border ${financialSummary.remaining_amount >= 0 ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
+                  <p className={`text-xs uppercase ${financialSummary.remaining_amount >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>Kalan Dağıtılacak</p>
+                  <p className={`text-base font-semibold ${financialSummary.remaining_amount >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                    ₺{financialSummary.remaining_amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    %{financialSummary.distributable_amount > 0
+                      ? ((financialSummary.remaining_amount / financialSummary.distributable_amount) * 100).toFixed(1)
+                      : 0}
                   </p>
                 </div>
               </div>

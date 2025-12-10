@@ -21,6 +21,7 @@ import { triggerNotificationRefresh } from '@/utils/notifications'
 import { supabase } from '@/lib/supabase/client'
 import PersonPicker, { Person, PersonType } from '@/components/ui/person-picker'
 import PersonBadge from '@/components/ui/person-badge'
+import { PaymentPlanSection, Installment } from '@/components/projects/payment-plan-section'
 
 interface User {
   id: string
@@ -54,6 +55,8 @@ export default function NewProjectPage() {
     end_date: '',
     company_rate: '10',
     vat_rate: '18',
+    has_withholding_tax: false,
+    withholding_tax_rate: '0',
     referee_payment: '0',
     referee_payer: 'company',
     stamp_duty_payer: 'company',
@@ -73,6 +76,10 @@ export default function NewProjectPage() {
 
   const [representatives, setRepresentatives] = useState<ProjectRepresentative[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  // Payment plan state
+  const [paymentPlanEnabled, setPaymentPlanEnabled] = useState(false)
+  const [installments, setInstallments] = useState<Installment[]>([])
 
   // State for PersonPicker
   const [selectedPersonId, setSelectedPersonId] = useState('')
@@ -136,6 +143,19 @@ export default function NewProjectPage() {
       newErrors.representatives = 'Bir proje yürütücüsü seçilmelidir'
     } else if (leaderCount > 1) {
       newErrors.representatives = 'Sadece bir proje yürütücüsü seçilmelidir'
+    }
+
+    // Validate payment plan
+    if (paymentPlanEnabled) {
+      if (installments.length === 0) {
+        newErrors.payment_plan = 'Ödeme planı için en az bir taksit eklenmeli'
+      } else {
+        const total = installments.reduce((sum, inst) => sum + inst.gross_amount, 0)
+        const budgetNum = parseFloat(formData.budget) || 0
+        if (Math.abs(total - budgetNum) > 0.01) {
+          newErrors.payment_plan = `Taksit toplamı (${total.toLocaleString('tr-TR')} ₺) proje bütçesine (${budgetNum.toLocaleString('tr-TR')} ₺) eşit olmalı`
+        }
+      }
     }
 
     setErrors(newErrors)
@@ -251,10 +271,12 @@ export default function NewProjectPage() {
           budget: parseFloat(formData.budget),
           company_rate: parseFloat(formData.company_rate),
           vat_rate: parseFloat(formData.vat_rate),
-          referee_payment: formData.referee_payer === 'company' ? parseFloat(formData.referee_payment) : 0,
+          has_withholding_tax: formData.has_withholding_tax,
+          withholding_tax_rate: formData.has_withholding_tax ? parseFloat(formData.withholding_tax_rate) : 0,
+          referee_payment: parseFloat(formData.referee_payment) || 0,
           referee_payer: formData.referee_payer,
           stamp_duty_payer: formData.stamp_duty_payer,
-          stamp_duty_amount: formData.stamp_duty_payer === 'company' ? parseFloat(formData.stamp_duty_amount) : 0,
+          stamp_duty_amount: parseFloat(formData.stamp_duty_amount) || 0,
           contract_path: uploadedContractPath,
           sent_to_referee: formData.sent_to_referee,
           referee_approved: formData.referee_approved,
@@ -265,7 +287,16 @@ export default function NewProjectPage() {
             user_id: rep.user_id,
             personnel_id: rep.personnel_id,
             role: rep.role
-          }))
+          })),
+          payment_plan: paymentPlanEnabled ? {
+            enabled: true,
+            installments: installments.map(inst => ({
+              installment_number: inst.installment_number,
+              gross_amount: inst.gross_amount,
+              income_date: inst.income_date,
+              description: inst.description || null
+            }))
+          } : undefined
         })
       })
 
@@ -399,6 +430,70 @@ export default function NewProjectPage() {
                 />
               </div>
 
+              {/* KDV ve Tevkifat */}
+              <div className="md:col-span-2 border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">KDV Bilgileri</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      KDV Oranı (%)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      value={formData.vat_rate}
+                      onChange={(e) => setFormData({ ...formData, vat_rate: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div className="flex flex-col justify-end">
+                    <div className="flex items-center">
+                      <input
+                        id="has_withholding_tax"
+                        type="checkbox"
+                        checked={formData.has_withholding_tax}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          has_withholding_tax: e.target.checked,
+                          withholding_tax_rate: e.target.checked ? formData.withholding_tax_rate : '0'
+                        })}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <label htmlFor="has_withholding_tax" className="ml-2 block text-sm text-gray-900">
+                        Tevkifat Uygulanıyor
+                      </label>
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">
+                      KDV tevkifatı varsa işaretleyin
+                    </p>
+                  </div>
+
+                  {formData.has_withholding_tax && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Tevkifat Oranı (%)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value={formData.withholding_tax_rate}
+                        onChange={(e) => setFormData({ ...formData, withholding_tax_rate: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Örn: 50 (5/10 için)"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        KDV tutarının yüzde kaçı tevkif edilecek?
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Hakem Heyeti Ödemesini Kim Yapacak?
@@ -413,18 +508,21 @@ export default function NewProjectPage() {
                 </select>
               </div>
 
-              {formData.referee_payer === 'company' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Hakem Heyeti Ödemesi (₺)
-                  </label>
-                  <MoneyInput
-                    value={formData.referee_payment}
-                    onChange={(value) => setFormData({ ...formData, referee_payment: value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Hakem Heyeti Ödemesi (₺)
+                </label>
+                <MoneyInput
+                  value={formData.referee_payment}
+                  onChange={(value) => setFormData({ ...formData, referee_payment: value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  {formData.referee_payer === 'company'
+                    ? 'Bu tutar her tahsilatta oransal olarak şirket payından düşülecektir.'
+                    : 'Bu tutar her tahsilatta oransal olarak dağıtılabilir miktardan düşülecektir.'}
+                </p>
+              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -440,21 +538,21 @@ export default function NewProjectPage() {
                 </select>
               </div>
 
-              {formData.stamp_duty_payer === 'company' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Damga Vergisi Tutarı (₺)
-                  </label>
-                  <MoneyInput
-                    value={formData.stamp_duty_amount}
-                    onChange={(value) => setFormData({ ...formData, stamp_duty_amount: value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <p className="mt-1 text-xs text-gray-500">
-                    Bu tutar ilk hakedişte şirket payından düşülecektir.
-                  </p>
-                </div>
-              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Damga Vergisi Tutarı (₺)
+                </label>
+                <MoneyInput
+                  value={formData.stamp_duty_amount}
+                  onChange={(value) => setFormData({ ...formData, stamp_duty_amount: value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  {formData.stamp_duty_payer === 'company'
+                    ? 'Bu tutar her tahsilatta oransal olarak şirket payından düşülecektir.'
+                    : 'Bu tutar her tahsilatta oransal olarak dağıtılabilir miktardan düşülecektir.'}
+                </p>
+              </div>
 
               {/* Hakem Heyeti Bilgileri */}
               <div className="border-t border-gray-200 pt-6">
@@ -466,7 +564,13 @@ export default function NewProjectPage() {
                       id="sent_to_referee"
                       type="checkbox"
                       checked={formData.sent_to_referee}
-                      onChange={(e) => setFormData({ ...formData, sent_to_referee: e.target.checked })}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        sent_to_referee: e.target.checked,
+                        // Gönderilmedi ise onay da kaldırılsın
+                        referee_approved: e.target.checked ? formData.referee_approved : false,
+                        referee_approval_date: e.target.checked ? formData.referee_approval_date : ''
+                      })}
                       className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     />
                     <label htmlFor="sent_to_referee" className="ml-2 block text-sm text-gray-900">
@@ -479,10 +583,11 @@ export default function NewProjectPage() {
                       id="referee_approved"
                       type="checkbox"
                       checked={formData.referee_approved}
+                      disabled={!formData.sent_to_referee}
                       onChange={(e) => setFormData({ ...formData, referee_approved: e.target.checked })}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${!formData.sent_to_referee ? 'opacity-50 cursor-not-allowed' : ''}`}
                     />
-                    <label htmlFor="referee_approved" className="ml-2 block text-sm text-gray-900">
+                    <label htmlFor="referee_approved" className={`ml-2 block text-sm ${!formData.sent_to_referee ? 'text-gray-400' : 'text-gray-900'}`}>
                       Hakem heyeti onayı alındı
                     </label>
                   </div>
@@ -747,6 +852,21 @@ export default function NewProjectPage() {
               <p className="mt-2 text-sm text-red-600">{errors.representatives}</p>
             )}
           </div>
+
+          {/* Payment Plan */}
+          <PaymentPlanSection
+            budget={parseFloat(formData.budget) || 0}
+            startDate={formData.start_date}
+            enabled={paymentPlanEnabled}
+            installments={installments}
+            onEnabledChange={setPaymentPlanEnabled}
+            onInstallmentsChange={setInstallments}
+          />
+          {errors.payment_plan && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-md -mt-2">
+              <p className="text-sm text-red-600">{errors.payment_plan}</p>
+            </div>
+          )}
 
           {/* Submit */}
           <div className="flex justify-end space-x-2">

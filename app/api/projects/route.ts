@@ -153,7 +153,10 @@ export async function POST(request: NextRequest) {
       assignment_document_path,
       sent_to_referee = false,
       referee_approved = false,
-      referee_approval_date
+      referee_approval_date,
+      has_withholding_tax = false,
+      withholding_tax_rate = 0,
+      payment_plan
     } = validation.data
 
     try {
@@ -178,6 +181,8 @@ export async function POST(request: NextRequest) {
           sent_to_referee,
           referee_approved,
           referee_approval_date: referee_approval_date || null,
+          has_withholding_tax,
+          withholding_tax_rate: has_withholding_tax ? withholding_tax_rate : 0,
           created_by: ctx.user.id
         })
         .select()
@@ -205,6 +210,51 @@ export async function POST(request: NextRequest) {
         await ctx.supabase.from('projects').delete().eq('id', project.id)
         console.error('Representatives creation error:', repError)
         return apiResponse.error('Failed to create project representatives', repError.message, 500)
+      }
+
+      // Create payment plan installments if enabled
+      if (payment_plan?.enabled && payment_plan?.installments && payment_plan.installments.length > 0) {
+        // Validate total equals budget
+        const installmentTotal = payment_plan.installments.reduce(
+          (sum: number, inst: any) => sum + inst.gross_amount, 0
+        )
+
+        if (Math.abs(installmentTotal - budget) > 0.01) {
+          // Rollback: delete representatives and project
+          await ctx.supabase.from('project_representatives').delete().eq('project_id', project.id)
+          await ctx.supabase.from('projects').delete().eq('id', project.id)
+          return apiResponse.error('Taksit toplamı proje bütçesine eşit olmalı', '', 400)
+        }
+
+        // Create income records for each installment
+        const incomeRecords = payment_plan.installments.map((inst: any) => ({
+          project_id: project.id,
+          gross_amount: inst.gross_amount,
+          vat_rate: vat_rate,
+          income_date: inst.income_date,
+          description: inst.description || `Taksit ${inst.installment_number}`,
+          is_planned: true,
+          installment_number: inst.installment_number,
+          collected_amount: 0,
+          created_by: ctx.user.id,
+          is_fsmh_income: false,
+          income_type: 'ozel',
+          is_tto_income: true
+        }))
+
+        const { error: incomeError } = await (ctx.supabase as any)
+          .from('incomes')
+          .insert(incomeRecords)
+
+        if (incomeError) {
+          // Rollback: delete representatives and project
+          await ctx.supabase.from('project_representatives').delete().eq('project_id', project.id)
+          await ctx.supabase.from('projects').delete().eq('id', project.id)
+          console.error('Payment plan creation error:', incomeError)
+          return apiResponse.error('Ödeme planı oluşturulamadı', incomeError.message, 500)
+        }
+
+        console.log(`Created ${incomeRecords.length} installments for project ${project.id}`)
       }
 
       // Fetch complete project data

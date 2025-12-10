@@ -254,8 +254,13 @@ export default function NewPaymentPage() {
         body: JSON.stringify({
           user_id: formData.person_type === 'user' ? formData.person_id : null,
           personnel_id: formData.person_type === 'personnel' ? formData.person_id : null,
+          total_amount: selectedItems.reduce((sum, item) => sum + item.amount, 0),
           notes: formData.notes.trim() || null,
-          items: selectedItems
+          items: selectedItems.map(item => ({
+            income_distribution_id: item.income_distribution_id || null,
+            amount: item.amount,
+            description: item.description || null
+          }))
         })
       })
 

@@ -10,21 +10,21 @@ export async function GET(request: NextRequest) {
         return apiResponse.error('Unauthorized', 'Only admins and managers can access dashboard metrics', 403)
       }
 
-      // 1. Get total budget from active projects
-      const { data: projects, error: projectsError } = await ctx.supabase
+      // 1. Get total budget from ALL projects (not just active)
+      const { data: allProjects, error: projectsError } = await ctx.supabase
         .from('projects')
         .select('budget, status')
-        .eq('status', 'active')
 
       if (projectsError) {
         console.error('Projects fetch error:', projectsError)
         return apiResponse.error('Failed to fetch projects', projectsError.message, 500)
       }
 
-      const totalBudget = projects?.reduce((sum, p) => sum + (p.budget || 0), 0) || 0
+      // Total budget includes all projects (active + completed)
+      const totalBudget = allProjects?.reduce((sum, p) => sum + (p.budget || 0), 0) || 0
 
-      // 2. Get active project count
-      const activeProjectCount = projects?.length || 0
+      // 2. Get active project count (only active ones)
+      const activeProjectCount = allProjects?.filter(p => p.status === 'active').length || 0
 
       // 3. Get all incomes with income_date for year grouping
       const { data: incomes, error: incomesError } = await ctx.supabase
@@ -72,16 +72,22 @@ export async function GET(request: NextRequest) {
       }
 
       // 5. Group data by year
-      const yearData: Record<string, { invoiced: number; commission: number; remaining: number }> = {}
+      const yearData: Record<string, { invoiced: number; commission: number; remaining: number; planned: number }> = {}
 
       // Process incomes by year
+      // Planlanan (gross_amount) ve tahsil edilen (collected_amount > 0) ayrımı yap
       incomes?.forEach((income) => {
         if (income.income_date) {
           const year = new Date(income.income_date).getFullYear().toString()
           if (!yearData[year]) {
-            yearData[year] = { invoiced: 0, commission: 0, remaining: 0 }
+            yearData[year] = { invoiced: 0, commission: 0, remaining: 0, planned: 0 }
           }
-          yearData[year].invoiced += income.gross_amount || 0
+          // Planlanan tutar (tüm gelir kayıtları)
+          yearData[year].planned += income.gross_amount || 0
+          // Faturalanan tutar (sadece tahsil edilenler)
+          if ((income as any).collected_amount > 0) {
+            yearData[year].invoiced += income.gross_amount || 0
+          }
         }
       })
 
@@ -90,37 +96,17 @@ export async function GET(request: NextRequest) {
         if (commission.incomes?.income_date) {
           const year = new Date(commission.incomes.income_date).getFullYear().toString()
           if (!yearData[year]) {
-            yearData[year] = { invoiced: 0, commission: 0, remaining: 0 }
+            yearData[year] = { invoiced: 0, commission: 0, remaining: 0, planned: 0 }
           }
           yearData[year].commission += commission.amount || 0
         }
       })
 
-      // Get budget by year from projects (using start_date)
-      const { data: projectsByYear, error: projectsByYearError } = await ctx.supabase
-        .from('projects')
-        .select('budget, start_date, status')
-        .eq('status', 'active')
-
-      if (!projectsByYearError && projectsByYear) {
-        const yearBudgets: Record<string, number> = {}
-
-        projectsByYear.forEach((project) => {
-          if (project.start_date) {
-            const year = new Date(project.start_date).getFullYear().toString()
-            if (!yearBudgets[year]) {
-              yearBudgets[year] = 0
-            }
-            yearBudgets[year] += project.budget || 0
-          }
-        })
-
-        // Calculate remaining for each year
-        Object.keys(yearData).forEach((year) => {
-          const yearBudget = yearBudgets[year] || 0
-          yearData[year].remaining = yearBudget - yearData[year].invoiced
-        })
-      }
+      // Calculate remaining for each year based on income_date
+      // Kesilecek fatura = O yılda planlanan - O yılda tahsil edilen
+      Object.keys(yearData).forEach((year) => {
+        yearData[year].remaining = yearData[year].planned - yearData[year].invoiced
+      })
 
       // 6. Format year breakdown for specific years (2024, 2025, 2026)
       const years = ['2024', '2025', '2026']

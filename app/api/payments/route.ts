@@ -158,6 +158,24 @@ export async function POST(request: NextRequest) {
         return apiResponse.error('Invalid recipient', `${personType === 'user' ? 'User' : 'Personnel'} must have an IBAN to receive payments`, 400)
       }
 
+      // Get balance info (balance might be an array from Supabase join)
+      const balanceData = person.balance
+      const balance = Array.isArray(balanceData) ? balanceData[0] : balanceData
+      if (!balance) {
+        return apiResponse.error('No balance found', 'Alıcının bakiye kaydı bulunamadı', 400)
+      }
+
+      // Check for debt
+      if ((balance.debt_amount || 0) > 0) {
+        return apiResponse.error('Outstanding debt', `Alıcının ₺${(balance.debt_amount || 0).toLocaleString('tr-TR')} tutarında borcu var. Önce borç ödenmelidir.`, 400)
+      }
+
+      // Check sufficient balance
+      const availableAmount = balance.available_amount || 0
+      if (total_amount > availableAmount) {
+        return apiResponse.error('Insufficient balance', `Yetersiz bakiye. Mevcut: ₺${availableAmount.toLocaleString('tr-TR')}, İstenen: ₺${total_amount.toLocaleString('tr-TR')}`, 400)
+      }
+
       // Verify that all income_distribution_ids exist and belong to the person
       for (const item of items) {
         if (item.income_distribution_id) {
@@ -206,6 +224,7 @@ export async function POST(request: NextRequest) {
         .insert({
           user_id: user_id || null,
           personnel_id: personnel_id || null,
+          recipient_personnel_id: personnel_id || null,
           total_amount,
           status,
           notes,
@@ -236,6 +255,24 @@ export async function POST(request: NextRequest) {
         await ctx.supabase.from('payment_instructions').delete().eq('id', payment.id)
         console.error('Payment items creation error:', itemsError)
         return apiResponse.error('Failed to create payment items', itemsError.message, 500)
+      }
+
+      // Reserve the amount in balance (move from available to reserved)
+      const { error: balanceError } = await ctx.supabase
+        .from('balances')
+        .update({
+          available_amount: (balance.available_amount || 0) - total_amount,
+          reserved_amount: (balance.reserved_amount || 0) + total_amount,
+          last_updated: new Date().toISOString()
+        })
+        .eq(personType === 'user' ? 'user_id' : 'personnel_id', personId)
+
+      if (balanceError) {
+        // Rollback: delete payment items and payment instruction
+        await ctx.supabase.from('payment_instruction_items').delete().eq('instruction_id', payment.id)
+        await ctx.supabase.from('payment_instructions').delete().eq('id', payment.id)
+        console.error('Balance reservation error:', balanceError)
+        return apiResponse.error('Failed to reserve balance', balanceError.message, 500)
       }
 
       // Fetch complete payment instruction

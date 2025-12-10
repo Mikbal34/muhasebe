@@ -292,6 +292,8 @@ export interface Database {
           vat_rate: number
           vat_amount: number
           net_amount: number
+          collected_amount: number
+          collection_date: string | null
           description: string | null
           income_date: string
           created_at: string
@@ -299,6 +301,8 @@ export interface Database {
           is_fsmh_income: boolean
           income_type: IncomeType
           is_tto_income: boolean
+          is_planned: boolean
+          installment_number: number | null
         }
         Insert: {
           id?: string
@@ -307,6 +311,8 @@ export interface Database {
           vat_rate?: number
           vat_amount?: number
           net_amount?: number
+          collected_amount?: number
+          collection_date?: string | null
           description?: string | null
           income_date: string
           created_at?: string
@@ -314,6 +320,8 @@ export interface Database {
           is_fsmh_income?: boolean
           income_type?: IncomeType
           is_tto_income?: boolean
+          is_planned?: boolean
+          installment_number?: number | null
         }
         Update: {
           id?: string
@@ -322,6 +330,8 @@ export interface Database {
           vat_rate?: number
           vat_amount?: number
           net_amount?: number
+          collected_amount?: number
+          collection_date?: string | null
           description?: string | null
           income_date?: string
           created_at?: string
@@ -329,6 +339,8 @@ export interface Database {
           is_fsmh_income?: boolean
           income_type?: IncomeType
           is_tto_income?: boolean
+          is_planned?: boolean
+          installment_number?: number | null
         }
         Relationships: [
           {

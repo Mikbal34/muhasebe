@@ -94,13 +94,14 @@ const columnDefinitions = {
     { key: 'start_date', label: 'Başlama Tarihi' },
     { key: 'iban', label: 'IBAN Bilgileri' },
   ],
+  payment_instructions: [] as { key: string; label: string }[], // No column selection for this type
 }
 
 export default function ReportsPage() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(false)
   const [reportData, setReportData] = useState<ReportData | null>(null)
-  const [reportType, setReportType] = useState<'project' | 'manager' | 'company' | 'payments' | 'income_excel' | 'expense_excel' | 'project_card' | 'personnel_excel'>('income_excel')
+  const [reportType, setReportType] = useState<'project' | 'manager' | 'company' | 'payments' | 'income_excel' | 'expense_excel' | 'project_card' | 'personnel_excel' | 'payment_instructions' | 'financial_report' | 'personnel_earnings'>('income_excel')
   const [exporting, setExporting] = useState(false)
   const [dateRange, setDateRange] = useState({
     start_date: '',
@@ -111,6 +112,7 @@ export default function ReportsPage() {
     expense_excel: columnDefinitions.expense_excel.map(c => c.key),
     project_card: columnDefinitions.project_card.map(c => c.key),
     personnel_excel: columnDefinitions.personnel_excel.map(c => c.key),
+    payment_instructions: [],
   })
   const router = useRouter()
 
@@ -171,7 +173,7 @@ export default function ReportsPage() {
     const token = localStorage.getItem('token')
     if (token) {
       // Excel export raporları için direkt indirme
-      if (['income_excel', 'expense_excel', 'project_card', 'personnel_excel'].includes(reportType)) {
+      if (['income_excel', 'expense_excel', 'project_card', 'personnel_excel', 'payment_instructions', 'financial_report', 'personnel_earnings'].includes(reportType)) {
         handleExcelExport()
         return
       }
@@ -192,6 +194,11 @@ export default function ReportsPage() {
     try {
       let endpoint = ''
       let filename = ''
+      let bodyData: any = {
+        start_date: dateRange.start_date || undefined,
+        end_date: dateRange.end_date || undefined,
+        columns: selectedColumns[reportType] || []
+      }
 
       switch (reportType) {
         case 'income_excel':
@@ -210,6 +217,56 @@ export default function ReportsPage() {
           endpoint = '/api/reports/export/personnel'
           filename = 'personel_listesi'
           break
+        case 'payment_instructions':
+          endpoint = '/api/reports/export/payment-instructions'
+          filename = 'odeme_talimati_halkbank'
+          // Get banking settings from localStorage (saved as "systemSettings" by settings page)
+          const settingsStr = localStorage.getItem('systemSettings')
+          if (settingsStr) {
+            try {
+              const settings = JSON.parse(settingsStr)
+              if (!settings.banking?.company_iban || !settings.company?.tax_number) {
+                alert('Lütfen önce Ayarlar sayfasından şirket IBAN ve VKN bilgilerini girin.')
+                setExporting(false)
+                return
+              }
+              bodyData = {
+                start_date: dateRange.start_date || undefined,
+                end_date: dateRange.end_date || undefined,
+                banking: {
+                  company_iban: settings.banking.company_iban,
+                  bank_name: settings.banking.bank_name || 'HALKBANK',
+                  company_vkn: settings.company.tax_number,
+                  company_name: settings.company.name || 'ŞİRKET'
+                }
+              }
+            } catch (e) {
+              alert('Ayarlar okunamadı. Lütfen Ayarlar sayfasından banka bilgilerini kontrol edin.')
+              setExporting(false)
+              return
+            }
+          } else {
+            alert('Lütfen önce Ayarlar sayfasından şirket ve banka bilgilerini girin.')
+            setExporting(false)
+            return
+          }
+          break
+        case 'financial_report':
+          endpoint = '/api/reports/export/financial-report'
+          filename = 'finansal_rapor'
+          bodyData = {
+            start_date: dateRange.start_date || undefined,
+            end_date: dateRange.end_date || undefined
+          }
+          break
+        case 'personnel_earnings':
+          endpoint = '/api/reports/export/personnel-earnings'
+          filename = 'personel_kazanc_raporu'
+          bodyData = {
+            start_date: dateRange.start_date || undefined,
+            end_date: dateRange.end_date || undefined
+          }
+          break
         default:
           return
       }
@@ -220,15 +277,12 @@ export default function ReportsPage() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          start_date: dateRange.start_date || undefined,
-          end_date: dateRange.end_date || undefined,
-          columns: selectedColumns[reportType] || []
-        })
+        body: JSON.stringify(bodyData)
       })
 
       if (!response.ok) {
-        throw new Error('Export failed')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error?.message || 'Export failed')
       }
 
       const blob = await response.blob()
@@ -242,7 +296,7 @@ export default function ReportsPage() {
       document.body.removeChild(a)
     } catch (error) {
       console.error('Export error:', error)
-      alert('Excel dosyası oluşturulurken bir hata oluştu')
+      alert('Excel dosyası oluşturulurken bir hata oluştu: ' + (error as any).message)
     } finally {
       setExporting(false)
     }
@@ -324,8 +378,11 @@ export default function ReportsPage() {
                 <optgroup label="Excel Raporları">
                   <option value="income_excel">Proje Bazlı Gelir Tablosu</option>
                   <option value="expense_excel">Proje Bazlı Gider Tablosu</option>
+                  <option value="financial_report">Finansal Rapor (Gelir-Gider-Alacak)</option>
+                  <option value="personnel_earnings">Personel Kazanç Raporu</option>
                   <option value="project_card">Proje Künyesi</option>
                   <option value="personnel_excel">Personel Listesi</option>
+                  <option value="payment_instructions">Ödeme Talimatı (Halkbank)</option>
                 </optgroup>
                 <optgroup label="Özet Raporlar">
                   <option value="company">Şirket Raporu</option>
@@ -368,19 +425,19 @@ export default function ReportsPage() {
               >
                 {loading || exporting ? (
                   <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                ) : ['income_excel', 'expense_excel', 'project_card', 'personnel_excel'].includes(reportType) ? (
+                ) : ['income_excel', 'expense_excel', 'project_card', 'personnel_excel', 'payment_instructions', 'financial_report', 'personnel_earnings'].includes(reportType) ? (
                   <Download className="h-4 w-4 mr-2" />
                 ) : (
                   <BarChart3 className="h-4 w-4 mr-2" />
                 )}
-                {['income_excel', 'expense_excel', 'project_card', 'personnel_excel'].includes(reportType)
+                {['income_excel', 'expense_excel', 'project_card', 'personnel_excel', 'payment_instructions', 'financial_report', 'personnel_earnings'].includes(reportType)
                   ? (exporting ? 'İndiriliyor...' : 'Excel İndir')
                   : (loading ? 'Oluşturuluyor...' : 'Rapor Oluştur')}
               </button>
             </div>
           </div>
 
-          {/* Kolon Seçimi - Sadece Excel raporları için */}
+          {/* Kolon Seçimi - Sadece Excel raporları için (payment_instructions hariç) */}
           {['income_excel', 'expense_excel', 'project_card', 'personnel_excel'].includes(reportType) && (
             <div className="mt-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
               <h3 className="text-sm font-medium text-slate-700 mb-3">Dahil Edilecek Kolonlar</h3>
@@ -406,10 +463,20 @@ export default function ReportsPage() {
               </div>
             </div>
           )}
+
+          {/* Halkbank formatı bilgisi */}
+          {reportType === 'payment_instructions' && (
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-800">
+                <strong>Halkbank Formatı:</strong> Bu rapor Halkbank'ın toplu ödeme talimatı formatında Excel dosyası oluşturur.
+                Rapor, Ayarlar sayfasından girilen şirket IBAN ve VKN bilgilerini kullanır.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Report Results */}
-        {reportData && !['income_excel', 'expense_excel', 'project_card', 'personnel_excel'].includes(reportType) && (
+        {reportData && !['income_excel', 'expense_excel', 'project_card', 'personnel_excel', 'payment_instructions', 'financial_report', 'personnel_earnings'].includes(reportType) && (
           <>
             {/* Summary Cards */}
             {reportData.summary && (

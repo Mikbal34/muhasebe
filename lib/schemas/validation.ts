@@ -35,6 +35,19 @@ export const projectRepresentativeSchema = z.object({
   path: ['user_id']
 })
 
+// Payment Plan schemas
+export const paymentPlanInstallmentSchema = z.object({
+  installment_number: z.number().int().positive('Taksit numarası pozitif olmalı'),
+  gross_amount: z.number().positive('Taksit tutarı pozitif olmalı'),
+  income_date: z.string().date('Geçersiz ödeme tarihi'),
+  description: z.string().max(500, 'Açıklama çok uzun').nullable().optional(),
+})
+
+export const paymentPlanSchema = z.object({
+  enabled: z.boolean().default(false),
+  installments: z.array(paymentPlanInstallmentSchema).optional(),
+})
+
 export const createProjectSchema = z.object({
   name: z.string().min(1, 'Proje adı gerekli').max(255, 'Proje adı çok uzun'),
   budget: z.number().positive('Bütçe pozitif olmalı'),
@@ -53,7 +66,10 @@ export const createProjectSchema = z.object({
   referee_approval_date: z.string().nullable().optional(),
   has_assignment_permission: z.boolean().default(false),
   assignment_document_path: z.string().nullable().optional(),
+  has_withholding_tax: z.boolean().default(false),
+  withholding_tax_rate: z.number().min(0, 'Tevkifat oranı negatif olamaz').max(100, 'Tevkifat oranı %100\'den fazla olamaz').default(0),
   representatives: z.array(projectRepresentativeSchema).min(1, 'En az bir temsilci gerekli'),
+  payment_plan: paymentPlanSchema.optional(),
 }).refine(data => {
   // Ensure exactly one project leader
   const leaders = data.representatives.filter(rep => rep.role === 'project_leader')
@@ -61,6 +77,16 @@ export const createProjectSchema = z.object({
 }, {
   message: 'Tam olarak bir proje yürütücüsü seçilmelidir',
   path: ['representatives']
+}).refine(data => {
+  // If payment plan is enabled, installments total must equal budget
+  if (data.payment_plan?.enabled && data.payment_plan?.installments?.length) {
+    const total = data.payment_plan.installments.reduce((sum, inst) => sum + inst.gross_amount, 0)
+    return Math.abs(total - data.budget) < 0.01 // 1 kuruş tolerans
+  }
+  return true
+}, {
+  message: 'Taksit toplamı proje bütçesine eşit olmalı',
+  path: ['payment_plan']
 })
 
 // Income schemas
@@ -84,6 +110,9 @@ export const updateIncomeCollectionSchema = z.object({
 // Expense schemas
 export const expenseTypeSchema = z.enum(['genel', 'proje'])
 
+// Gider paylaşım tipi (ortak veya karşı taraf)
+export const expenseShareTypeSchema = z.enum(['shared', 'client'])
+
 export const createExpenseSchema = z.object({
   expense_type: expenseTypeSchema.default('proje'),
   project_id: z.string().uuid('Geçersiz proje ID').nullable().optional(),
@@ -91,6 +120,7 @@ export const createExpenseSchema = z.object({
   description: z.string().min(1, 'Açıklama gerekli').max(1000, 'Açıklama çok uzun'),
   expense_date: z.string().date('Geçersiz gider tarihi').optional(),
   is_tto_expense: z.boolean().default(true),
+  expense_share_type: expenseShareTypeSchema.default('client'),
 }).refine(data => {
   // Genel giderde project_id olmamalı
   if (data.expense_type === 'genel') {
@@ -255,3 +285,5 @@ export type ExpenseQuery = z.infer<typeof expenseQuerySchema>
 export type PaymentQuery = z.infer<typeof paymentQuerySchema>
 export type BalanceQuery = z.infer<typeof balanceQuerySchema>
 export type TransactionQuery = z.infer<typeof transactionQuerySchema>
+export type PaymentPlanInstallment = z.infer<typeof paymentPlanInstallmentSchema>
+export type PaymentPlan = z.infer<typeof paymentPlanSchema>

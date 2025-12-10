@@ -108,6 +108,7 @@ export async function POST(request: NextRequest) {
         .from('projects')
         .select(`
           id, name, code, status, budget, company_rate, vat_rate,
+          has_withholding_tax, withholding_tax_rate,
           sent_to_referee, referee_approved, remaining_budget,
           total_commission_due, total_commission_collected,
           representatives:project_representatives(
@@ -181,10 +182,20 @@ export async function POST(request: NextRequest) {
       // Use user's provided VAT rate (don't override with project default)
       const finalVatRate = vat_rate
 
-      // Let the database trigger handle ALL calculations
-      // We don't calculate here to avoid conflicts
+      // Tevkifat tutarını hesapla (varsa)
+      // Formula: Tam KDV = Brüt × KDV Oranı / 100
+      //          Tevkifat = Tam KDV × Tevkifat Oranı / 100
+      // NOT: vat_amount ve net_amount trigger'da hesaplanacak (migration 066)
+      let withholding_tax_amount = 0
+      if ((project as any).has_withholding_tax && (project as any).withholding_tax_rate > 0) {
+        const fullVatAmount = gross_amount * finalVatRate / 100
+        withholding_tax_amount = fullVatAmount * (project as any).withholding_tax_rate / 100
+      }
 
-      // Create income record (trigger will calculate amounts)
+      // Let the database trigger handle most calculations
+      // We only calculate withholding tax here
+
+      // Create income record (trigger will calculate other amounts)
       const { data: income, error: incomeError } = await (ctx.supabase as any)
         .from('incomes')
         .insert({
@@ -196,6 +207,7 @@ export async function POST(request: NextRequest) {
           is_fsmh_income,
           income_type,
           is_tto_income,
+          withholding_tax_amount,
           created_by: ctx.user.id
         })
         .select(`

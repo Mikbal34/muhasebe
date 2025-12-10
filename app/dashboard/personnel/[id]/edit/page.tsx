@@ -183,7 +183,7 @@ export default function EditPersonnelPage({ params }: { params: { id: string } }
 
       if (data.success) {
         alert(data.message || 'Personel güncellendi')
-        router.push(`/dashboard/personnel/${params.id}` as any)
+        router.push(`/dashboard/personnel/${params.id}`)
       } else {
         alert(data.message || 'Güncelleme başarısız')
       }

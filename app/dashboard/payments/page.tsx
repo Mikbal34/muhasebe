@@ -18,7 +18,8 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  AlertTriangle
+  AlertTriangle,
+  Download
 } from 'lucide-react'
 import { StatCardSkeleton, TableSkeleton, Skeleton } from '@/components/ui/skeleton'
 
@@ -43,7 +44,13 @@ interface PaymentInstruction {
     full_name: string
     email: string
     iban: string
-  }
+  } | null
+  personnel: {
+    id: string
+    full_name: string
+    email: string
+    iban: string
+  } | null
   created_by_user: {
     full_name: string
   }
@@ -71,9 +78,83 @@ export default function PaymentsPage() {
   const [user, setUser] = useState<User | null>(null)
   const [payments, setPayments] = useState<PaymentInstruction[]>([])
   const [loading, setLoading] = useState(true)
+  const [exporting, setExporting] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const router = useRouter()
+
+  const handleExportExcel = async () => {
+    setExporting(true)
+    try {
+      const token = localStorage.getItem('token')
+
+      // Get settings from localStorage
+      const savedSettings = localStorage.getItem('systemSettings')
+      let banking = {
+        company_iban: '',
+        bank_name: 'HALKBANK',
+        company_vkn: '',
+        company_name: ''
+      }
+
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings)
+        banking = {
+          company_iban: settings.banking?.company_iban || '',
+          bank_name: settings.banking?.bank_name || 'HALKBANK',
+          company_vkn: settings.company?.tax_number || '',
+          company_name: settings.company?.name || ''
+        }
+      }
+
+      // Check if required settings are configured
+      if (!banking.company_iban || !banking.company_vkn) {
+        alert('Excel export için şirket IBAN ve VKN bilgileri gereklidir. Lütfen Ayarlar sayfasından banka bilgilerini doldurun.')
+        setExporting(false)
+        return
+      }
+
+      const response = await fetch('/api/reports/export/payment-instructions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          banking
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null)
+        throw new Error(errorData?.detail || 'Export failed')
+      }
+
+      const contentDisposition = response.headers.get('content-disposition')
+      let filename = `odeme_talimati_halkbank_${new Date().toLocaleDateString('tr-TR').replace(/\./g, '-')}.xlsx`
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/)
+        if (filenameMatch) {
+          filename = filenameMatch[1]
+        }
+      }
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = filename
+      document.body.appendChild(anchor)
+      anchor.click()
+      document.body.removeChild(anchor)
+      window.URL.revokeObjectURL(url)
+    } catch (error: any) {
+      console.error('Export error:', error)
+      alert(error.message || 'Excel dışa aktarma başarısız oldu')
+    } finally {
+      setExporting(false)
+    }
+  }
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -110,7 +191,8 @@ export default function PaymentsPage() {
   }
 
   const filteredPayments = payments.filter(payment => {
-    const matchesSearch = payment.user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const recipientName = payment.user?.full_name || payment.personnel?.full_name || ''
+    const matchesSearch = recipientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          payment.instruction_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          payment.notes?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = !statusFilter || payment.status === statusFilter
@@ -212,15 +294,29 @@ export default function PaymentsPage() {
               </p>
             </div>
 
-            {(user.role === 'admin' || user.role === 'manager') && (
-              <Link
-                href="/dashboard/payments/new"
-                className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 transition-colors"
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleExportExcel}
+                disabled={exporting || payments.length === 0}
+                className="inline-flex items-center px-3 py-2 border border-slate-300 text-sm font-semibold rounded text-slate-700 bg-white hover:bg-slate-50 transition-colors disabled:opacity-50"
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Yeni Ödeme Talimatı
-              </Link>
-            )}
+                {exporting ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-slate-600 border-t-transparent mr-2" />
+                ) : (
+                  <Download className="h-4 w-4 mr-2" />
+                )}
+                {exporting ? 'İndiriliyor...' : 'Dışarı Aktar'}
+              </button>
+              {(user.role === 'admin' || user.role === 'manager') && (
+                <Link
+                  href="/dashboard/payments/new"
+                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 transition-colors"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Yeni Ödeme Talimatı
+                </Link>
+              )}
+            </div>
           </div>
         </div>
 
@@ -326,10 +422,10 @@ export default function PaymentsPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
                           <div className="text-sm font-bold text-slate-900">
-                            {payment.user.full_name}
+                            {payment.user?.full_name || payment.personnel?.full_name || '-'}
                           </div>
                           <div className="text-xs font-medium text-slate-500">
-                            {payment.user.email}
+                            {payment.user?.email || payment.personnel?.email || '-'}
                           </div>
                         </div>
                       </td>

@@ -42,6 +42,9 @@ interface Project {
   created_by_user: {
     full_name: string
   }
+  vat_rate: number
+  has_withholding_tax: boolean
+  withholding_tax_rate: number
   referee_payment: number
   referee_payer: 'company' | 'client' | null
   stamp_duty_payer: 'company' | 'client' | null
@@ -273,31 +276,22 @@ export default function ProjectDetailPage() {
           <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-slate-200">
             <p className="text-xs text-slate-600 uppercase mb-1">Bütçe</p>
             <p className="text-lg font-bold text-slate-900">
-              ₺{(project.budget / 1000).toFixed(0)}K
-            </p>
-            <div className="text-xs text-slate-600 mt-1">
               ₺{project.budget.toLocaleString('tr-TR')}
-            </div>
+            </p>
           </div>
 
           <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-slate-200">
             <p className="text-xs text-slate-600 uppercase mb-1">Toplam Gelir</p>
             <p className="text-lg font-bold text-emerald-600">
-              ₺{(totalIncome / 1000).toFixed(0)}K
-            </p>
-            <div className="text-xs text-slate-600 mt-1">
               ₺{totalIncome.toLocaleString('tr-TR')}
-            </div>
+            </p>
           </div>
 
           <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-slate-200">
             <p className="text-xs text-slate-600 uppercase mb-1">Net Gelir</p>
             <p className="text-lg font-bold text-purple-600">
-              ₺{(totalNetIncome / 1000).toFixed(0)}K
-            </p>
-            <div className="text-xs text-slate-600 mt-1">
               ₺{totalNetIncome.toLocaleString('tr-TR')}
-            </div>
+            </p>
           </div>
 
           <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-slate-200">
@@ -356,7 +350,7 @@ export default function ProjectDetailPage() {
                 <span className="text-gray-600">Hakem Heyeti:</span>
                 <span className="ml-2 font-medium">
                   {project.referee_payer === 'company' ? 'Şirket' : 'Karşı Taraf'}
-                  {project.referee_payer === 'company' && ` (₺${project.referee_payment.toLocaleString('tr-TR')})`}
+                  {project.referee_payment > 0 && ` (₺${project.referee_payment.toLocaleString('tr-TR')})`}
                 </span>
               </div>
 
@@ -366,7 +360,24 @@ export default function ProjectDetailPage() {
                   <span className="text-gray-600">Damga Vergisi:</span>
                   <span className="ml-2 font-medium">
                     {project.stamp_duty_payer === 'company' ? 'Şirket' : 'Karşı Taraf'}
-                    {project.stamp_duty_payer === 'company' && ` (₺${project.stamp_duty_amount.toLocaleString('tr-TR')})`}
+                    {project.stamp_duty_amount > 0 && ` (₺${project.stamp_duty_amount.toLocaleString('tr-TR')})`}
+                  </span>
+                </div>
+              )}
+
+              {/* KDV ve Tevkifat */}
+              <div className="flex items-center text-sm">
+                <DollarSign className="h-4 w-4 text-gray-400 mr-3" />
+                <span className="text-gray-600">KDV Oranı:</span>
+                <span className="ml-2 font-medium">%{project.vat_rate}</span>
+              </div>
+
+              {project.has_withholding_tax && (
+                <div className="flex items-center text-sm">
+                  <DollarSign className="h-4 w-4 text-gray-400 mr-3" />
+                  <span className="text-gray-600">Tevkifat:</span>
+                  <span className="ml-2 font-medium text-orange-600">
+                    Evet - %{project.withholding_tax_rate}
                   </span>
                 </div>
               )}

@@ -30,7 +30,8 @@ interface User {
 interface PaymentInstruction {
   id: string
   instruction_number: string
-  user_id: string
+  user_id: string | null
+  personnel_id: string | null
   total_amount: number
   status: 'pending' | 'approved' | 'processing' | 'completed' | 'rejected'
   notes: string | null
@@ -41,7 +42,13 @@ interface PaymentInstruction {
     full_name: string
     email: string
     iban: string
-  }
+  } | null
+  personnel: {
+    id: string
+    full_name: string
+    email: string
+    iban: string
+  } | null
   items: Array<{
     id: string
     amount: number
@@ -242,11 +249,10 @@ export default function EditPaymentPage({ params }: { params: { id: string } }) 
   const currentStatusInfo = getStatusInfo(payment.status)
   const newStatusInfo = getStatusInfo(formData.status)
 
+  // Simplified status flow: pending → completed/rejected, rejected → pending
   const statusOptions = [
     { value: 'pending', label: 'Bekliyor', disabled: payment.status === 'completed' },
-    { value: 'approved', label: 'Onaylandı', disabled: payment.status === 'completed' },
-    { value: 'processing', label: 'İşleniyor', disabled: payment.status === 'completed' },
-    { value: 'completed', label: 'Tamamlandı', disabled: false },
+    { value: 'completed', label: 'Tamamlandı', disabled: payment.status === 'completed' },
     { value: 'rejected', label: 'Reddedildi', disabled: payment.status === 'completed' }
   ]
 
@@ -279,8 +285,8 @@ export default function EditPaymentPage({ params }: { params: { id: string } }) 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <p className="text-sm font-medium text-gray-700">Alıcı</p>
-              <p className="text-gray-900">{payment.user.full_name}</p>
-              <p className="text-sm text-gray-600">{payment.user.email}</p>
+              <p className="text-gray-900">{payment.user?.full_name || payment.personnel?.full_name || '-'}</p>
+              <p className="text-sm text-gray-600">{payment.user?.email || payment.personnel?.email || '-'}</p>
             </div>
 
             <div>

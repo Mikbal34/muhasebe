@@ -32,6 +32,10 @@ interface SystemSettings {
     phone: string
     email: string
   }
+  banking: {
+    company_iban: string
+    bank_name: string
+  }
   financial: {
     default_vat_rate: number
     default_company_rate: number
@@ -63,6 +67,10 @@ export default function SettingsPage() {
       address: 'Üniversite Kampüsü, Şehir',
       phone: '+90 212 123 4567',
       email: 'info@university.edu.tr'
+    },
+    banking: {
+      company_iban: '',
+      bank_name: 'HALKBANK'
     },
     financial: {
       default_vat_rate: 18,
@@ -203,6 +211,10 @@ export default function SettingsPage() {
         address: 'Üniversite Kampüsü, Şehir',
         phone: '+90 212 123 4567',
         email: 'info@university.edu.tr'
+      },
+      banking: {
+        company_iban: '',
+        bank_name: 'HALKBANK'
       },
       financial: {
         default_vat_rate: 18,
@@ -384,6 +396,66 @@ export default function SettingsPage() {
                   {errors['company.email'] && (
                     <p className="text-red-600 text-sm mt-1">{errors['company.email']}</p>
                   )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Banking Settings - Admin and Manager */}
+        {(isAdmin || isManager) && (
+          <div className="bg-white rounded-lg shadow-sm border">
+            <div className="p-4 border-b border-gray-200">
+              <h2 className="text-base font-semibold text-gray-900">Banka Bilgileri</h2>
+              <p className="text-gray-600 text-sm mt-1">Ödeme talimatları için şirket banka bilgileri</p>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Banka Adı
+                  </label>
+                  <select
+                    value={settings.banking.bank_name}
+                    onChange={(e) => handleInputChange('banking', 'bank_name', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  >
+                    <option value="HALKBANK">Halkbank</option>
+                    <option value="ZIRAAT">Ziraat Bankası</option>
+                    <option value="VAKIFBANK">VakıfBank</option>
+                    <option value="ISBANK">İş Bankası</option>
+                    <option value="GARANTI">Garanti BBVA</option>
+                    <option value="YAPI_KREDI">Yapı Kredi</option>
+                    <option value="AKBANK">Akbank</option>
+                    <option value="DENIZBANK">DenizBank</option>
+                    <option value="QNB">QNB Finansbank</option>
+                    <option value="TEB">TEB</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Şirket IBAN
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.banking.company_iban}
+                    onChange={(e) => {
+                      // IBAN formatı: sadece büyük harf ve rakam, max 26 karakter
+                      const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 26)
+                      handleInputChange('banking', 'company_iban', value)
+                    }}
+                    placeholder="TR000000000000000000000000"
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 font-mono ${
+                      errors['banking.company_iban'] ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                  />
+                  {errors['banking.company_iban'] && (
+                    <p className="text-red-600 text-sm mt-1">{errors['banking.company_iban']}</p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    Ödeme talimatı Excel export'larında gönderen IBAN olarak kullanılacak
+                  </p>
                 </div>
               </div>
             </div>

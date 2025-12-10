@@ -38,6 +38,8 @@ interface Project {
   remaining_budget: number | null
   total_commission_due: number | null
   total_commission_collected: number | null
+  has_withholding_tax: boolean
+  withholding_tax_rate: number
 }
 
 export default function NewIncomePage() {
@@ -61,7 +63,9 @@ export default function NewIncomePage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [calculatedAmounts, setCalculatedAmounts] = useState({
     gross_amount: 0,
-    vat_amount: 0,
+    full_vat_amount: 0,
+    withholding_tax_amount: 0,
+    paid_vat_amount: 0,
     net_amount: 0,
     company_amount: 0,
     distributable_amount: 0
@@ -117,16 +121,33 @@ export default function NewIncomePage() {
     const vatRate = parseFloat(formData.vat_rate) || 0
     const selectedProject = projects.find(p => p.id === formData.project_id)
     const companyRate = selectedProject?.company_rate || 0
+    const hasWithholdingTax = selectedProject?.has_withholding_tax || false
+    const withholdingTaxRate = selectedProject?.withholding_tax_rate || 0
 
-    // KDV hesaplama: brütGelir × kdvOranı ÷ 100
-    const vatAmount = (grossAmount * vatRate) / 100
-    const netAmount = grossAmount - vatAmount
+    // Tam KDV hesaplama: brütGelir × kdvOranı ÷ 100
+    const fullVatAmount = (grossAmount * vatRate) / 100
+
+    // Tevkifat hesaplama (varsa)
+    let withholdingTaxAmount = 0
+    let paidVatAmount = fullVatAmount
+
+    if (hasWithholdingTax && withholdingTaxRate > 0) {
+      // Tevkifat = Tam KDV × Tevkifat Oranı / 100
+      withholdingTaxAmount = (fullVatAmount * withholdingTaxRate) / 100
+      // Ödenen KDV = Tam KDV - Tevkifat
+      paidVatAmount = fullVatAmount - withholdingTaxAmount
+    }
+
+    // Net = Brüt - Ödenen KDV
+    const netAmount = grossAmount - paidVatAmount
     const companyAmount = (netAmount * companyRate) / 100
     const distributableAmount = netAmount - companyAmount
 
     setCalculatedAmounts({
       gross_amount: grossAmount,
-      vat_amount: vatAmount,
+      full_vat_amount: fullVatAmount,
+      withholding_tax_amount: withholdingTaxAmount,
+      paid_vat_amount: paidVatAmount,
       net_amount: netAmount,
       company_amount: companyAmount,
       distributable_amount: distributableAmount
@@ -659,9 +680,14 @@ export default function NewIncomePage() {
               <h2 className="text-base font-semibold text-slate-900 mb-3 flex items-center">
                 <DollarSign className="h-4 w-4 mr-2 text-slate-700" />
                 Hesaplama Önizlemesi
+                {selectedProject?.has_withholding_tax && (
+                  <span className="ml-2 px-2 py-0.5 bg-orange-100 text-orange-700 text-xs font-medium rounded">
+                    Tevkifatlı Proje
+                  </span>
+                )}
               </h2>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                 <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
                   <p className="text-xs text-slate-600 font-medium mb-1">Brüt Tutar</p>
                   <p className="text-sm font-bold text-slate-900">
@@ -670,9 +696,30 @@ export default function NewIncomePage() {
                 </div>
 
                 <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                  <p className="text-xs text-slate-600 font-medium mb-1">KDV (%{formData.vat_rate})</p>
+                  <p className="text-xs text-slate-600 font-medium mb-1">Tam KDV (%{formData.vat_rate})</p>
+                  <p className="text-sm font-bold text-slate-600">
+                    ₺{calculatedAmounts.full_vat_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
+                  </p>
+                </div>
+
+                {selectedProject?.has_withholding_tax && calculatedAmounts.withholding_tax_amount > 0 && (
+                  <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
+                    <p className="text-xs text-orange-700 font-medium mb-1">
+                      Tevkifat (%{selectedProject.withholding_tax_rate})
+                    </p>
+                    <p className="text-sm font-bold text-orange-600">
+                      -₺{calculatedAmounts.withholding_tax_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
+                    </p>
+                    <p className="text-xs text-orange-600 mt-0.5">Karşı taraf öder</p>
+                  </div>
+                )}
+
+                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                  <p className="text-xs text-slate-600 font-medium mb-1">
+                    {selectedProject?.has_withholding_tax ? 'Ödenen KDV' : 'KDV'}
+                  </p>
                   <p className="text-sm font-bold text-red-600">
-                    -₺{calculatedAmounts.vat_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
+                    -₺{calculatedAmounts.paid_vat_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
                   </p>
                 </div>
 
@@ -692,13 +739,24 @@ export default function NewIncomePage() {
                   </p>
                 </div>
 
-                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                  <p className="text-xs text-slate-600 font-medium mb-1">Dağıtılabilir</p>
+                <div className="bg-emerald-50 p-3 rounded-lg border border-emerald-200">
+                  <p className="text-xs text-emerald-700 font-medium mb-1">Dağıtılabilir</p>
                   <p className="text-sm font-bold text-emerald-600">
                     ₺{calculatedAmounts.distributable_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
                   </p>
                 </div>
               </div>
+
+              {/* Tevkifat Açıklaması */}
+              {selectedProject?.has_withholding_tax && calculatedAmounts.withholding_tax_amount > 0 && (
+                <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                  <p className="text-xs text-orange-800">
+                    <strong>Tevkifat:</strong> Karşı taraf KDV'nin %{selectedProject.withholding_tax_rate}'ını
+                    (₺{calculatedAmounts.withholding_tax_amount.toLocaleString('tr-TR')}) doğrudan devlete öder.
+                    Bize ödenen KDV: ₺{calculatedAmounts.paid_vat_amount.toLocaleString('tr-TR')}
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

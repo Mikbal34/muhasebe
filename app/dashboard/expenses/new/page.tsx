@@ -38,7 +38,8 @@ export default function NewExpensePage() {
     amount: 0,
     description: '',
     expense_date: new Date().toISOString().split('T')[0],
-    is_tto_expense: true
+    is_tto_expense: true,
+    expense_share_type: 'client' as 'shared' | 'client'
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -100,12 +101,19 @@ export default function NewExpensePage() {
       }
     }
 
+    const rate = selectedProject.company_rate || 15
+
     if (formData.is_tto_expense) {
-      const rate = selectedProject.company_rate || 15
+      // TTO gideri: Sadece TTO payı kadar TTO'dan düşer
       const ttoAmount = formData.amount * rate / 100
-      const distributableAmount = formData.amount - ttoAmount
+      return { ttoAmount, distributableAmount: 0 }
+    } else if (formData.expense_share_type === 'shared') {
+      // Ortak gider: TTO payı TTO'dan, temsilci payı dağıtılabilirden düşer
+      const ttoAmount = formData.amount * rate / 100
+      const distributableAmount = formData.amount * (100 - rate) / 100
       return { ttoAmount, distributableAmount }
     } else {
+      // Karşı taraf gideri: Tamamı dağıtılabilirden düşer
       return {
         ttoAmount: 0,
         distributableAmount: formData.amount
@@ -159,8 +167,11 @@ export default function NewExpensePage() {
         expense_date: formData.expense_date,
         // Only include project_id for proje type
         ...(formData.expense_type === 'proje' && { project_id: formData.project_id }),
-        // Only include is_tto_expense for proje type
-        ...(formData.expense_type === 'proje' && { is_tto_expense: formData.is_tto_expense })
+        // Only include is_tto_expense and expense_share_type for proje type
+        ...(formData.expense_type === 'proje' && {
+          is_tto_expense: formData.is_tto_expense,
+          expense_share_type: formData.is_tto_expense ? 'client' : formData.expense_share_type
+        })
       }
 
       const response = await fetch('/api/expenses', {
@@ -348,40 +359,53 @@ export default function NewExpensePage() {
               </div>
             )}
 
-            {/* TTO Expense Toggle - Only for Proje type */}
+            {/* Expense Payer Selection - Only for Proje type */}
             {formData.expense_type === 'proje' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  TTO Gideri mi? <span className="text-xs text-slate-500">(Ortak gider)</span>
+                  Gideri Kim Ödeyecek?
                 </label>
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => setFormData({ ...formData, is_tto_expense: true })}
+                    onClick={() => setFormData({ ...formData, is_tto_expense: true, expense_share_type: 'client' })}
                     className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                       formData.is_tto_expense
                         ? 'bg-teal-600 text-white hover:bg-teal-700'
                         : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                     }`}
                   >
-                    Evet (Ortak Gider)
+                    TTO
                   </button>
                   <button
                     type="button"
-                    onClick={() => setFormData({ ...formData, is_tto_expense: false })}
+                    onClick={() => setFormData({ ...formData, is_tto_expense: false, expense_share_type: 'shared' })}
                     className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                      !formData.is_tto_expense
+                      !formData.is_tto_expense && formData.expense_share_type === 'shared'
+                        ? 'bg-purple-600 text-white hover:bg-purple-700'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    Ortak
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, is_tto_expense: false, expense_share_type: 'client' })}
+                    className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                      !formData.is_tto_expense && formData.expense_share_type === 'client'
                         ? 'bg-orange-500 text-white hover:bg-orange-600'
                         : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                     }`}
                   >
-                    Hayır (Karşı Gider)
+                    Karşı Taraf
                   </button>
                 </div>
                 <p className="mt-1 text-xs text-slate-500">
                   {formData.is_tto_expense
-                    ? 'Ortak gider: TTO kendi payını öder, kalan dağıtılabilir miktardan düşer.'
-                    : 'Karşı gider: TTO ödemez, tamamı dağıtılabilir miktardan düşer.'}
+                    ? 'TTO Gideri: Sadece TTO bakiyesinden düşer.'
+                    : formData.expense_share_type === 'shared'
+                    ? 'Ortak Gider: TTO ve temsilcilerden oransal düşülür.'
+                    : 'Karşı Taraf Gideri: Tamamı dağıtılabilir miktardan düşülür.'}
                 </p>
               </div>
             )}
@@ -472,6 +496,17 @@ export default function NewExpensePage() {
                     </div>
 
                     {formData.is_tto_expense ? (
+                      // TTO Gideri
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-slate-600">
+                          TTO&apos;dan Düşecek (%{selectedProject.company_rate}):
+                        </span>
+                        <span className="text-sm font-semibold text-red-600">
+                          ₺{amounts.ttoAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    ) : formData.expense_share_type === 'shared' ? (
+                      // Ortak Gider
                       <>
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-slate-600">
@@ -482,13 +517,16 @@ export default function NewExpensePage() {
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-slate-600">Dağıtılabilir Pay:</span>
+                          <span className="text-sm text-slate-600">
+                            Temsilciler Payı (%{100 - selectedProject.company_rate}):
+                          </span>
                           <span className="text-sm font-semibold text-amber-600">
                             ₺{amounts.distributableAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                           </span>
                         </div>
                       </>
                     ) : (
+                      // Karşı Taraf Gideri
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-slate-600">Dağıtılabilirden Düşecek:</span>
                         <span className="text-sm font-semibold text-amber-600">
@@ -499,8 +537,10 @@ export default function NewExpensePage() {
 
                     <p className="text-xs text-slate-500 mt-2 pt-2 border-t border-slate-200">
                       {formData.is_tto_expense
-                        ? 'TTO payı otomatik düşülür. Dağıtılabilir pay manuel dağıtım için saklanır.'
-                        : 'TTO bu giderden pay ödemez. Tamamı dağıtılabilir miktardan düşecektir.'}
+                        ? 'TTO gideri: Sadece TTO bakiyesinden düşülür.'
+                        : formData.expense_share_type === 'shared'
+                        ? 'Ortak gider: TTO payı TTO bakiyesinden, temsilci payı dağıtılabilir miktardan düşülür.'
+                        : 'Karşı taraf gideri: Tamamı dağıtılabilir miktardan düşülür.'}
                     </p>
                   </div>
                 ) : formData.expense_type === 'proje' && !selectedProject ? (
