@@ -29,10 +29,12 @@ interface User {
 }
 
 type ExpenseType = 'genel' | 'proje'
+type ExpenseSource = 'manual' | 'referee_payment' | 'stamp_duty'
 
 interface Expense {
   id: string
   expense_type: ExpenseType
+  expense_source?: ExpenseSource
   amount: number
   description: string
   expense_date: string
@@ -453,8 +455,13 @@ export default function ExpensesPage() {
                             {group.expenses.map((expense) => (
                               <tr key={expense.id} className="hover:bg-gray-50">
                                 <td className="px-6 py-4">
-                                  <div className="text-sm text-gray-900">
+                                  <div className="text-sm text-gray-900 flex items-center gap-2">
                                     {expense.description}
+                                    {expense.expense_source && expense.expense_source !== 'manual' && (
+                                      <span className="px-1.5 py-0.5 text-xs font-medium bg-slate-100 text-slate-600 rounded">
+                                        Otomatik
+                                      </span>
+                                    )}
                                   </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">

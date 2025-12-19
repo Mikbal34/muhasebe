@@ -50,8 +50,8 @@ interface Project {
   company_rate: number
   vat_rate: number
   referee_payment: number
-  referee_payer: 'company' | 'client' | null
-  stamp_duty_payer: 'company' | 'client' | null
+  referee_payer: 'company' | 'academic' | 'client' | null
+  stamp_duty_payer: 'company' | 'academic' | 'client' | null
   stamp_duty_amount: number
   contract_path: string | null
   sent_to_referee: boolean
@@ -544,36 +544,6 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Hakem Heyeti Ödemesini Kim Yapacak?
-                </label>
-                <select
-                  value={formData.referee_payer}
-                  onChange={(e) => setFormData({ ...formData, referee_payer: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="company">Şirket (Biz)</option>
-                  <option value="client">Karşı Taraf (Müşteri)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Hakem Heyeti Ödemesi (₺)
-                </label>
-                <MoneyInput
-                  value={formData.referee_payment}
-                  onChange={(value) => setFormData({ ...formData, referee_payment: value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  {formData.referee_payer === 'company'
-                    ? 'Bu tutar her tahsilatta oransal olarak şirket payından düşülecektir.'
-                    : 'Bu tutar her tahsilatta oransal olarak dağıtılabilir miktardan düşülecektir.'}
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Şirket Komisyon Oranı (%)
                 </label>
                 <input
@@ -653,6 +623,39 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Hakem Heyeti Ödemesini Kim Yapacak?
+                </label>
+                <select
+                  value={formData.referee_payer}
+                  onChange={(e) => setFormData({ ...formData, referee_payer: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="company">TTO (Şirket)</option>
+                  <option value="academic">Akademisyen</option>
+                  <option value="client">Karşı Taraf (Müşteri)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Hakem Heyeti Ödemesi (₺)
+                </label>
+                <MoneyInput
+                  value={formData.referee_payment}
+                  onChange={(value) => setFormData({ ...formData, referee_payment: value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  {formData.referee_payer === 'company'
+                    ? 'Bu tutar her tahsilatta oransal olarak TTO payından düşülecektir.'
+                    : formData.referee_payer === 'academic'
+                    ? 'Bu tutar her tahsilatta oransal olarak akademisyen bakiyelerinden düşülecektir.'
+                    : 'Bu tutar sadece kayıt amaçlıdır, bakiyelerden düşülmez.'}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Damga Vergisini Kim Ödeyecek?
                 </label>
                 <select
@@ -660,7 +663,8 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
                   onChange={(e) => setFormData({ ...formData, stamp_duty_payer: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="company">Şirket (Biz)</option>
+                  <option value="company">TTO (Şirket)</option>
+                  <option value="academic">Akademisyen</option>
                   <option value="client">Karşı Taraf (Müşteri)</option>
                 </select>
               </div>
@@ -676,35 +680,11 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
                 />
                 <p className="mt-1 text-xs text-gray-500">
                   {formData.stamp_duty_payer === 'company'
-                    ? 'Bu tutar her tahsilatta oransal olarak şirket payından düşülecektir.'
-                    : 'Bu tutar her tahsilatta oransal olarak dağıtılabilir miktardan düşülecektir.'}
+                    ? 'Bu tutar her tahsilatta oransal olarak TTO payından düşülecektir.'
+                    : formData.stamp_duty_payer === 'academic'
+                    ? 'Bu tutar her tahsilatta oransal olarak akademisyen bakiyelerinden düşülecektir.'
+                    : 'Bu tutar sadece kayıt amaçlıdır, bakiyelerden düşülmez.'}
                 </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Başlangıç Tarihi *
-                </label>
-                <input
-                  type="date"
-                  value={formData.start_date}
-                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                {errors.start_date && <p className="mt-1 text-sm text-red-600">{errors.start_date}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Bitiş Tarihi *
-                </label>
-                <input
-                  type="date"
-                  value={formData.end_date}
-                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                {errors.end_date && <p className="mt-1 text-sm text-red-600">{errors.end_date}</p>}
               </div>
 
               {/* Hakem Heyeti Durumu */}
@@ -942,6 +922,32 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
                   </div>
                 </div>
               )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Başlangıç Tarihi *
+                </label>
+                <input
+                  type="date"
+                  value={formData.start_date}
+                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                {errors.start_date && <p className="mt-1 text-sm text-red-600">{errors.start_date}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Bitiş Tarihi *
+                </label>
+                <input
+                  type="date"
+                  value={formData.end_date}
+                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                {errors.end_date && <p className="mt-1 text-sm text-red-600">{errors.end_date}</p>}
+              </div>
             </div>
           </div>
 

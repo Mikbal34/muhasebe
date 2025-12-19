@@ -21,6 +21,7 @@ interface Project {
   name: string
   status: string
   company_rate: number
+  budget: number
 }
 
 type ExpenseType = 'genel' | 'proje'
@@ -30,6 +31,7 @@ export default function NewExpensePage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [projectCollected, setProjectCollected] = useState<number>(0)
   const router = useRouter()
 
   const [formData, setFormData] = useState({
@@ -84,6 +86,25 @@ export default function NewExpensePage() {
       console.error('Failed to fetch projects:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchProjectCollected = async (projectId: string) => {
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`/api/incomes?project_id=${projectId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const data = await response.json()
+      if (data.success) {
+        const total = (data.data.incomes || []).reduce(
+          (sum: number, inc: any) => sum + (inc.collected_amount || 0), 0
+        )
+        setProjectCollected(total)
+      }
+    } catch (err) {
+      console.error('Failed to fetch project collected:', err)
+      setProjectCollected(0)
     }
   }
 
@@ -342,19 +363,49 @@ export default function NewExpensePage() {
                   }`}
                   value={formData.project_id}
                   onChange={(e) => {
-                    setFormData({ ...formData, project_id: e.target.value })
+                    const projectId = e.target.value
+                    setFormData({ ...formData, project_id: projectId })
                     setErrors({ ...errors, project_id: '' })
+                    if (projectId) {
+                      fetchProjectCollected(projectId)
+                    } else {
+                      setProjectCollected(0)
+                    }
                   }}
                 >
                   <option value="">Proje seçiniz...</option>
                   {projects.map(project => (
                     <option key={project.id} value={project.id}>
-                      {project.code} - {project.name} (TTO: %{project.company_rate})
+                      {project.code} - {project.name}
                     </option>
                   ))}
                 </select>
                 {errors.project_id && (
                   <p className="mt-1 text-sm text-red-600">{errors.project_id}</p>
+                )}
+
+                {/* Proje Özet Kartları */}
+                {selectedProject && (
+                  <div className="grid grid-cols-3 gap-3 mt-3">
+                    <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                      <p className="text-xs text-slate-500 mb-1">Proje Bütçesi</p>
+                      <p className="text-lg font-semibold text-slate-900">
+                        ₺{selectedProject.budget?.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) || '0'}
+                      </p>
+                    </div>
+                    <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                      <p className="text-xs text-green-600 mb-1">Tahsil Edilen</p>
+                      <p className="text-lg font-semibold text-green-700">
+                        ₺{projectCollected.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="bg-teal-50 rounded-lg p-3 border border-teal-200">
+                      <p className="text-xs text-teal-600 mb-1">TTO Oranı</p>
+                      <p className="text-lg font-semibold text-teal-700">
+                        %{selectedProject.company_rate}
+                      </p>
+                    </div>
+                  </div>
                 )}
               </div>
             )}

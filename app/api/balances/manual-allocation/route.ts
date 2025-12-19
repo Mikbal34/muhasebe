@@ -156,11 +156,11 @@ export async function GET(request: NextRequest) {
 
       // =====================================================
       // DAMGA VERGİSİ VE HAKEM HEYETİ DÜŞÜMÜ
-      // Karşı taraf (client) ödüyorsa dağıtılabilirden düşülür
+      // Akademisyen ödüyorsa dağıtılabilirden düşülür
       // =====================================================
-      const stampDutyClientDeducted = new Decimal((project as any).stamp_duty_client_deducted || 0)
-      const refereeClientDeducted = new Decimal((project as any).referee_client_deducted || 0)
-      const totalStampRefereeDeduction = stampDutyClientDeducted.plus(refereeClientDeducted)
+      const stampDutyAcademicDeducted = new Decimal((project as any).stamp_duty_academic_deducted || 0)
+      const refereeAcademicDeducted = new Decimal((project as any).referee_academic_deducted || 0)
+      const totalStampRefereeDeduction = stampDutyAcademicDeducted.plus(refereeAcademicDeducted)
       distributableAmount = distributableAmount.minus(totalStampRefereeDeduction)
 
       // Negatife düşmemesi için
@@ -274,9 +274,9 @@ export async function GET(request: NextRequest) {
           shared_expenses: sharedExpenses.toNumber(),
           shared_expenses_rep_portion: sharedExpensesRepPortion.toNumber(),
           total_expense_deduction: totalExpenseDeduction.toNumber(),
-          // Damga vergisi ve hakem heyeti (karşı taraf ödüyorsa)
-          stamp_duty_client_deducted: stampDutyClientDeducted.toNumber(),
-          referee_client_deducted: refereeClientDeducted.toNumber(),
+          // Damga vergisi ve hakem heyeti (akademisyen ödüyorsa)
+          stamp_duty_academic_deducted: stampDutyAcademicDeducted.toNumber(),
+          referee_academic_deducted: refereeAcademicDeducted.toNumber(),
           total_stamp_referee_deduction: totalStampRefereeDeduction.toNumber(),
           // Dağıtılabilir (tahsil edilenden - giderler)
           distributable_amount: distributableAmount.toNumber(),

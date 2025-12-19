@@ -115,11 +115,11 @@ export async function PUT(
       // Calculate new installments total
       const newTotal = newInstallments.reduce((sum, inst) => sum + inst.gross_amount, 0)
 
-      // Validate total = budget
-      if (Math.abs((collectedTotal + newTotal) - project.budget) > 0.01) {
+      // Validate total does not exceed budget (can be less for partial planning)
+      if ((collectedTotal + newTotal) > project.budget + 0.01) {
         return apiResponse.error(
-          'Bütçe uyuşmazlığı',
-          `Taksit toplamı (${(collectedTotal + newTotal).toLocaleString('tr-TR')} ₺) proje bütçesine (${project.budget.toLocaleString('tr-TR')} ₺) eşit olmalı`,
+          'Bütçe aşımı',
+          `Taksit toplamı (${(collectedTotal + newTotal).toLocaleString('tr-TR')} ₺) proje bütçesini (${project.budget.toLocaleString('tr-TR')} ₺) aşamaz`,
           400
         )
       }

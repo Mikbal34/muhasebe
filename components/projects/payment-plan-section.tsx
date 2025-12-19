@@ -35,6 +35,10 @@ export function PaymentPlanSection({
   const [installmentCount, setInstallmentCount] = useState(10)
   const [paymentDay, setPaymentDay] = useState(10)
 
+  // Manuel taksit ekleme için state'ler
+  const [manualCount, setManualCount] = useState(1)
+  const [manualAmount, setManualAmount] = useState(0)
+
   // Eşit taksitlere böl
   const generateEqualInstallments = () => {
     if (!budget || budget <= 0 || !startDate || installmentCount < 1) return
@@ -69,6 +73,47 @@ export function PaymentPlanSection({
     onInstallmentsChange(newInstallments)
   }
 
+  // Manuel taksit ekle (sabit tutar, belirtilen sayıda)
+  const generateManualInstallments = () => {
+    if (!startDate || manualCount < 1 || manualAmount <= 0) return
+
+    const existingCount = installments.length
+    const newTotalCount = existingCount + manualCount
+    const start = existingCount > 0
+      ? new Date(installments[existingCount - 1].income_date)
+      : new Date(startDate)
+
+    // Mevcut taksitlerin açıklamalarını güncelle
+    const updatedExisting = installments.map((inst, i) => {
+      let newDescription = inst.description
+      if (inst.description?.match(/^Taksit \d+/)) {
+        newDescription = `Taksit ${i + 1}/${newTotalCount}`
+      }
+      return { ...inst, description: newDescription }
+    })
+
+    // Yeni taksitleri oluştur
+    const newInstallments: Installment[] = []
+    for (let i = 0; i < manualCount; i++) {
+      const date = new Date(start)
+      date.setMonth(date.getMonth() + i + 1)
+
+      // Ay sonu kontrolü
+      const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
+      const day = Math.min(paymentDay, lastDay)
+      date.setDate(day)
+
+      newInstallments.push({
+        installment_number: existingCount + i + 1,
+        gross_amount: manualAmount,
+        income_date: date.toISOString().split('T')[0],
+        description: `Taksit ${existingCount + i + 1}/${newTotalCount}`
+      })
+    }
+
+    onInstallmentsChange([...updatedExisting, ...newInstallments])
+  }
+
   // Tek taksit güncelle
   const updateInstallment = (index: number, field: keyof Installment, value: string | number) => {
     const updated = [...installments]
@@ -79,11 +124,21 @@ export function PaymentPlanSection({
   // Taksit sil
   const removeInstallment = (index: number) => {
     const updated = installments.filter((_, i) => i !== index)
-    // Sıra numaralarını yeniden düzenle
-    const renumbered = updated.map((inst, i) => ({
-      ...inst,
-      installment_number: i + 1
-    }))
+    const totalCount = updated.length
+    // Sıra numaralarını ve açıklamaları yeniden düzenle
+    const renumbered = updated.map((inst, i) => {
+      const newNumber = i + 1
+      // Eğer açıklama "Taksit X" veya "Taksit X/Y" formatındaysa güncelle
+      let newDescription = inst.description
+      if (inst.description?.match(/^Taksit \d+/)) {
+        newDescription = `Taksit ${newNumber}/${totalCount}`
+      }
+      return {
+        ...inst,
+        installment_number: newNumber,
+        description: newDescription
+      }
+    })
     onInstallmentsChange(renumbered)
   }
 
@@ -98,20 +153,32 @@ export function PaymentPlanSection({
       newDate = lastDate.toISOString().split('T')[0]
     }
 
+    const newTotalCount = installments.length + 1
     const newInstallment: Installment = {
-      installment_number: installments.length + 1,
+      installment_number: newTotalCount,
       gross_amount: 0,
       income_date: newDate,
-      description: `Taksit ${installments.length + 1}`
+      description: `Taksit ${newTotalCount}/${newTotalCount}`
     }
 
-    onInstallmentsChange([...installments, newInstallment])
+    // Tüm mevcut taksitlerin açıklamalarını da güncelle (X/Y formatında)
+    const updatedInstallments = installments.map((inst, i) => {
+      let newDescription = inst.description
+      if (inst.description?.match(/^Taksit \d+/)) {
+        newDescription = `Taksit ${i + 1}/${newTotalCount}`
+      }
+      return { ...inst, description: newDescription }
+    })
+
+    onInstallmentsChange([...updatedInstallments, newInstallment])
   }
 
   // Toplam hesapla
   const total = installments.reduce((sum, inst) => sum + (inst.gross_amount || 0), 0)
   const difference = budget - total
   const isBalanced = Math.abs(difference) < 0.01
+  const isUnder = difference > 0.01  // Bütçenin altında (kısmi taksitlendirme - OK)
+  const isOver = difference < -0.01   // Bütçeyi aşmış (HATA)
 
   // Tahsil edilmiş toplam
   const collectedTotal = installments.reduce((sum, inst) => sum + (inst.collected_amount || 0), 0)
@@ -183,6 +250,48 @@ export function PaymentPlanSection({
                 >
                   <Calculator className="h-4 w-4" />
                   Eşit Taksitlere Böl
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Manuel taksit ekleme */}
+          {!readOnly && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Taksit Sayısı
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="50"
+                  value={manualCount}
+                  onChange={(e) => setManualCount(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Taksit Tutarı (₺)
+                </label>
+                <MoneyInput
+                  value={manualAmount.toString()}
+                  onChange={(val) => setManualAmount(parseFloat(val) || 0)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  &nbsp;
+                </label>
+                <button
+                  type="button"
+                  onClick={generateManualInstallments}
+                  disabled={!startDate || manualCount < 1 || manualAmount <= 0}
+                  className="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm font-medium transition-colors"
+                >
+                  + Manuel Taksit Ekle
                 </button>
               </div>
             </div>
@@ -294,7 +403,7 @@ export function PaymentPlanSection({
 
               {/* Toplam ve uyarı */}
               <div className={`flex flex-wrap items-center justify-between p-3 rounded-lg mt-4 ${
-                isBalanced ? 'bg-green-50 border border-green-200' : 'bg-amber-50 border border-amber-200'
+                isOver ? 'bg-red-50 border border-red-200' : isBalanced ? 'bg-green-50 border border-green-200' : 'bg-slate-50 border border-slate-200'
               }`}>
                 <div className="flex items-center gap-4">
                   <div>
@@ -312,9 +421,15 @@ export function PaymentPlanSection({
                   </div>
                 </div>
 
-                {!isBalanced && (
-                  <div className={`text-sm font-medium ${difference > 0 ? 'text-amber-700' : 'text-red-700'}`}>
-                    {difference > 0 ? 'Eksik' : 'Fazla'}: {Math.abs(difference).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                {isOver && (
+                  <div className="text-sm font-medium text-red-700">
+                    Bütçe aşımı: {Math.abs(difference).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                  </div>
+                )}
+
+                {isUnder && (
+                  <div className="text-sm text-slate-600">
+                    Kalan {Math.abs(difference).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺ sonradan eklenebilir
                   </div>
                 )}
 

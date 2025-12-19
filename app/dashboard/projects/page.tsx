@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import Link from 'next/link'
@@ -20,6 +20,10 @@ import {
 import { DeleteConfirmationModal } from '@/components/ui/confirmation-modal'
 import { useDeleteConfirmation } from '@/hooks/useDeleteConfirmation'
 import { ProjectCardSkeleton, TableSkeleton, Skeleton } from '@/components/ui/skeleton'
+import { VirtualGrid } from '@/components/ui/virtual-grid'
+import { VirtualTable } from '@/components/ui/virtual-table'
+import { useColumnCount } from '@/hooks/useColumnCount'
+import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 
 interface User {
   id: string
@@ -157,15 +161,24 @@ export default function ProjectsPage() {
     }
   }, [statusFilter, representativeFilter])
 
-  const filteredProjects = projects.filter(project => {
-    const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      project.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      project.representatives.some(rep => {
-        const person = rep.user || rep.personnel
-        return person?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) || false
-      })
-    return matchesSearch
-  })
+  // View mode state
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+
+  // Virtual scrolling hooks
+  const debouncedSearch = useDebouncedValue(searchTerm, 300)
+  const columnCount = useColumnCount({ sm: 1, md: 2, lg: 3 })
+
+  const filteredProjects = useMemo(() => {
+    return projects.filter(project => {
+      const matchesSearch = project.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        project.code.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        project.representatives.some(rep => {
+          const person = rep.user || rep.personnel
+          return person?.full_name?.toLowerCase().includes(debouncedSearch.toLowerCase()) || false
+        })
+      return matchesSearch
+    })
+  }, [projects, debouncedSearch])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -184,9 +197,6 @@ export default function ProjectsPage() {
       default: return status
     }
   }
-
-  // View mode state
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
 
   const handleExportProjectCard = async () => {
     const token = localStorage.getItem('token')
@@ -358,9 +368,16 @@ export default function ProjectsPage() {
 
         {/* Projects View */}
         {viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filteredProjects.map((project) => (
-              <div key={project.id} className="bg-white rounded-lg shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+          <VirtualGrid
+            items={filteredProjects}
+            columnCount={columnCount}
+            height="calc(100vh - 340px)"
+            estimatedRowHeight={380}
+            gap={20}
+            getItemKey={(project) => project.id}
+            emptyMessage="Proje bulunamadı"
+            renderItem={(project) => (
+              <div className="bg-white rounded-lg shadow-sm border border-slate-200 hover:shadow-md transition-shadow h-full">
                 <div className="p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
@@ -490,133 +507,141 @@ export default function ProjectsPage() {
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+            )}
+          />
         ) : (
-          <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-50">
-                  <tr>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
-                      Proje
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
-                      Durum
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
-                      Bütçe / Kalan
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
-                      Tarih
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
-                      Temsilciler
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-right text-xs font-semibold text-slate-900 uppercase">
-                      İşlemler
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-slate-200">
-                  {filteredProjects.map((project) => (
-                    <tr key={project.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="flex flex-col">
-                          <span className="text-sm font-semibold text-slate-900">{project.name}</span>
-                          <span className="text-xs text-slate-600">{project.code}</span>
+          <VirtualTable
+            items={filteredProjects}
+            height="calc(100vh - 340px)"
+            estimatedRowHeight={60}
+            getRowKey={(project) => project.id}
+            emptyMessage="Proje bulunamadı"
+            columns={[
+              {
+                key: 'project',
+                header: 'Proje',
+                width: '25%',
+                render: (project) => (
+                  <div className="flex flex-col">
+                    <span className="text-sm font-semibold text-slate-900">{project.name}</span>
+                    <span className="text-xs text-slate-600">{project.code}</span>
+                  </div>
+                )
+              },
+              {
+                key: 'status',
+                header: 'Durum',
+                width: '10%',
+                render: (project) => (
+                  <span className={`px-2 py-1 text-xs font-semibold rounded ${getStatusColor(project.status)}`}>
+                    {getStatusText(project.status)}
+                  </span>
+                )
+              },
+              {
+                key: 'budget',
+                header: 'Bütçe / Kalan',
+                width: '15%',
+                render: (project) => (
+                  <div className="flex flex-col text-sm">
+                    <span className="text-slate-900 font-semibold">₺{project.budget.toLocaleString('tr-TR')}</span>
+                    <span className="text-orange-600 text-xs">Kalan: ₺{project.remaining_budget.toLocaleString('tr-TR')}</span>
+                  </div>
+                )
+              },
+              {
+                key: 'date',
+                header: 'Tarih',
+                width: '12%',
+                render: (project) => (
+                  <span className="text-sm text-slate-700">
+                    {new Date(project.start_date).toLocaleDateString('tr-TR')}
+                  </span>
+                )
+              },
+              {
+                key: 'representatives',
+                header: 'Temsilciler',
+                width: '20%',
+                render: (project) => (
+                  <div className="flex -space-x-2 overflow-hidden">
+                    {project.representatives.slice(0, 3).map((rep) => {
+                      const person = rep.user || rep.personnel
+                      const fullName = person?.full_name || 'N/A'
+                      return (
+                        <div
+                          key={rep.id}
+                          className="inline-block h-7 w-7 rounded-full ring-2 ring-white bg-slate-700 flex items-center justify-center text-xs font-semibold text-white"
+                          title={`${fullName} (%${rep.share_percentage})`}
+                        >
+                          {fullName.charAt(0)}
                         </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={`px-2 py-1 text-xs font-semibold rounded ${getStatusColor(project.status)}`}>
-                          {getStatusText(project.status)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="flex flex-col text-sm">
-                          <span className="text-slate-900 font-semibold">₺{project.budget.toLocaleString('tr-TR')}</span>
-                          <span className="text-orange-600 text-xs">Kalan: ₺{project.remaining_budget.toLocaleString('tr-TR')}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-700">
-                        {new Date(project.start_date).toLocaleDateString('tr-TR')}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex -space-x-2 overflow-hidden">
-                          {project.representatives.slice(0, 3).map((rep) => {
-                            const person = rep.user || rep.personnel
-                            const fullName = person?.full_name || 'N/A'
-                            return (
-                              <div
-                                key={rep.id}
-                                className="inline-block h-7 w-7 rounded-full ring-2 ring-white bg-slate-700 flex items-center justify-center text-xs font-semibold text-white"
-                                title={`${fullName} (%${rep.share_percentage})`}
-                              >
-                                {fullName.charAt(0)}
-                              </div>
-                            )
-                          })}
-                          {project.representatives.length > 3 && (
-                            <div className="inline-block h-7 w-7 rounded-full ring-2 ring-white bg-slate-200 flex items-center justify-center text-xs font-semibold text-slate-700">
-                              +{project.representatives.length - 3}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-right text-sm">
-                        <div className="flex justify-end space-x-2">
+                      )
+                    })}
+                    {project.representatives.length > 3 && (
+                      <div className="inline-block h-7 w-7 rounded-full ring-2 ring-white bg-slate-200 flex items-center justify-center text-xs font-semibold text-slate-700">
+                        +{project.representatives.length - 3}
+                      </div>
+                    )}
+                  </div>
+                )
+              },
+              {
+                key: 'actions',
+                header: 'İşlemler',
+                width: '18%',
+                className: 'text-right',
+                render: (project) => (
+                  <div className="flex justify-end space-x-2">
+                    <Link
+                      href={`/dashboard/projects/${project.id}` as any}
+                      className="p-1.5 text-slate-600 hover:text-teal-600 hover:bg-slate-100 rounded transition-colors"
+                      title="Görüntüle"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Link>
+
+                    {(['admin', 'manager'].includes(user.role)) && (
+                      <>
+                        {project.status === 'active' ? (
                           <Link
-                            href={`/dashboard/projects/${project.id}` as any}
-                            className="p-1.5 text-slate-600 hover:text-teal-600 hover:bg-slate-100 rounded transition-colors"
-                            title="Görüntüle"
+                            href={`/dashboard/projects/${project.id}/edit` as any}
+                            className="p-1.5 text-slate-600 hover:text-emerald-600 hover:bg-slate-100 rounded transition-colors"
+                            title="Düzenle"
                           >
-                            <Eye className="h-4 w-4" />
+                            <Edit className="h-4 w-4" />
                           </Link>
+                        ) : (
+                          <span className="p-1.5 text-slate-400 cursor-not-allowed rounded">
+                            <Edit className="h-4 w-4" />
+                          </span>
+                        )}
 
-                          {(['admin', 'manager'].includes(user.role)) && (
-                            <>
-                              {project.status === 'active' ? (
-                                <Link
-                                  href={`/dashboard/projects/${project.id}/edit` as any}
-                                  className="p-1.5 text-slate-600 hover:text-emerald-600 hover:bg-slate-100 rounded transition-colors"
-                                  title="Düzenle"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Link>
-                              ) : (
-                                <span className="p-1.5 text-slate-400 cursor-not-allowed rounded">
-                                  <Edit className="h-4 w-4" />
-                                </span>
-                              )}
-
-                              <button
-                                onClick={() => showDeleteModal({
-                                  id: project.id,
-                                  name: `${project.code} - ${project.name}`,
-                                  description: `Bu proje silindiğinde tüm gelir kayıtları ve ödeme talimatları da silinecektir.`,
-                                  warningItems: [
-                                    'Proje gelir kayıtları',
-                                    'Gelir dağıtımları',
-                                    'Ödeme talimatları',
-                                    'Bakiye geçmişi'
-                                  ]
-                                })}
-                                className="p-1.5 text-slate-600 hover:text-red-600 hover:bg-slate-100 rounded transition-colors"
-                                title="Sil"
-                                disabled={isDeleting}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                        <button
+                          onClick={() => showDeleteModal({
+                            id: project.id,
+                            name: `${project.code} - ${project.name}`,
+                            description: `Bu proje silindiğinde tüm gelir kayıtları ve ödeme talimatları da silinecektir.`,
+                            warningItems: [
+                              'Proje gelir kayıtları',
+                              'Gelir dağıtımları',
+                              'Ödeme talimatları',
+                              'Bakiye geçmişi'
+                            ]
+                          })}
+                          className="p-1.5 text-slate-600 hover:text-red-600 hover:bg-slate-100 rounded transition-colors"
+                          title="Sil"
+                          disabled={isDeleting}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )
+              }
+            ]}
+          />
         )}
 
         {filteredProjects.length === 0 && (

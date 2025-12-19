@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       const { searchParams } = new URL(request.url)
       const search = searchParams.get('search')
       const includeInactive = searchParams.get('include_inactive') === 'true'
-      const limit = Math.min(parseInt(searchParams.get('limit') || '100'), 100)
+      const limit = parseInt(searchParams.get('limit') || '10000')
       const offset = parseInt(searchParams.get('offset') || '0')
 
       const { supabase } = ctx
@@ -28,7 +28,6 @@ export async function GET(request: NextRequest) {
         .from('personnel')
         .select('*', { count: 'exact' })
         .order('full_name', { ascending: true })
-        .range(offset, offset + limit - 1)
 
       // Filter by active status
       if (!includeInactive) {

@@ -152,8 +152,9 @@ export default function NewProjectPage() {
       } else {
         const total = installments.reduce((sum, inst) => sum + inst.gross_amount, 0)
         const budgetNum = parseFloat(formData.budget) || 0
-        if (Math.abs(total - budgetNum) > 0.01) {
-          newErrors.payment_plan = `Taksit toplamı (${total.toLocaleString('tr-TR')} ₺) proje bütçesine (${budgetNum.toLocaleString('tr-TR')} ₺) eşit olmalı`
+        // Bütçeyi aşamaz, altında kalabilir (kısmi taksitlendirme)
+        if (total > budgetNum + 0.01) {
+          newErrors.payment_plan = `Taksit toplamı (${total.toLocaleString('tr-TR')} ₺) proje bütçesini (${budgetNum.toLocaleString('tr-TR')} ₺) aşamaz`
         }
       }
     }
@@ -503,7 +504,8 @@ export default function NewProjectPage() {
                   onChange={(e) => setFormData({ ...formData, referee_payer: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="company">Şirket (Biz)</option>
+                  <option value="company">TTO (Şirket)</option>
+                  <option value="academic">Akademisyen</option>
                   <option value="client">Karşı Taraf (Müşteri)</option>
                 </select>
               </div>
@@ -519,8 +521,10 @@ export default function NewProjectPage() {
                 />
                 <p className="mt-1 text-xs text-gray-500">
                   {formData.referee_payer === 'company'
-                    ? 'Bu tutar her tahsilatta oransal olarak şirket payından düşülecektir.'
-                    : 'Bu tutar her tahsilatta oransal olarak dağıtılabilir miktardan düşülecektir.'}
+                    ? 'Bu tutar her tahsilatta oransal olarak TTO payından düşülecektir.'
+                    : formData.referee_payer === 'academic'
+                    ? 'Bu tutar her tahsilatta oransal olarak akademisyen bakiyelerinden düşülecektir.'
+                    : 'Bu tutar sadece kayıt amaçlıdır, bakiyelerden düşülmez.'}
                 </p>
               </div>
 
@@ -533,7 +537,8 @@ export default function NewProjectPage() {
                   onChange={(e) => setFormData({ ...formData, stamp_duty_payer: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="company">Şirket (Biz)</option>
+                  <option value="company">TTO (Şirket)</option>
+                  <option value="academic">Akademisyen</option>
                   <option value="client">Karşı Taraf (Müşteri)</option>
                 </select>
               </div>
@@ -549,8 +554,10 @@ export default function NewProjectPage() {
                 />
                 <p className="mt-1 text-xs text-gray-500">
                   {formData.stamp_duty_payer === 'company'
-                    ? 'Bu tutar her tahsilatta oransal olarak şirket payından düşülecektir.'
-                    : 'Bu tutar her tahsilatta oransal olarak dağıtılabilir miktardan düşülecektir.'}
+                    ? 'Bu tutar her tahsilatta oransal olarak TTO payından düşülecektir.'
+                    : formData.stamp_duty_payer === 'academic'
+                    ? 'Bu tutar her tahsilatta oransal olarak akademisyen bakiyelerinden düşülecektir.'
+                    : 'Bu tutar sadece kayıt amaçlıdır, bakiyelerden düşülmez.'}
                 </p>
               </div>
 

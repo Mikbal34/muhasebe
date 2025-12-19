@@ -35,6 +35,8 @@ export type IncomeType = 'ozel' | 'kamu'
 
 export type ExpenseType = 'genel' | 'proje'
 
+export type ExpenseSource = 'manual' | 'referee_payment' | 'stamp_duty'
+
 export interface Database {
   public: {
     Tables: {
@@ -164,8 +166,8 @@ export interface Database {
           created_at: string
           created_by: string
           referee_payment: number
-          referee_payer: 'company' | 'client'
-          stamp_duty_payer: 'company' | 'client' | null
+          referee_payer: 'company' | 'academic' | 'client'
+          stamp_duty_payer: 'company' | 'academic' | 'client' | null
           stamp_duty_amount: number
           stamp_duty_deducted: boolean
           contract_path: string | null
@@ -191,7 +193,7 @@ export interface Database {
           created_at?: string
           created_by: string
           referee_payment?: number
-          stamp_duty_payer?: 'company' | 'client' | null
+          stamp_duty_payer?: 'company' | 'academic' | 'client' | null
           stamp_duty_amount?: number
           stamp_duty_deducted?: boolean
           contract_path?: string | null
@@ -217,7 +219,7 @@ export interface Database {
           created_at?: string
           created_by?: string
           referee_payment?: number
-          stamp_duty_payer?: 'company' | 'client' | null
+          stamp_duty_payer?: 'company' | 'academic' | 'client' | null
           stamp_duty_amount?: number
           stamp_duty_deducted?: boolean
           contract_path?: string | null
@@ -368,6 +370,7 @@ export interface Database {
           description: string
           expense_date: string
           is_tto_expense: boolean
+          expense_source: ExpenseSource
           created_by: string
           created_at: string
           updated_at: string
@@ -380,6 +383,7 @@ export interface Database {
           description: string
           expense_date?: string
           is_tto_expense?: boolean
+          expense_source?: ExpenseSource
           created_by: string
           created_at?: string
           updated_at?: string
@@ -392,6 +396,7 @@ export interface Database {
           description?: string
           expense_date?: string
           is_tto_expense?: boolean
+          expense_source?: ExpenseSource
           created_by?: string
           created_at?: string
           updated_at?: string

@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
       return queryValidation.error
     }
 
-    const { project_id, start_date, end_date, created_by, page = 1, limit = 20, sort = 'created_at', order = 'desc' } = queryValidation.data
+    const { project_id, start_date, end_date, created_by, page = 1, limit = 20, sort = 'income_date', order = 'asc' } = queryValidation.data
 
     try {
       let query = ctx.supabase
@@ -195,6 +195,13 @@ export async function POST(request: NextRequest) {
       // Let the database trigger handle most calculations
       // We only calculate withholding tax here
 
+      // Açıklama boşsa, mevcut gelir sayısına göre otomatik oluştur
+      let finalDescription = description
+      if (!finalDescription || !finalDescription.trim()) {
+        const incomeCount = existingIncomes?.length || 0
+        finalDescription = `Taksit ${incomeCount + 1}`
+      }
+
       // Create income record (trigger will calculate other amounts)
       const { data: income, error: incomeError } = await (ctx.supabase as any)
         .from('incomes')
@@ -202,7 +209,7 @@ export async function POST(request: NextRequest) {
           project_id,
           gross_amount,
           vat_rate: finalVatRate, // Use user's provided VAT rate
-          description,
+          description: finalDescription,
           income_date,
           is_fsmh_income,
           income_type,
@@ -220,6 +227,27 @@ export async function POST(request: NextRequest) {
       if (incomeError) {
         console.error('Income creation error:', incomeError)
         return apiResponse.error('Failed to create income', incomeError.message, 500)
+      }
+
+      // Tüm taksit açıklamalarını güncelle (X/Y formatında)
+      const { data: allIncomes } = await ctx.supabase
+        .from('incomes')
+        .select('id, description')
+        .eq('project_id', project_id)
+        .order('income_date', { ascending: true })
+
+      if (allIncomes && allIncomes.length > 0) {
+        const totalCount = allIncomes.length
+        for (let i = 0; i < allIncomes.length; i++) {
+          const inc = allIncomes[i]
+          // Sadece "Taksit X" veya "Taksit X/Y" formatındaki açıklamaları güncelle
+          if (inc.description?.match(/^Taksit \d+/)) {
+            await ctx.supabase
+              .from('incomes')
+              .update({ description: `Taksit ${i + 1}/${totalCount}` })
+              .eq('id', inc.id)
+          }
+        }
       }
 
       // NOTE: No automatic distribution anymore

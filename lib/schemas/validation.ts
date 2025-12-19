@@ -57,8 +57,8 @@ export const createProjectSchema = z.object({
   company_rate: z.number().min(0, 'Şirket komisyonu negatif olamaz').max(100, 'Şirket komisyonu %100\'den fazla olamaz').default(15),
   vat_rate: z.number().min(0, 'KDV oranı negatif olamaz').max(100, 'KDV oranı %100\'den fazla olamaz').default(18),
   referee_payment: z.number().min(0, 'Hakem heyeti ödemesi negatif olamaz').default(0),
-  referee_payer: z.enum(['company', 'client']).nullable().optional(),
-  stamp_duty_payer: z.enum(['company', 'client']).nullable().optional(),
+  referee_payer: z.enum(['company', 'academic', 'client']).nullable().optional(),
+  stamp_duty_payer: z.enum(['company', 'academic', 'client']).nullable().optional(),
   stamp_duty_amount: z.number().min(0, 'Damga vergisi negatif olamaz').default(0),
   contract_path: z.string().nullable().optional(),
   sent_to_referee: z.boolean().default(false),
@@ -78,14 +78,14 @@ export const createProjectSchema = z.object({
   message: 'Tam olarak bir proje yürütücüsü seçilmelidir',
   path: ['representatives']
 }).refine(data => {
-  // If payment plan is enabled, installments total must equal budget
+  // If payment plan is enabled, installments total must not exceed budget
   if (data.payment_plan?.enabled && data.payment_plan?.installments?.length) {
     const total = data.payment_plan.installments.reduce((sum, inst) => sum + inst.gross_amount, 0)
-    return Math.abs(total - data.budget) < 0.01 // 1 kuruş tolerans
+    return total <= data.budget + 0.01 // Bütçeyi aşamaz, altında kalabilir
   }
   return true
 }, {
-  message: 'Taksit toplamı proje bütçesine eşit olmalı',
+  message: 'Taksit toplamı proje bütçesini aşamaz',
   path: ['payment_plan']
 })
 
@@ -193,7 +193,7 @@ export const apiResponseSchema = z.object({
 // Pagination schema
 export const paginationSchema = z.object({
   page: z.number().int().positive().default(1),
-  limit: z.number().int().positive().max(100).default(20),
+  limit: z.number().int().positive().max(10000).default(20),
   sort: z.string().default('created_at'),
   order: z.enum(['asc', 'desc']).default('desc'),
 })

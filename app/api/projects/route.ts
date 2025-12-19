@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createProjectSchema, projectQuerySchema } from '@/lib/schemas/validation'
 import { apiResponse, validateRequest, validateQuery, withAuth } from '@/lib/middleware/auth'
+import { createAutoExpenses } from '@/lib/utils/expense-helpers'
 
 // GET /api/projects - List projects with filtering
 export async function GET(request: NextRequest) {
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
       return queryValidation.error
     }
 
-    const { status, search, created_by, page = 1, limit = 20, sort = 'created_at', order = 'desc' } = queryValidation.data
+    const { status, search, created_by, page = 1, limit = 10000, sort = 'created_at', order = 'desc' } = queryValidation.data
 
     try {
       let query = ctx.supabase
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
             user:users(id, full_name, email),
             personnel:personnel(id, full_name, email)
           )
-        `)
+        `, { count: 'exact' })
 
       // Apply filters based on user role
       // Manager and Admin have full access, so no specific filtering needed for them
@@ -214,16 +215,16 @@ export async function POST(request: NextRequest) {
 
       // Create payment plan installments if enabled
       if (payment_plan?.enabled && payment_plan?.installments && payment_plan.installments.length > 0) {
-        // Validate total equals budget
+        // Validate total does not exceed budget (can be less for partial planning)
         const installmentTotal = payment_plan.installments.reduce(
           (sum: number, inst: any) => sum + inst.gross_amount, 0
         )
 
-        if (Math.abs(installmentTotal - budget) > 0.01) {
+        if (installmentTotal > budget + 0.01) {
           // Rollback: delete representatives and project
           await ctx.supabase.from('project_representatives').delete().eq('project_id', project.id)
           await ctx.supabase.from('projects').delete().eq('id', project.id)
-          return apiResponse.error('Taksit toplamı proje bütçesine eşit olmalı', '', 400)
+          return apiResponse.error('Taksit toplamı proje bütçesini aşamaz', '', 400)
         }
 
         // Create income records for each installment
@@ -256,6 +257,18 @@ export async function POST(request: NextRequest) {
 
         console.log(`Created ${incomeRecords.length} installments for project ${project.id}`)
       }
+
+      // Create auto expenses for referee payment and stamp duty
+      await createAutoExpenses({
+        supabase: ctx.supabase,
+        project_id: project.id,
+        referee_payment,
+        referee_payer: referee_payer || null,
+        stamp_duty_amount,
+        stamp_duty_payer: stamp_duty_payer || null,
+        start_date,
+        created_by: ctx.user.id
+      })
 
       // Fetch complete project data
       const { data: completeProject, error: fetchError } = await ctx.supabase

@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { apiResponse, withAuth } from '@/lib/middleware/auth'
 import { createProjectSchema } from '@/lib/schemas/validation'
+import { syncAutoExpense } from '@/lib/utils/expense-helpers'
 
 interface RouteParams {
   params: { id: string }
@@ -67,10 +68,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     try {
-      // Check if project exists
+      // Check if project exists and get current values for expense sync
       const { data: existingProject, error: checkError } = await ctx.supabase
         .from('projects')
-        .select('id, status')
+        .select('id, status, start_date, referee_payment, referee_payer, stamp_duty_amount, stamp_duty_payer')
         .eq('id', id)
         .single()
 
@@ -129,6 +130,35 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         console.error('Project update error:', updateError)
         return apiResponse.error('Failed to update project', updateError.message, 500)
       }
+
+      // Sync auto expenses for referee payment and stamp duty
+      const finalRefereePayment = body.referee_payment ?? (existingProject as any).referee_payment ?? 0
+      const finalRefereePayer = body.referee_payer ?? (existingProject as any).referee_payer
+      const finalStampDutyAmount = body.stamp_duty_amount ?? (existingProject as any).stamp_duty_amount ?? 0
+      const finalStampDutyPayer = body.stamp_duty_payer ?? (existingProject as any).stamp_duty_payer
+      const projectStartDate = body.start_date ?? (existingProject as any).start_date
+
+      // Sync referee payment expense
+      await syncAutoExpense({
+        supabase: ctx.supabase,
+        project_id: id,
+        expense_source: 'referee_payment',
+        amount: finalRefereePayment,
+        payer: finalRefereePayer || null,
+        start_date: projectStartDate,
+        created_by: ctx.user.id
+      })
+
+      // Sync stamp duty expense
+      await syncAutoExpense({
+        supabase: ctx.supabase,
+        project_id: id,
+        expense_source: 'stamp_duty',
+        amount: finalStampDutyAmount,
+        payer: finalStampDutyPayer || null,
+        start_date: projectStartDate,
+        created_by: ctx.user.id
+      })
 
       return apiResponse.success(
         { project: updatedProject },
