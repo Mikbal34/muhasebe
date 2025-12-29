@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { MoneyInput } from '@/components/ui/money-input'
 import PersonBadge from '@/components/ui/person-badge'
+import { SearchableSelect } from '@/components/ui/searchable-select'
 
 interface User {
   id: string
@@ -284,18 +285,12 @@ function ManualBalanceAllocationPageContent() {
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Proje Seçin
           </label>
-          <select
+          <SearchableSelect
+            options={projects}
             value={selectedProjectId}
-            onChange={(e) => handleProjectChange(e.target.value)}
-            className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
-          >
-            <option value="">Bir proje seçin...</option>
-            {projects.map(project => (
-              <option key={project.id} value={project.id}>
-                {project.code} - {project.name}
-              </option>
-            ))}
-          </select>
+            onChange={(value) => handleProjectChange(value)}
+            placeholder="Proje seçiniz veya kod yazarak arayın..."
+          />
         </div>
 
         {loading && (

@@ -4,22 +4,21 @@ import { useState } from 'react'
 import { MoneyInput } from '@/components/ui/money-input'
 import { Calendar, Calculator, Trash2, Check } from 'lucide-react'
 
-export interface Installment {
+export interface PlannedInstallment {
   id?: string
   installment_number: number
-  gross_amount: number
-  income_date: string
+  planned_amount: number
+  planned_date: string
   description?: string | null
-  collected_amount?: number
 }
 
 interface PaymentPlanSectionProps {
   budget: number
   startDate: string
   enabled: boolean
-  installments: Installment[]
+  installments: PlannedInstallment[]
   onEnabledChange: (enabled: boolean) => void
-  onInstallmentsChange: (installments: Installment[]) => void
+  onInstallmentsChange: (installments: PlannedInstallment[]) => void
   readOnly?: boolean
 }
 
@@ -46,7 +45,7 @@ export function PaymentPlanSection({
     const baseAmount = Math.floor((budget / installmentCount) * 100) / 100
     const remainder = Math.round((budget - baseAmount * installmentCount) * 100) / 100
 
-    const newInstallments: Installment[] = []
+    const newInstallments: PlannedInstallment[] = []
     const start = new Date(startDate)
 
     for (let i = 0; i < installmentCount; i++) {
@@ -64,8 +63,8 @@ export function PaymentPlanSection({
 
       newInstallments.push({
         installment_number: i + 1,
-        gross_amount: amount,
-        income_date: date.toISOString().split('T')[0],
+        planned_amount: amount,
+        planned_date: date.toISOString().split('T')[0],
         description: `Taksit ${i + 1}/${installmentCount}`
       })
     }
@@ -80,7 +79,7 @@ export function PaymentPlanSection({
     const existingCount = installments.length
     const newTotalCount = existingCount + manualCount
     const start = existingCount > 0
-      ? new Date(installments[existingCount - 1].income_date)
+      ? new Date(installments[existingCount - 1].planned_date)
       : new Date(startDate)
 
     // Mevcut taksitlerin açıklamalarını güncelle
@@ -93,7 +92,7 @@ export function PaymentPlanSection({
     })
 
     // Yeni taksitleri oluştur
-    const newInstallments: Installment[] = []
+    const newInstallments: PlannedInstallment[] = []
     for (let i = 0; i < manualCount; i++) {
       const date = new Date(start)
       date.setMonth(date.getMonth() + i + 1)
@@ -105,8 +104,8 @@ export function PaymentPlanSection({
 
       newInstallments.push({
         installment_number: existingCount + i + 1,
-        gross_amount: manualAmount,
-        income_date: date.toISOString().split('T')[0],
+        planned_amount: manualAmount,
+        planned_date: date.toISOString().split('T')[0],
         description: `Taksit ${existingCount + i + 1}/${newTotalCount}`
       })
     }
@@ -115,7 +114,7 @@ export function PaymentPlanSection({
   }
 
   // Tek taksit güncelle
-  const updateInstallment = (index: number, field: keyof Installment, value: string | number) => {
+  const updateInstallment = (index: number, field: keyof PlannedInstallment, value: string | number) => {
     const updated = [...installments]
     updated[index] = { ...updated[index], [field]: value }
     onInstallmentsChange(updated)
@@ -148,16 +147,16 @@ export function PaymentPlanSection({
     let newDate = startDate
 
     if (lastInstallment) {
-      const lastDate = new Date(lastInstallment.income_date)
+      const lastDate = new Date(lastInstallment.planned_date)
       lastDate.setMonth(lastDate.getMonth() + 1)
       newDate = lastDate.toISOString().split('T')[0]
     }
 
     const newTotalCount = installments.length + 1
-    const newInstallment: Installment = {
+    const newInstallment: PlannedInstallment = {
       installment_number: newTotalCount,
-      gross_amount: 0,
-      income_date: newDate,
+      planned_amount: 0,
+      planned_date: newDate,
       description: `Taksit ${newTotalCount}/${newTotalCount}`
     }
 
@@ -174,14 +173,11 @@ export function PaymentPlanSection({
   }
 
   // Toplam hesapla
-  const total = installments.reduce((sum, inst) => sum + (inst.gross_amount || 0), 0)
+  const total = installments.reduce((sum, inst) => sum + (inst.planned_amount || 0), 0)
   const difference = budget - total
   const isBalanced = Math.abs(difference) < 0.01
   const isUnder = difference > 0.01  // Bütçenin altında (kısmi taksitlendirme - OK)
   const isOver = difference < -0.01   // Bütçeyi aşmış (HATA)
-
-  // Tahsil edilmiş toplam
-  const collectedTotal = installments.reduce((sum, inst) => sum + (inst.collected_amount || 0), 0)
 
   return (
     <div className="bg-white rounded-lg shadow-sm border p-4">
@@ -189,6 +185,7 @@ export function PaymentPlanSection({
         <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
           <Calendar className="h-5 w-5 text-teal-600" />
           Ödeme Planı
+          <span className="text-xs font-normal text-gray-500">(Sadece kontrol amaçlı)</span>
         </h2>
         {!readOnly && (
           <button
@@ -306,31 +303,26 @@ export function PaymentPlanSection({
                 <div className="col-span-3">Tutar (₺)</div>
                 <div className="col-span-3">Tarih</div>
                 <div className="col-span-3">Açıklama</div>
-                <div className="col-span-2 text-center">Durum</div>
+                <div className="col-span-2 text-center">İşlem</div>
               </div>
 
               {/* Taksitler */}
               <div className="max-h-[400px] overflow-y-auto space-y-1">
                 {installments.map((inst, index) => {
-                  const isCollected = (inst.collected_amount || 0) > 0
-                  const isEditable = !readOnly && !isCollected
+                  const isEditable = !readOnly
 
                   return (
                     <div
                       key={index}
-                      className={`grid grid-cols-12 gap-2 items-center p-2 rounded-lg transition-colors ${
-                        isCollected
-                          ? 'bg-green-50 border border-green-200'
-                          : 'bg-gray-50 hover:bg-gray-100'
-                      }`}
+                      className="grid grid-cols-12 gap-2 items-center p-2 rounded-lg transition-colors bg-gray-50 hover:bg-gray-100"
                     >
                       <div className="col-span-1 text-sm font-medium text-gray-600">
                         {inst.installment_number}
                       </div>
                       <div className="col-span-3">
                         <MoneyInput
-                          value={inst.gross_amount.toString()}
-                          onChange={(val) => updateInstallment(index, 'gross_amount', parseFloat(val) || 0)}
+                          value={inst.planned_amount.toString()}
+                          onChange={(val) => updateInstallment(index, 'planned_amount', parseFloat(val) || 0)}
                           disabled={!isEditable}
                           className={`w-full px-2 py-1.5 border rounded-md text-sm ${
                             isEditable
@@ -342,8 +334,8 @@ export function PaymentPlanSection({
                       <div className="col-span-3">
                         <input
                           type="date"
-                          value={inst.income_date}
-                          onChange={(e) => updateInstallment(index, 'income_date', e.target.value)}
+                          value={inst.planned_date}
+                          onChange={(e) => updateInstallment(index, 'planned_date', e.target.value)}
                           disabled={!isEditable}
                           className={`w-full px-2 py-1.5 border rounded-md text-sm ${
                             isEditable
@@ -367,12 +359,7 @@ export function PaymentPlanSection({
                         />
                       </div>
                       <div className="col-span-2 flex items-center justify-center gap-1">
-                        {isCollected ? (
-                          <span className="inline-flex items-center gap-1 text-green-700 text-xs font-medium">
-                            <Check className="h-3.5 w-3.5" />
-                            Tahsil
-                          </span>
-                        ) : isEditable ? (
+                        {isEditable ? (
                           <button
                             type="button"
                             onClick={() => removeInstallment(index)}
@@ -381,9 +368,7 @@ export function PaymentPlanSection({
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
-                        ) : (
-                          <span className="text-gray-400 text-xs">Bekliyor</span>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   )
@@ -440,24 +425,6 @@ export function PaymentPlanSection({
                   </div>
                 )}
               </div>
-
-              {/* Tahsilat özeti (readOnly modda) */}
-              {readOnly && collectedTotal > 0 && (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-blue-700">Tahsil Edilen:</span>
-                    <span className="font-bold text-blue-900">
-                      {collectedTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm mt-1">
-                    <span className="text-blue-700">Kalan:</span>
-                    <span className="font-medium text-blue-800">
-                      {(total - collectedTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-                    </span>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 

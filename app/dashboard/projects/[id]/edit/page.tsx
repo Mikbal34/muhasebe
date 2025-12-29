@@ -20,7 +20,7 @@ import { MoneyInput } from '@/components/ui/money-input'
 import { supabase } from '@/lib/supabase/client'
 import PersonPicker, { Person, PersonType } from '@/components/ui/person-picker'
 import PersonBadge from '@/components/ui/person-badge'
-import { PaymentPlanSection, Installment } from '@/components/projects/payment-plan-section'
+import { PaymentPlanSection, PlannedInstallment } from '@/components/projects/payment-plan-section'
 
 interface User {
   id: string
@@ -110,7 +110,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
 
   // Payment plan state
   const [hasPaymentPlan, setHasPaymentPlan] = useState(false)
-  const [installments, setInstallments] = useState<Installment[]>([])
+  const [installments, setInstallments] = useState<PlannedInstallment[]>([])
   const [savingInstallments, setSavingInstallments] = useState(false)
 
   useEffect(() => {
@@ -207,15 +207,14 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
           })
           const installmentsData = await installmentsResponse.json()
 
-          if (installmentsData.success && installmentsData.data.installments?.length > 0) {
+          if (installmentsData.success && installmentsData.data.planned_payments?.length > 0) {
             setHasPaymentPlan(true)
-            setInstallments(installmentsData.data.installments.map((inst: any) => ({
+            setInstallments(installmentsData.data.planned_payments.map((inst: any) => ({
               id: inst.id,
               installment_number: inst.installment_number,
-              gross_amount: inst.gross_amount,
-              income_date: inst.income_date,
-              description: inst.description,
-              collected_amount: inst.collected_amount || 0
+              planned_amount: inst.planned_amount,
+              planned_date: inst.planned_date,
+              description: inst.description
             })))
           }
         } catch (err) {
@@ -411,29 +410,25 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
       if (data.success) {
         // Update installments if there are any changes
         if (hasPaymentPlan && installments.length > 0) {
-          const editableInstallments = installments.filter(inst => (inst.collected_amount || 0) === 0)
-
-          if (editableInstallments.length > 0) {
-            const installmentsResponse = await fetch(`/api/projects/${params.id}/installments`, {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              },
-              body: JSON.stringify({
-                installments: editableInstallments.map(inst => ({
-                  id: inst.id,
-                  gross_amount: inst.gross_amount,
-                  income_date: inst.income_date,
-                  description: inst.description
-                }))
-              })
+          const installmentsResponse = await fetch(`/api/projects/${params.id}/installments`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              installments: installments.map(inst => ({
+                id: inst.id,
+                planned_amount: inst.planned_amount,
+                planned_date: inst.planned_date,
+                description: inst.description
+              }))
             })
+          })
 
-            const installmentsData = await installmentsResponse.json()
-            if (!installmentsData.success) {
-              console.warn('Taksitler güncellenirken hata:', installmentsData.error)
-            }
+          const installmentsData = await installmentsResponse.json()
+          if (!installmentsData.success) {
+            console.warn('Taksitler güncellenirken hata:', installmentsData.error)
           }
         }
 

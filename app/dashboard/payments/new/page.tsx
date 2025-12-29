@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { usePaymentNotifications } from '@/contexts/notification-context'
 import PersonBadge from '@/components/ui/person-badge'
+import { SearchableSelect } from '@/components/ui/searchable-select'
 
 interface User {
   id: string
@@ -329,26 +330,24 @@ export default function NewPaymentPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Alıcı *
                 </label>
-                <select
+                <SearchableSelect
+                  options={people}
                   value={formData.person_id}
-                  onChange={(e) => {
-                    const personId = e.target.value
-                    const person = people.find(p => p.id === personId)
+                  onChange={(personId, person) => {
                     setFormData({
                       ...formData,
                       person_id: personId,
                       person_type: person?.type || ''
                     })
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-                >
-                  <option value="">Alıcı seçiniz...</option>
-                  {people.map(person => (
-                    <option key={person.id} value={person.id}>
-                      {person.full_name} ({person.type === 'user' ? 'Kullanıcı' : 'Personel'}) - ₺{person.balance.toLocaleString('tr-TR', { maximumFractionDigits: 2 })} bakiye
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Alıcı seçiniz veya isim yazarak arayın..."
+                  searchPlaceholder="İsim ile ara..."
+                  searchKeys={['full_name', 'email']}
+                  getOptionLabel={(person) =>
+                    `${person.full_name} (${person.type === 'user' ? 'Kullanıcı' : 'Personel'}) - ₺${person.balance?.toLocaleString('tr-TR', { maximumFractionDigits: 2 })} bakiye`
+                  }
+                  error={!!errors.person_id}
+                />
                 {errors.person_id && <p className="mt-1 text-sm text-red-600">{errors.person_id}</p>}
               </div>
 

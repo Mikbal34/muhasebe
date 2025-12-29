@@ -21,6 +21,8 @@ import {
 } from 'lucide-react'
 import { StatCardSkeleton, ProgressBarSkeleton, MonthlyTableSkeleton, Skeleton } from '@/components/ui/skeleton'
 import { MiniChart } from '@/components/ui/mini-chart'
+import { CashFlowDiagram } from '@/components/charts/cash-flow-diagram'
+import { CashFlowData, CashFlowPeriod, PERIOD_OPTIONS } from '@/components/charts/cash-flow-types'
 
 interface User {
   id: string
@@ -81,6 +83,9 @@ export default function DashboardPage() {
   const [dashboardMetrics, setDashboardMetrics] = useState<DashboardMetrics | null>(null)
   const [selectedYear, setSelectedYear] = useState<string>('2025')
   const [loading, setLoading] = useState(true)
+  const [cashFlowData, setCashFlowData] = useState<CashFlowData | null>(null)
+  const [cashFlowPeriod, setCashFlowPeriod] = useState<CashFlowPeriod>('month')
+  const [cashFlowLoading, setCashFlowLoading] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -101,6 +106,7 @@ export default function DashboardPage() {
       if (['admin', 'manager'].includes(parsedUser.role)) {
         fetchTTOFinancials(token)
         fetchDashboardMetrics(token)
+        fetchCashFlowData(token, 'month')
       }
     } catch (err) {
       router.push('/login')
@@ -183,6 +189,33 @@ export default function DashboardPage() {
       }
     } catch (err) {
       console.error('Failed to fetch dashboard metrics:', err)
+    }
+  }
+
+  const fetchCashFlowData = async (token: string, period: CashFlowPeriod) => {
+    setCashFlowLoading(true)
+    try {
+      const response = await fetch(`/api/dashboard/cash-flow?period=${period}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const result = await response.json()
+
+      if (result.success) {
+        setCashFlowData(result.data.data)
+      }
+    } catch (err) {
+      console.error('Failed to fetch cash flow data:', err)
+    } finally {
+      setCashFlowLoading(false)
+    }
+  }
+
+  // Cash flow period değiştiğinde yeniden fetch et
+  const handleCashFlowPeriodChange = (newPeriod: CashFlowPeriod) => {
+    setCashFlowPeriod(newPeriod)
+    const token = localStorage.getItem('token')
+    if (token) {
+      fetchCashFlowData(token, newPeriod)
     }
   }
 
@@ -506,6 +539,39 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Cash Flow Diagram */}
+            <div className="bg-slate-800 rounded-lg shadow-sm p-4 border border-slate-700">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-base font-bold text-slate-100">Nakit Akışı Diyagramı</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">Gelir ve gider akışı görselleştirmesi</p>
+                </div>
+                <select
+                  value={cashFlowPeriod}
+                  onChange={(e) => handleCashFlowPeriodChange(e.target.value as CashFlowPeriod)}
+                  className="px-3 py-2 border border-slate-600 rounded text-sm font-semibold text-slate-100 bg-slate-700 focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
+                >
+                  {PERIOD_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {cashFlowLoading ? (
+                <div className="flex items-center justify-center h-[400px]">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
+                </div>
+              ) : cashFlowData ? (
+                <CashFlowDiagram data={cashFlowData} width={800} height={400} />
+              ) : (
+                <div className="flex items-center justify-center h-[400px] text-slate-400">
+                  <p>Veri yüklenemedi</p>
+                </div>
+              )}
             </div>
 
             {/* Year Breakdown Cards */}

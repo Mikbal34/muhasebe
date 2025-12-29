@@ -7,6 +7,7 @@ import { MoneyInput } from '@/components/ui/money-input'
 import Link from 'next/link'
 import { Receipt, ArrowLeft, Save, Building2, Calendar, FileText } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { SearchableSelect } from '@/components/ui/searchable-select'
 
 interface User {
   id: string
@@ -357,29 +358,21 @@ export default function NewExpensePage() {
                   <Building2 className="inline h-4 w-4 mr-1" />
                   Proje *
                 </label>
-                <select
-                  className={`w-full px-4 py-2 border rounded-md focus:ring-teal-500 focus:border-teal-500 ${
-                    errors.project_id ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                <SearchableSelect
+                  options={projects}
                   value={formData.project_id}
-                  onChange={(e) => {
-                    const projectId = e.target.value
-                    setFormData({ ...formData, project_id: projectId })
+                  onChange={(value) => {
+                    setFormData({ ...formData, project_id: value })
                     setErrors({ ...errors, project_id: '' })
-                    if (projectId) {
-                      fetchProjectCollected(projectId)
+                    if (value) {
+                      fetchProjectCollected(value)
                     } else {
                       setProjectCollected(0)
                     }
                   }}
-                >
-                  <option value="">Proje seçiniz...</option>
-                  {projects.map(project => (
-                    <option key={project.id} value={project.id}>
-                      {project.code} - {project.name}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Proje seçiniz veya kod yazarak arayın..."
+                  error={!!errors.project_id}
+                />
                 {errors.project_id && (
                   <p className="mt-1 text-sm text-red-600">{errors.project_id}</p>
                 )}

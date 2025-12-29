@@ -21,7 +21,7 @@ import { triggerNotificationRefresh } from '@/utils/notifications'
 import { supabase } from '@/lib/supabase/client'
 import PersonPicker, { Person, PersonType } from '@/components/ui/person-picker'
 import PersonBadge from '@/components/ui/person-badge'
-import { PaymentPlanSection, Installment } from '@/components/projects/payment-plan-section'
+import { PaymentPlanSection, PlannedInstallment } from '@/components/projects/payment-plan-section'
 
 interface User {
   id: string
@@ -79,7 +79,7 @@ export default function NewProjectPage() {
 
   // Payment plan state
   const [paymentPlanEnabled, setPaymentPlanEnabled] = useState(false)
-  const [installments, setInstallments] = useState<Installment[]>([])
+  const [installments, setInstallments] = useState<PlannedInstallment[]>([])
 
   // State for PersonPicker
   const [selectedPersonId, setSelectedPersonId] = useState('')
@@ -150,7 +150,7 @@ export default function NewProjectPage() {
       if (installments.length === 0) {
         newErrors.payment_plan = 'Ödeme planı için en az bir taksit eklenmeli'
       } else {
-        const total = installments.reduce((sum, inst) => sum + inst.gross_amount, 0)
+        const total = installments.reduce((sum, inst) => sum + inst.planned_amount, 0)
         const budgetNum = parseFloat(formData.budget) || 0
         // Bütçeyi aşamaz, altında kalabilir (kısmi taksitlendirme)
         if (total > budgetNum + 0.01) {
@@ -293,8 +293,8 @@ export default function NewProjectPage() {
             enabled: true,
             installments: installments.map(inst => ({
               installment_number: inst.installment_number,
-              gross_amount: inst.gross_amount,
-              income_date: inst.income_date,
+              planned_amount: inst.planned_amount,
+              planned_date: inst.planned_date,
               description: inst.description || null
             }))
           } : undefined

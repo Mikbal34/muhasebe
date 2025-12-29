@@ -14,6 +14,7 @@ import {
   Percent,
   Save
 } from 'lucide-react'
+import { SearchableSelect } from '@/components/ui/searchable-select'
 
 interface User {
   id: string
@@ -275,25 +276,19 @@ export default function EditIncomePage({ params }: { params: { id: string } }) {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Proje *
                 </label>
-                <select
+                <SearchableSelect
+                  options={projects}
                   value={formData.project_id}
-                  onChange={(e) => {
-                    const project = projects.find(p => p.id === e.target.value)
+                  onChange={(value, option) => {
                     setFormData({
                       ...formData,
-                      project_id: e.target.value,
-                      vat_rate: project?.vat_rate.toString() || '18'
+                      project_id: value,
+                      vat_rate: option?.vat_rate?.toString() || '18'
                     })
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                >
-                  <option value="">Proje seçiniz...</option>
-                  {projects.map(project => (
-                    <option key={project.id} value={project.id}>
-                      {project.code} - {project.name}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Proje seçiniz veya kod yazarak arayın..."
+                  error={!!errors.project_id}
+                />
                 {errors.project_id && <p className="mt-1 text-sm text-red-600">{errors.project_id}</p>}
               </div>
 

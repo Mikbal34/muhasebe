@@ -297,7 +297,7 @@ export default function PaymentsPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={handleExportExcel}
-                disabled={exporting || payments.length === 0}
+                disabled={exporting}
                 className="inline-flex items-center px-3 py-2 border border-slate-300 text-sm font-semibold rounded text-slate-700 bg-white hover:bg-slate-50 transition-colors disabled:opacity-50"
               >
                 {exporting ? (

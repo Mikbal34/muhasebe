@@ -125,10 +125,10 @@ export async function PATCH(
 
       const { collected_amount, collection_date } = validation.data
 
-      // Get the income to check gross_amount constraint
+      // Get the income to check gross_amount constraint and project status
       const { data: existingIncome, error: fetchError } = await ctx.supabase
         .from('incomes')
-        .select('gross_amount, collected_amount')
+        .select('gross_amount, collected_amount, project:projects(id, status)')
         .eq('id', id)
         .single()
 
@@ -137,6 +137,15 @@ export async function PATCH(
           return apiResponse.notFound('Income not found')
         }
         return apiResponse.error('Failed to fetch income', fetchError.message, 500)
+      }
+
+      // Check if project is cancelled
+      if ((existingIncome as any).project?.status === 'cancelled') {
+        return apiResponse.error(
+          'Proje iptal edilmiş',
+          'İptal edilmiş projenin gelirine tahsilat kaydı yapılamaz',
+          400
+        )
       }
 
       // Validate collected_amount doesn't exceed gross_amount

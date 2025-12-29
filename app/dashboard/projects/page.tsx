@@ -45,6 +45,8 @@ interface Project {
   end_date?: string
   status: 'active' | 'completed' | 'cancelled'
   created_at: string
+  has_supplementary_contract: boolean
+  supplementary_contract_count: number
   created_by_user: {
     full_name: string
   }
@@ -386,9 +388,16 @@ export default function ProjectsPage() {
                       </h3>
                       <p className="text-sm text-slate-600">{project.code}</p>
                     </div>
-                    <span className={`px-2 py-1 text-xs font-semibold rounded ${getStatusColor(project.status)}`}>
-                      {getStatusText(project.status)}
-                    </span>
+                    <div className="flex flex-col gap-1 items-end">
+                      <span className={`px-2 py-1 text-xs font-semibold rounded ${getStatusColor(project.status)}`}>
+                        {getStatusText(project.status)}
+                      </span>
+                      {project.has_supplementary_contract && (
+                        <span className="px-2 py-1 text-xs font-semibold rounded bg-purple-100 text-purple-800">
+                          Ek Sözleşme {project.supplementary_contract_count > 1 ? `(${project.supplementary_contract_count})` : ''}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="space-y-2 mb-4">
@@ -531,11 +540,18 @@ export default function ProjectsPage() {
               {
                 key: 'status',
                 header: 'Durum',
-                width: '10%',
+                width: '15%',
                 render: (project) => (
-                  <span className={`px-2 py-1 text-xs font-semibold rounded ${getStatusColor(project.status)}`}>
-                    {getStatusText(project.status)}
-                  </span>
+                  <div className="flex flex-col gap-1">
+                    <span className={`px-2 py-1 text-xs font-semibold rounded inline-block w-fit ${getStatusColor(project.status)}`}>
+                      {getStatusText(project.status)}
+                    </span>
+                    {project.has_supplementary_contract && (
+                      <span className="px-2 py-1 text-xs font-semibold rounded bg-purple-100 text-purple-800 inline-block w-fit">
+                        Ek Sözleşme {project.supplementary_contract_count > 1 ? `(${project.supplementary_contract_count})` : ''}
+                      </span>
+                    )}
+                  </div>
                 )
               },
               {

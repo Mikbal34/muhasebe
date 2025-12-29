@@ -20,6 +20,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         .select(`
           *,
           created_by_user:users!projects_created_by_fkey(full_name, email),
+          cancelled_by_user:users!projects_cancelled_by_fkey(full_name, email),
           representatives:project_representatives(
             id,
             role,

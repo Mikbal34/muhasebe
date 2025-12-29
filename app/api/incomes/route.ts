@@ -127,8 +127,12 @@ export async function POST(request: NextRequest) {
         return apiResponse.error('Failed to check project', projectError.message, 500)
       }
 
-      if ((project as any).status !== 'active') {
-        return apiResponse.error('Invalid project', 'Cannot add income to inactive project', 400)
+      if ((project as any).status === 'cancelled') {
+        return apiResponse.error('Proje iptal edilmiş', 'İptal edilmiş projeye gelir kaydı eklenemez', 400)
+      }
+
+      if ((project as any).status === 'completed') {
+        return apiResponse.error('Proje tamamlanmış', 'Tamamlanmış projeye gelir kaydı eklenemez', 400)
       }
 
       // Check referee approval

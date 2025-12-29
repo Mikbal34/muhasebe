@@ -17,6 +17,7 @@ import {
   Info,
   TrendingUp
 } from 'lucide-react'
+import { SearchableSelect } from '@/components/ui/searchable-select'
 import { useIncomeNotifications } from '@/contexts/notification-context'
 import { triggerNotificationRefresh } from '@/utils/notifications'
 
@@ -363,25 +364,19 @@ export default function NewIncomePage() {
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Proje *
                 </label>
-                <select
+                <SearchableSelect
+                  options={projects}
                   value={formData.project_id}
-                  onChange={(e) => {
-                    const project = projects.find(p => p.id === e.target.value)
+                  onChange={(value, option) => {
                     setFormData({
                       ...formData,
-                      project_id: e.target.value,
-                      vat_rate: project?.vat_rate.toString() || '18'
+                      project_id: value,
+                      vat_rate: option?.vat_rate?.toString() || '18'
                     })
                   }}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm"
-                >
-                  <option value="">Proje seçiniz...</option>
-                  {projects.map(project => (
-                    <option key={project.id} value={project.id}>
-                      {project.code} - {project.name}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Proje seçiniz veya kod yazarak arayın..."
+                  error={!!errors.project_id}
+                />
                 {errors.project_id && <p className="mt-1 text-xs text-red-600">{errors.project_id}</p>}
               </div>
 

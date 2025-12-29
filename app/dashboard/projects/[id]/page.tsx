@@ -18,10 +18,16 @@ import {
   Crown,
   Download,
   CheckCircle,
-  Clock
+  Clock,
+  FilePlus,
+  XCircle,
+  Ban,
+  AlertTriangle
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import PersonBadge from '@/components/ui/person-badge'
+import { SupplementaryContractModal } from '@/components/projects/supplementary-contract-modal'
+import { SupplementaryContractHistory } from '@/components/projects/supplementary-contract-history'
 
 interface User {
   id: string
@@ -55,6 +61,16 @@ interface Project {
   sent_to_referee: boolean
   referee_approved: boolean
   referee_approval_date: string | null
+  has_supplementary_contract: boolean
+  supplementary_contract_count: number
+  original_budget: number | null
+  original_end_date: string | null
+  cancelled_at: string | null
+  cancelled_by: string | null
+  cancellation_reason: string | null
+  cancelled_by_user?: {
+    full_name: string
+  } | null
   representatives: Array<{
     id: string
     role: 'project_leader' | 'researcher'
@@ -87,6 +103,11 @@ export default function ProjectDetailPage() {
   const [project, setProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
   const [approvingReferee, setApprovingReferee] = useState(false)
+  const [showSupplementaryModal, setShowSupplementaryModal] = useState(false)
+  const [showCancelModal, setShowCancelModal] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const [cancelReason, setCancelReason] = useState('')
+  const [activating, setActivating] = useState(false)
   const router = useRouter()
   const params = useParams()
 
@@ -153,6 +174,67 @@ export default function ProjectDetailPage() {
       alert('Bir hata oluştu')
     } finally {
       setApprovingReferee(false)
+    }
+  }
+
+  const handleCancelProject = async () => {
+    if (!project || !user) return
+
+    setCancelling(true)
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`/api/projects/${project.id}/cancel`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reason: cancelReason || null })
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        setShowCancelModal(false)
+        setCancelReason('')
+        await fetchProject(token!, project.id)
+      } else {
+        alert('Hata: ' + (data.error || 'Proje iptal edilirken bir hata oluştu'))
+      }
+    } catch (err) {
+      console.error('Failed to cancel project:', err)
+      alert('Bir hata oluştu')
+    } finally {
+      setCancelling(false)
+    }
+  }
+
+  const handleActivateProject = async () => {
+    if (!project || !user) return
+
+    if (!confirm(`${project.code} projesini aktife almak istediğinize emin misiniz?`)) return
+
+    setActivating(true)
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`/api/projects/${project.id}/activate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        await fetchProject(token!, project.id)
+      } else {
+        alert('Hata: ' + (data.error || 'Proje aktifleştirilirken bir hata oluştu'))
+      }
+    } catch (err) {
+      console.error('Failed to activate project:', err)
+      alert('Bir hata oluştu')
+    } finally {
+      setActivating(false)
     }
   }
 
@@ -229,6 +311,13 @@ export default function ProjectDetailPage() {
                 {getStatusText(project.status)}
               </span>
 
+              {/* Ek Sözleşme Badge */}
+              {project.has_supplementary_contract && (
+                <span className="px-3 py-1.5 text-xs font-semibold rounded bg-purple-100 text-purple-800">
+                  Ek Sözleşme {project.supplementary_contract_count > 1 ? `(${project.supplementary_contract_count})` : ''}
+                </span>
+              )}
+
               {/* Hakem Heyeti Onayı Butonu */}
               {(user.role === 'admin' || user.role === 'manager') &&
                project.sent_to_referee &&
@@ -252,6 +341,17 @@ export default function ProjectDetailPage() {
                 </button>
               )}
 
+              {/* Ek Sözleşme Ekle Butonu - active ve completed projeler için */}
+              {(user.role === 'admin' || user.role === 'manager') && project.status !== 'cancelled' && (
+                <button
+                  onClick={() => setShowSupplementaryModal(true)}
+                  className="inline-flex items-center px-3 py-2 border border-purple-600 text-sm font-semibold rounded text-purple-600 bg-white hover:bg-purple-50 transition-colors"
+                >
+                  <FilePlus className="h-4 w-4 mr-2" />
+                  Ek Sözleşme Ekle
+                </button>
+              )}
+
               {(user.role === 'admin' || user.role === 'manager') && project.status === 'active' && (
                 <Link
                   href={`/dashboard/projects/${project.id}/edit` as any}
@@ -266,6 +366,38 @@ export default function ProjectDetailPage() {
                   <Edit className="h-4 w-4 mr-2" />
                   Düzenle
                 </div>
+              )}
+
+              {/* Projeyi İptal Et Butonu - sadece active projeler için */}
+              {(user.role === 'admin' || user.role === 'manager') && project.status === 'active' && (
+                <button
+                  onClick={() => setShowCancelModal(true)}
+                  className="inline-flex items-center px-3 py-2 border border-red-600 text-sm font-semibold rounded text-red-600 bg-white hover:bg-red-50 transition-colors"
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  İptal Et
+                </button>
+              )}
+
+              {/* Projeyi Aktife Al Butonu - completed ve cancelled projeler için */}
+              {(user.role === 'admin' || user.role === 'manager') && project.status !== 'active' && (
+                <button
+                  onClick={handleActivateProject}
+                  disabled={activating}
+                  className="inline-flex items-center px-3 py-2 border border-emerald-600 text-sm font-semibold rounded text-emerald-600 bg-white hover:bg-emerald-50 transition-colors disabled:opacity-50"
+                >
+                  {activating ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-emerald-600 border-t-transparent mr-2" />
+                      İşleniyor...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Aktife Al
+                    </>
+                  )}
+                </button>
               )}
             </div>
           </div>
@@ -445,6 +577,36 @@ export default function ProjectDetailPage() {
                   </a>
                 </div>
               )}
+
+              {/* İptal Bilgileri */}
+              {project.status === 'cancelled' && project.cancelled_at && (
+                <div className="mt-4 pt-4 border-t border-red-200 bg-red-50 -mx-6 px-6 pb-4 rounded-b-lg">
+                  <div className="flex items-center mb-2">
+                    <Ban className="h-4 w-4 text-red-600 mr-2" />
+                    <span className="text-sm font-semibold text-red-800">İptal Bilgileri</span>
+                  </div>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex items-center">
+                      <span className="text-red-600">İptal Tarihi:</span>
+                      <span className="ml-2 font-medium text-red-800">
+                        {new Date(project.cancelled_at).toLocaleDateString('tr-TR')} - {new Date(project.cancelled_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    {project.cancelled_by_user && (
+                      <div className="flex items-center">
+                        <span className="text-red-600">İptal Eden:</span>
+                        <span className="ml-2 font-medium text-red-800">{project.cancelled_by_user.full_name}</span>
+                      </div>
+                    )}
+                    {project.cancellation_reason && (
+                      <div>
+                        <span className="text-red-600">Sebep:</span>
+                        <p className="mt-1 text-red-800">{project.cancellation_reason}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -488,6 +650,19 @@ export default function ProjectDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Ek Sözleşme Geçmişi */}
+        {project.has_supplementary_contract && (
+          <div className="bg-white p-6 rounded-lg shadow-sm border">
+            <SupplementaryContractHistory
+              projectId={project.id}
+              onContractDeleted={() => {
+                const token = localStorage.getItem('token')
+                if (token) fetchProject(token, project.id)
+              }}
+            />
+          </div>
+        )}
 
         {/* Recent Incomes */}
         <div className="bg-white p-6 rounded-lg shadow-sm border">
@@ -537,6 +712,92 @@ export default function ProjectDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Ek Sözleşme Modal */}
+      <SupplementaryContractModal
+        isOpen={showSupplementaryModal}
+        onClose={() => setShowSupplementaryModal(false)}
+        onSuccess={() => {
+          const token = localStorage.getItem('token')
+          if (token) fetchProject(token, project.id)
+        }}
+        projectId={project.id}
+        currentEndDate={project.end_date || null}
+        currentBudget={project.budget}
+        amendmentCount={project.supplementary_contract_count || 0}
+      />
+
+      {/* Proje İptal Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-screen items-center justify-center p-4">
+            <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => !cancelling && setShowCancelModal(false)} />
+            <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full">
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-10 w-10 bg-red-100 rounded-full flex items-center justify-center">
+                    <AlertTriangle className="h-5 w-5 text-red-600" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-slate-900">Projeyi İptal Et</h2>
+                </div>
+
+                <p className="text-sm text-slate-600 mb-4">
+                  <strong>{project.code} - {project.name}</strong> projesini iptal etmek istediğinizden emin misiniz?
+                </p>
+
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-yellow-800">
+                    <strong>Dikkat:</strong> İptal edilen projelere yeni gelir/gider eklenemez ve tahsilat yapılamaz. Mevcut veriler korunur.
+                  </p>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    İptal Sebebi <span className="text-slate-400 font-normal">(opsiyonel)</span>
+                  </label>
+                  <textarea
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    rows={3}
+                    placeholder="İptal sebebini yazabilirsiniz..."
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowCancelModal(false)
+                      setCancelReason('')
+                    }}
+                    disabled={cancelling}
+                    className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
+                  >
+                    Vazgeç
+                  </button>
+                  <button
+                    onClick={handleCancelProject}
+                    disabled={cancelling}
+                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {cancelling ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                        İptal Ediliyor...
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="h-4 w-4" />
+                        İptal Et
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   )
 }

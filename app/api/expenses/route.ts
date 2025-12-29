@@ -102,12 +102,12 @@ export async function POST(request: NextRequest) {
         return apiResponse.error('Proje gideri için proje seçimi zorunludur', undefined, 400)
       }
 
-      // Proje seçilmişse varlığını kontrol et
+      // Proje seçilmişse varlığını ve durumunu kontrol et
       let project = null
       if (project_id) {
         const { data, error: projectError } = await ctx.supabase
           .from('projects')
-          .select('id, code, name, company_rate')
+          .select('id, code, name, company_rate, status')
           .eq('id', project_id)
           .single()
 
@@ -118,6 +118,15 @@ export async function POST(request: NextRequest) {
           return apiResponse.error('Proje kontrolü başarısız', projectError.message, 500)
         }
         project = data
+
+        // İptal edilmiş projeye gider eklenemez
+        if ((project as any).status === 'cancelled') {
+          return apiResponse.error(
+            'Proje iptal edilmiş',
+            'İptal edilmiş projeye gider kaydı eklenemez',
+            400
+          )
+        }
       }
 
       // Create expense

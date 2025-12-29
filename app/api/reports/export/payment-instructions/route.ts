@@ -78,12 +78,8 @@ export async function POST(request: NextRequest) {
         return apiResponse.error('Failed to fetch payment instructions', error.message, 500)
       }
 
-      if (!payments || payments.length === 0) {
-        return apiResponse.error('No data', 'Seçilen kriterlere uygun ödeme talimatı bulunamadı.', 404)
-      }
-
-      // Generate Halkbank format Excel
-      const buffer = await generateHalkbankExcel(payments, banking)
+      // Generate Halkbank format Excel (empty template if no payments)
+      const buffer = await generateHalkbankExcel(payments || [], banking)
 
       // Return the file as a download
       const headers = new Headers()
@@ -108,164 +104,95 @@ async function generateHalkbankExcel(
   workbook.creator = 'Muhasebe Yazılımı'
   workbook.created = new Date()
 
-  const worksheet = workbook.addWorksheet('Ödeme Talimatı')
+  const worksheet = workbook.addWorksheet('HALKBANK')
 
-  // Set column widths
+  // Set column widths (A is empty, data starts from B)
   worksheet.columns = [
-    { width: 30 }, // A - GÖNDEREN IBAN
-    { width: 25 }, // B - ALICI ADI
-    { width: 15 }, // C - TUTAR
-    { width: 30 }, // D - ALICI IBAN
-    { width: 50 }, // E - AÇIKLAMA
+    { width: 5 },  // A - Boş
+    { width: 30 }, // B - GÖNDEREN IBAN
+    { width: 30 }, // C - ALICI ADI
+    { width: 15 }, // D - TUTAR
+    { width: 30 }, // E - ALICI IBAN
+    { width: 60 }, // F - AÇIKLAMA
   ]
 
-  // Styles
-  const headerStyle = {
-    font: { bold: true, size: 12, color: { argb: 'FFFFFF' } },
-    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: '1E3A5F' } },
-    alignment: { horizontal: 'center', vertical: 'middle' },
-    border: {
-      top: { style: 'thin' },
-      bottom: { style: 'thin' },
-      left: { style: 'thin' },
-      right: { style: 'thin' }
-    }
-  }
+  // Row 1 - Empty (skip)
 
-  const titleStyle = {
-    font: { bold: true, size: 14 },
-    alignment: { horizontal: 'center', vertical: 'middle' },
-    border: {
-      top: { style: 'thin' },
-      bottom: { style: 'thin' },
-      left: { style: 'thin' },
-      right: { style: 'thin' }
-    }
-  }
+  // Row 2 - Bank full name (BOLD)
+  const bankCell = worksheet.getCell('B2')
+  bankCell.value = getBankFullName(banking.bank_name)
+  bankCell.font = { bold: true }
 
-  const bankHeaderStyle = {
-    font: { bold: true, size: 16, color: { argb: 'FFFFFF' } },
-    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: '00529B' } },
-    alignment: { horizontal: 'center', vertical: 'middle' },
-    border: {
-      top: { style: 'medium' },
-      bottom: { style: 'medium' },
-      left: { style: 'medium' },
-      right: { style: 'medium' }
-    }
-  }
-
-  // Row 1 - Bank name header
-  worksheet.mergeCells('A1:E1')
-  const bankCell = worksheet.getCell('A1')
-  bankCell.value = banking.bank_name || 'HALKBANK'
-  bankCell.style = bankHeaderStyle as any
-  worksheet.getRow(1).height = 30
-
-  // Row 2 - Bank full name
-  worksheet.mergeCells('A2:E2')
-  const bankFullCell = worksheet.getCell('A2')
-  bankFullCell.value = getBankFullName(banking.bank_name)
-  bankFullCell.style = titleStyle as any
-  worksheet.getRow(2).height = 25
-
-  // Row 3 - Company name and payment title
-  worksheet.mergeCells('A3:E3')
-  const companyCell = worksheet.getCell('A3')
+  // Row 3 - Company name and payment title (BOLD) - centered in merged cells
+  worksheet.mergeCells('C3:F3')
+  const companyCell = worksheet.getCell('C3')
   companyCell.value = `${banking.company_name || 'ŞİRKET'} ÖDEME TALİMATI`
-  companyCell.style = titleStyle as any
-  worksheet.getRow(3).height = 25
+  companyCell.font = { bold: true }
+  companyCell.alignment = { horizontal: 'center' }
 
-  // Row 4 - Sender VKN
-  worksheet.mergeCells('A4:E4')
-  const vknCell = worksheet.getCell('A4')
-  vknCell.value = `GÖNDEREN VKN: ${banking.company_vkn}`
-  vknCell.style = {
-    font: { bold: true },
-    alignment: { horizontal: 'left', vertical: 'middle' },
-    border: {
-      top: { style: 'thin' },
-      bottom: { style: 'thin' },
-      left: { style: 'thin' },
-      right: { style: 'thin' }
-    }
-  } as any
-  worksheet.getRow(4).height = 22
+  // Row 4 - Sender VKN (BOLD)
+  const vknCell = worksheet.getCell('B4')
+  vknCell.value = `GÖNDEREN VKN:${banking.company_vkn}`
+  vknCell.font = { bold: true }
 
-  // Row 5 - Empty row
-  worksheet.getRow(5).height = 10
+  // Row 5 - Empty
 
-  // Row 6 - Column headers
+  // Row 6 - Column headers (B-F) - BOLD
   const columnHeaders = ['GÖNDEREN IBAN', 'ALICI ADI', 'TUTAR', 'ALICI IBAN', 'AÇIKLAMA']
   columnHeaders.forEach((header, index) => {
-    const cell = worksheet.getCell(`${String.fromCharCode(65 + index)}6`)
+    const cell = worksheet.getCell(`${String.fromCharCode(66 + index)}6`)
     cell.value = header
-    cell.style = headerStyle as any
+    cell.font = { bold: true }
   })
-  worksheet.getRow(6).height = 25
 
-  // Data rows
+  // Data rows (starting from row 7)
   let currentRow = 7
   let totalAmount = 0
 
-  const dataStyle = {
-    border: {
-      top: { style: 'thin' },
-      bottom: { style: 'thin' },
-      left: { style: 'thin' },
-      right: { style: 'thin' }
-    },
-    alignment: { vertical: 'middle' }
-  }
-
-  for (const payment of payments) {
-    const recipientName = payment.user?.full_name || payment.personnel?.full_name || 'Bilinmiyor'
-    const recipientIban = payment.user?.iban || payment.personnel?.iban || ''
-
-    // Build description from payment items
-    const description = buildPaymentDescription(payment, recipientName)
-
-    worksheet.getCell(`A${currentRow}`).value = banking.company_iban
-    worksheet.getCell(`B${currentRow}`).value = recipientName
-    worksheet.getCell(`C${currentRow}`).value = formatCurrency(payment.total_amount)
-    worksheet.getCell(`D${currentRow}`).value = recipientIban
-    worksheet.getCell(`E${currentRow}`).value = description
-
-    // Apply styles
-    for (let col = 0; col < 5; col++) {
-      const cell = worksheet.getCell(`${String.fromCharCode(65 + col)}${currentRow}`)
-      cell.style = dataStyle as any
+  if (payments.length === 0) {
+    // Empty template - add 10 empty rows with just the sender IBAN
+    for (let i = 0; i < 10; i++) {
+      worksheet.getCell(`B${currentRow}`).value = banking.company_iban
+      currentRow++
     }
+  } else {
+    for (const payment of payments) {
+      const recipientName = payment.user?.full_name || payment.personnel?.full_name || 'Bilinmiyor'
+      const recipientIban = payment.user?.iban || payment.personnel?.iban || ''
 
-    totalAmount += payment.total_amount || 0
-    currentRow++
+      // Build description from payment items
+      const description = buildPaymentDescription(payment, recipientName)
+
+      worksheet.getCell(`B${currentRow}`).value = banking.company_iban
+      worksheet.getCell(`C${currentRow}`).value = recipientName
+      // TUTAR with Turkish format + TL
+      const amount = payment.total_amount || 0
+      worksheet.getCell(`D${currentRow}`).value = formatTurkishCurrency(amount)
+      worksheet.getCell(`E${currentRow}`).value = recipientIban
+      worksheet.getCell(`F${currentRow}`).value = description
+
+      totalAmount += amount
+      currentRow++
+    }
   }
 
-  // Total row
-  worksheet.getCell(`A${currentRow}`).value = ''
-  worksheet.getCell(`B${currentRow}`).value = 'TOPLAM'
-  worksheet.getCell(`B${currentRow}`).font = { bold: true }
-  worksheet.getCell(`C${currentRow}`).value = formatCurrency(totalAmount)
-  worksheet.getCell(`C${currentRow}`).font = { bold: true }
-  worksheet.getCell(`D${currentRow}`).value = ''
-  worksheet.getCell(`E${currentRow}`).value = ''
+  // Empty row before total
+  currentRow++
 
-  // Apply border to total row
-  for (let col = 0; col < 5; col++) {
-    const cell = worksheet.getCell(`${String.fromCharCode(65 + col)}${currentRow}`)
-    cell.style = {
-      border: {
-        top: { style: 'medium' },
-        bottom: { style: 'medium' },
-        left: { style: 'thin' },
-        right: { style: 'thin' }
-      },
-      alignment: { vertical: 'middle' },
-      fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F5F5F5' } }
-    } as any
-  }
+  // Total row (C = "TOPLAM", D = formatted amount) - BOLD
+  const toplamLabelCell = worksheet.getCell(`C${currentRow}`)
+  toplamLabelCell.value = 'TOPLAM'
+  toplamLabelCell.font = { bold: true }
+
+  const toplamValueCell = worksheet.getCell(`D${currentRow}`)
+  toplamValueCell.value = formatTurkishCurrency(totalAmount)
+  toplamValueCell.font = { bold: true }
 
   return await workbook.xlsx.writeBuffer()
+}
+
+function formatTurkishCurrency(amount: number): string {
+  return amount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' TL'
 }
 
 function buildPaymentDescription(payment: any, recipientName: string): string {
@@ -288,11 +215,6 @@ function buildPaymentDescription(payment: any, recipientName: string): string {
   }
 
   return `DANIŞMANLIK ÖDEMESİ - ${recipientName}`
-}
-
-function formatCurrency(amount: number | null | undefined): string {
-  const value = amount || 0
-  return `${value.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL`
 }
 
 function getBankFullName(bankName: string): string {

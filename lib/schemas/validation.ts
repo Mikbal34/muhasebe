@@ -35,11 +35,11 @@ export const projectRepresentativeSchema = z.object({
   path: ['user_id']
 })
 
-// Payment Plan schemas
+// Payment Plan schemas (planned_payments tablosu için)
 export const paymentPlanInstallmentSchema = z.object({
   installment_number: z.number().int().positive('Taksit numarası pozitif olmalı'),
-  gross_amount: z.number().positive('Taksit tutarı pozitif olmalı'),
-  income_date: z.string().date('Geçersiz ödeme tarihi'),
+  planned_amount: z.number().positive('Taksit tutarı pozitif olmalı'),
+  planned_date: z.string().date('Geçersiz ödeme tarihi'),
   description: z.string().max(500, 'Açıklama çok uzun').nullable().optional(),
 })
 
@@ -80,7 +80,7 @@ export const createProjectSchema = z.object({
 }).refine(data => {
   // If payment plan is enabled, installments total must not exceed budget
   if (data.payment_plan?.enabled && data.payment_plan?.installments?.length) {
-    const total = data.payment_plan.installments.reduce((sum, inst) => sum + inst.gross_amount, 0)
+    const total = data.payment_plan.installments.reduce((sum, inst) => sum + inst.planned_amount, 0)
     return total <= data.budget + 0.01 // Bütçeyi aşamaz, altında kalabilir
   }
   return true
@@ -287,3 +287,15 @@ export type BalanceQuery = z.infer<typeof balanceQuerySchema>
 export type TransactionQuery = z.infer<typeof transactionQuerySchema>
 export type PaymentPlanInstallment = z.infer<typeof paymentPlanInstallmentSchema>
 export type PaymentPlan = z.infer<typeof paymentPlanSchema>
+
+// Supplementary Contract (Ek Sözleşme) schema
+export const createSupplementaryContractSchema = z.object({
+  new_end_date: z.string().date('Geçersiz tarih').nullable().optional(),
+  budget_increase: z.number().min(0, 'Bütçe artışı negatif olamaz').default(0),
+  description: z.string().max(1000, 'Açıklama çok uzun').nullable().optional(),
+  contract_document_path: z.string().nullable().optional(),
+}).refine(data => data.new_end_date || data.budget_increase > 0, {
+  message: 'En az bir değişiklik (tarih veya bütçe) yapılmalıdır',
+})
+
+export type CreateSupplementaryContractForm = z.infer<typeof createSupplementaryContractSchema>
