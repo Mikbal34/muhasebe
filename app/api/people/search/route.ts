@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
       const includeInactive = searchParams.get('include_inactive') === 'true'
       const personType = searchParams.get('person_type') // 'user' or 'personnel' or null
       const showBalance = searchParams.get('show_balance') === 'true'
-      const limit = Math.min(parseInt(searchParams.get('limit') || '100'), 100)
+      const limit = parseInt(searchParams.get('limit') || '0') // 0 = no limit
 
       const { supabase } = ctx
 
@@ -118,9 +118,13 @@ export async function GET(request: NextRequest) {
       }))
 
       // Combine and sort by full_name
-      const allPeople = [...transformedUsers, ...transformedPersonnel]
+      let allPeople = [...transformedUsers, ...transformedPersonnel]
         .sort((a, b) => a.full_name.localeCompare(b.full_name, 'tr'))
-        .slice(0, limit)
+
+      // Apply limit only if specified
+      if (limit > 0) {
+        allPeople = allPeople.slice(0, limit)
+      }
 
       return apiResponse.success({
         people: allPeople,
