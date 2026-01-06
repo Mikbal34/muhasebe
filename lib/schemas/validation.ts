@@ -49,6 +49,7 @@ export const paymentPlanSchema = z.object({
 })
 
 export const createProjectSchema = z.object({
+  code: z.string().min(1, 'Proje kodu gerekli').max(50, 'Proje kodu çok uzun'),
   name: z.string().min(1, 'Proje adı gerekli').max(255, 'Proje adı çok uzun'),
   budget: z.number().positive('Bütçe pozitif olmalı'),
   start_date: z.string().date('Geçersiz başlangıç tarihi'),

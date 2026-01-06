@@ -137,6 +137,7 @@ export async function POST(request: NextRequest) {
     console.log('Project creation data:', validation.data)
 
     const {
+      code,
       name,
       budget,
       start_date,
@@ -165,6 +166,7 @@ export async function POST(request: NextRequest) {
       const { data: project, error: projectError } = await (ctx.supabase as any)
         .from('projects')
         .insert({
+          code,
           name,
           budget,
           start_date,

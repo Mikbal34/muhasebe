@@ -199,22 +199,34 @@ export default function NewProjectPage() {
     }
   }
 
-  const handleFileUpload = async (file: File): Promise<string | null> => {
+  const handleFileUpload = async (file: File, bucket: string = 'contracts'): Promise<string | null> => {
     try {
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`
-      const filePath = `${fileName}`
-
-      const { error } = await supabase.storage
-        .from('contracts')
-        .upload(filePath, file)
-
-      if (error) {
-        console.error('Upload error:', error)
+      const token = localStorage.getItem('token')
+      if (!token) {
+        console.error('No auth token found')
         return null
       }
 
-      return filePath
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('bucket', bucket)
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      })
+
+      const data = await response.json()
+
+      if (!data.success) {
+        console.error('Upload error:', data.error)
+        return null
+      }
+
+      return data.data.path
     } catch (error) {
       console.error('Upload error:', error)
       return null
