@@ -187,12 +187,12 @@ export async function POST(request: NextRequest) {
       const finalVatRate = vat_rate
 
       // Tevkifat tutarını hesapla (varsa)
-      // Formula: Tam KDV = Brüt × KDV Oranı / 100
+      // Formula: Tam KDV = Brüt × KDV Oranı / (100 + KDV Oranı) - Türk KDV sistemi (brüt KDV dahil)
       //          Tevkifat = Tam KDV × Tevkifat Oranı / 100
-      // NOT: vat_amount ve net_amount trigger'da hesaplanacak (migration 066)
+      // NOT: vat_amount ve net_amount trigger'da hesaplanacak
       let withholding_tax_amount = 0
       if ((project as any).has_withholding_tax && (project as any).withholding_tax_rate > 0) {
-        const fullVatAmount = gross_amount * finalVatRate / 100
+        const fullVatAmount = gross_amount * finalVatRate / (100 + finalVatRate)
         withholding_tax_amount = fullVatAmount * (project as any).withholding_tax_rate / 100
       }
 
