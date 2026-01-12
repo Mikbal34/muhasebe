@@ -35,11 +35,12 @@ export async function GET(request: NextRequest) {
         personnelQuery = personnelQuery.eq('is_active', true)
       }
 
-      // Apply search filter
+      // Apply search filter (sanitize to prevent injection)
       if (search) {
-        usersQuery = usersQuery.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`)
+        const sanitizedSearch = search.replace(/[%_\\(),.*]/g, '\\$&')
+        usersQuery = usersQuery.or(`full_name.ilike.%${sanitizedSearch}%,email.ilike.%${sanitizedSearch}%`)
         personnelQuery = personnelQuery.or(
-          `full_name.ilike.%${search}%,email.ilike.%${search}%,tc_no.ilike.%${search}%`
+          `full_name.ilike.%${sanitizedSearch}%,email.ilike.%${sanitizedSearch}%,tc_no.ilike.%${sanitizedSearch}%`
         )
       }
 

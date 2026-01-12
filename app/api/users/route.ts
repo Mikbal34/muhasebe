@@ -124,13 +124,11 @@ export async function POST(request: NextRequest) {
         return apiResponse.error('Failed to create user profile', profileError.message, 500)
       }
 
+      // TODO: Send password reset email to user instead of returning password
+      // For now, admin should use "Forgot Password" flow for the new user
       return apiResponse.success(
-        {
-          user: userProfile,
-          // In development, return password for easy access
-          tempPassword: randomPassword
-        },
-        'User created successfully. Password has been generated.'
+        { user: userProfile },
+        'Kullanıcı başarıyla oluşturuldu. Kullanıcı giriş için "Şifremi Unuttum" özelliğini kullanmalıdır.'
       )
 
     } catch (error: any) {

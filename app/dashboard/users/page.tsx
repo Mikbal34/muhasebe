@@ -21,6 +21,7 @@ import {
   Building2
 } from 'lucide-react'
 import { StatCardSkeleton, TableSkeleton, Skeleton } from '@/components/ui/skeleton'
+import { useUsers, useInvalidateUsers } from '@/hooks/use-users'
 
 interface User {
   id: string
@@ -51,13 +52,16 @@ interface UserData {
 
 export default function UsersPage() {
   const [user, setUser] = useState<User | null>(null)
-  const [users, setUsers] = useState<UserData[]>([])
-  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const router = useRouter()
 
+  // React Query hooks - 5 dakika cache
+  const { data: users = [], isLoading: usersLoading } = useUsers()
+  const invalidateUsers = useInvalidateUsers()
+
+  // Sadece user kontrolü - data fetching React Query'de
   useEffect(() => {
     const token = localStorage.getItem('token')
     const userData = localStorage.getItem('user')
@@ -76,65 +80,10 @@ export default function UsersPage() {
         router.push('/dashboard')
         return
       }
-
-      fetchUsers(token)
     } catch (err) {
       router.push('/login')
     }
   }, [router])
-
-  const fetchUsers = async (token: string) => {
-    try {
-      // Fetch users from users API
-      const usersResponse = await fetch('/api/users', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const usersData = await usersResponse.json()
-
-      // Fetch balances to get balance info
-      const balancesResponse = await fetch('/api/balances', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const balancesData = await balancesResponse.json()
-
-      if (usersData.success) {
-        const balancesMap = new Map()
-        if (balancesData.success) {
-          balancesData.data.balances.forEach((balance: any) => {
-            // Only process balances with user (not personnel)
-            if (balance.user) {
-              balancesMap.set(balance.user.id, {
-                id: balance.id,
-                available_amount: balance.available_amount,
-                debt_amount: balance.debt_amount,
-                reserved_amount: balance.reserved_amount,
-                iban: balance.user.iban
-              })
-            }
-          })
-        }
-
-        const usersWithBalances = usersData.data.users.map((user: any) => ({
-          id: user.id,
-          email: user.email,
-          full_name: user.full_name,
-          role: user.role,
-          phone: null,
-          iban: balancesMap.get(user.id)?.iban || null,
-          is_active: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          balance: balancesMap.get(user.id) || null
-        }))
-
-        setUsers(usersWithBalances)
-      }
-    } catch (err) {
-      console.error('Failed to fetch users:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const filteredUsers = users.filter(userData => {
     const matchesSearch = userData.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -185,8 +134,7 @@ export default function UsersPage() {
       })
 
       if (response.ok) {
-        // Remove user from local state
-        setUsers(prevUsers => prevUsers.filter(user => user.id !== userId))
+        invalidateUsers() // Cache'i invalidate et
         alert('Kullanıcı başarıyla silindi')
       } else {
         const data = await response.json()
@@ -198,7 +146,7 @@ export default function UsersPage() {
     }
   }
 
-  if (loading || !user) {
+  if (usersLoading || !user) {
     return (
       <DashboardLayout user={user || { id: '', full_name: 'Yükleniyor...', email: '', role: 'admin' }}>
         <div className="space-y-6">

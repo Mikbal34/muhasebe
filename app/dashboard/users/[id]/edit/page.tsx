@@ -18,6 +18,7 @@ import {
   AlertTriangle,
   CheckCircle
 } from 'lucide-react'
+import { useInvalidateUsers } from '@/hooks/use-users'
 
 interface User {
   id: string
@@ -53,6 +54,7 @@ export default function EditUserPage() {
   const [successMessage, setSuccessMessage] = useState('')
   const router = useRouter()
   const params = useParams()
+  const invalidateUsers = useInvalidateUsers()
   const userId = params.id as string
 
   useEffect(() => {
@@ -173,6 +175,7 @@ export default function EditUserPage() {
       const data = await response.json()
 
       if (response.ok) {
+        invalidateUsers()
         setSuccessMessage('Kullanıcı başarıyla güncellendi!')
         setTimeout(() => {
           router.push(`/dashboard/users/${userId}` as any)

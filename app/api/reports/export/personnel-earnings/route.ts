@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { apiResponse, withAuth } from '@/lib/middleware/auth'
-import { createClient } from '@/lib/supabase/server'
 const ExcelJS = require('exceljs')
 
 interface PersonnelEarning {
@@ -29,40 +28,34 @@ export async function POST(request: NextRequest) {
 
     try {
       const body = await request.json()
-      const { start_date, end_date } = body
+      const { start_date, end_date, format = 'excel' } = body
 
-      const supabase = await createClient()
-
-      // Fetch income distributions with personnel and project info
-      let query = supabase
-        .from('income_distributions')
+      // Fetch manual balance allocations with personnel and project info
+      let query = ctx.supabase
+        .from('manual_balance_allocations')
         .select(`
           id,
           amount,
           personnel_id,
-          income_id,
-          personnel:personnel_id(id, full_name),
-          income:income_id(
-            id,
-            income_date,
-            project:project_id(id, code, name)
-          )
+          created_at,
+          personnel:personnel(id, full_name),
+          project:project_id(id, code, name)
         `)
         .not('personnel_id', 'is', null)
 
-      const { data: distributions, error } = await query
+      const { data: allocations, error } = await query
 
       if (error) throw error
 
       // Filter by date if provided
-      let filteredDistributions = distributions || []
+      let filteredAllocations = allocations || []
       if (start_date || end_date) {
-        filteredDistributions = filteredDistributions.filter((dist: any) => {
-          const incomeDate = dist.income?.income_date
-          if (!incomeDate) return false
+        filteredAllocations = filteredAllocations.filter((alloc: any) => {
+          const allocDate = alloc.created_at
+          if (!allocDate) return false
 
-          if (start_date && incomeDate < start_date) return false
-          if (end_date && incomeDate > end_date) return false
+          if (start_date && allocDate < start_date) return false
+          if (end_date && allocDate > end_date) return false
           return true
         })
       }
@@ -70,12 +63,12 @@ export async function POST(request: NextRequest) {
       // Group by personnel and project
       const personnelMap = new Map<string, PersonnelSummary>()
 
-      filteredDistributions.forEach((dist: any) => {
-        const personnelId = dist.personnel_id
-        const personnelName = dist.personnel?.full_name || 'Bilinmiyor'
-        const projectId = dist.income?.project?.id || 'unknown'
-        const projectCode = dist.income?.project?.code || 'N/A'
-        const projectName = dist.income?.project?.name || 'Bilinmeyen Proje'
+      filteredAllocations.forEach((alloc: any) => {
+        const personnelId = alloc.personnel_id
+        const personnelName = alloc.personnel?.full_name || 'Bilinmiyor'
+        const projectId = alloc.project?.id || 'unknown'
+        const projectCode = alloc.project?.code || 'N/A'
+        const projectName = alloc.project?.name || 'Bilinmeyen Proje'
 
         if (!personnelMap.has(personnelId)) {
           personnelMap.set(personnelId, {
@@ -94,7 +87,7 @@ export async function POST(request: NextRequest) {
         const existingEarning = personnel.earnings.find(e => e.project_id === projectId)
 
         if (existingEarning) {
-          existingEarning.total_amount += dist.amount || 0
+          existingEarning.total_amount += alloc.amount || 0
         } else {
           personnel.earnings.push({
             personnel_id: personnelId,
@@ -102,11 +95,11 @@ export async function POST(request: NextRequest) {
             project_id: projectId,
             project_code: projectCode,
             project_name: projectName,
-            total_amount: dist.amount || 0
+            total_amount: alloc.amount || 0
           })
         }
 
-        personnel.total_earnings += dist.amount || 0
+        personnel.total_earnings += alloc.amount || 0
       })
 
       // Calculate derived fields
@@ -119,6 +112,45 @@ export async function POST(request: NextRequest) {
 
       const personnelList = Array.from(personnelMap.values())
         .sort((a, b) => b.total_earnings - a.total_earnings)
+
+      // JSON format için önizleme verisi döndür
+      if (format === 'json') {
+        const rows = personnelList.map(p => ({
+          id: p.id,
+          name: p.name,
+          total_earnings: p.total_earnings,
+          project_count: p.project_count,
+          avg_per_project: p.avg_per_project
+        }))
+
+        const detailRows = personnelList.flatMap(p =>
+          p.earnings.map(e => ({
+            personnel_id: e.personnel_id,
+            personnel_name: e.personnel_name,
+            project_id: e.project_id,
+            project_code: e.project_code,
+            project_name: e.project_name,
+            amount: e.total_amount,
+            percentage: p.total_earnings > 0 ? (e.total_amount / p.total_earnings) * 100 : 0
+          }))
+        )
+
+        const totalEarnings = rows.reduce((sum, r) => sum + r.total_earnings, 0)
+        const totalProjects = rows.reduce((sum, r) => sum + r.project_count, 0)
+
+        return apiResponse.success({
+          rows: {
+            summary: rows,
+            details: detailRows
+          },
+          summary: {
+            totalPersonnel: rows.length,
+            totalEarnings,
+            totalProjects,
+            avgEarningPerPerson: rows.length > 0 ? totalEarnings / rows.length : 0
+          }
+        })
+      }
 
       // Generate Excel
       const buffer = await generatePersonnelEarningsReport(personnelList)

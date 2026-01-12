@@ -2,8 +2,15 @@ import { NextRequest } from 'next/server'
 import { registerSchema } from '@/lib/schemas/validation'
 import { apiResponse, validateRequest } from '@/lib/middleware/auth'
 import { createAdminClient } from '@/lib/supabase/server'
+import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 
 export async function POST(request: NextRequest) {
+  // Apply rate limiting for registration attempts (5 per minute)
+  const rateCheck = await checkRateLimit(request, RATE_LIMITS.auth, 'register')
+  if (!rateCheck.allowed) {
+    return rateLimitResponse(rateCheck.resetIn)
+  }
+
   try {
     // Validate request data
     const validation = await validateRequest(request, registerSchema)
@@ -15,13 +22,6 @@ export async function POST(request: NextRequest) {
 
     // Use admin client to create user
     const supabase = await createAdminClient()
-
-    // Debug: check if we have the right keys
-    console.log('Environment check:', {
-      hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-      hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-      url: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + '...'
-    })
 
     // First check if user already exists
     const { data: existingUser } = await supabase

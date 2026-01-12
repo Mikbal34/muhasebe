@@ -18,6 +18,9 @@ import {
 import { usePaymentNotifications } from '@/contexts/notification-context'
 import PersonBadge from '@/components/ui/person-badge'
 import { SearchableSelect } from '@/components/ui/searchable-select'
+import { useInvalidatePayments } from '@/hooks/use-payments'
+import { useInvalidateBalances } from '@/hooks/use-balances'
+import { useInvalidateDashboard } from '@/hooks/use-dashboard'
 
 interface User {
   id: string
@@ -70,6 +73,9 @@ export default function NewPaymentPage() {
   const [availableDistributions, setAvailableDistributions] = useState<IncomeDistribution[]>([])
   const router = useRouter()
   const { notifyPaymentCreated } = usePaymentNotifications()
+  const invalidatePayments = useInvalidatePayments()
+  const invalidateBalances = useInvalidateBalances()
+  const invalidateDashboard = useInvalidateDashboard()
 
   const [formData, setFormData] = useState({
     person_id: '',  // Will hold either user_id or personnel_id
@@ -268,6 +274,11 @@ export default function NewPaymentPage() {
       const data = await response.json()
 
       if (data.success) {
+        // Cache'leri invalidate et
+        invalidatePayments()
+        invalidateBalances()
+        invalidateDashboard()
+
         // Calculate total amount
         const totalAmount = selectedItems.reduce((sum, item) => sum + item.amount, 0)
 

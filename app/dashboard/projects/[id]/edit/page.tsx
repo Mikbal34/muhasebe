@@ -21,6 +21,8 @@ import { supabase } from '@/lib/supabase/client'
 import PersonPicker, { Person, PersonType } from '@/components/ui/person-picker'
 import PersonBadge from '@/components/ui/person-badge'
 import { PaymentPlanSection, PlannedInstallment } from '@/components/projects/payment-plan-section'
+import { useInvalidateProjects } from '@/hooks/use-projects'
+import { useInvalidateDashboard } from '@/hooks/use-dashboard'
 
 interface User {
   id: string
@@ -77,6 +79,8 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const router = useRouter()
+  const invalidateProjects = useInvalidateProjects()
+  const invalidateDashboard = useInvalidateDashboard()
 
   // Form state
   const [formData, setFormData] = useState({
@@ -444,6 +448,8 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
           }
         }
 
+        invalidateProjects()
+        invalidateDashboard()
         router.push('/dashboard/projects')
       } else {
         setErrors({ submit: data.error || 'Proje güncellenemedi' })

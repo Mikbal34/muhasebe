@@ -20,6 +20,8 @@ import {
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import { useIncomeNotifications } from '@/contexts/notification-context'
 import { triggerNotificationRefresh } from '@/utils/notifications'
+import { useInvalidateIncomes } from '@/hooks/use-incomes'
+import { useInvalidateDashboard } from '@/hooks/use-dashboard'
 
 interface User {
   id: string
@@ -49,6 +51,8 @@ export default function NewIncomePage() {
   const [projects, setProjects] = useState<Project[]>([])
   const router = useRouter()
   const { notifyIncomeCreated } = useIncomeNotifications()
+  const invalidateIncomes = useInvalidateIncomes()
+  const invalidateDashboard = useInvalidateDashboard()
 
   const [formData, setFormData] = useState({
     project_id: '',
@@ -125,8 +129,9 @@ export default function NewIncomePage() {
     const hasWithholdingTax = selectedProject?.has_withholding_tax || false
     const withholdingTaxRate = selectedProject?.withholding_tax_rate || 0
 
-    // Tam KDV hesaplama: brütGelir × kdvOranı ÷ 100
-    const fullVatAmount = (grossAmount * vatRate) / 100
+    // Tam KDV hesaplama: brütGelir × kdvOranı ÷ (100 + kdvOranı)
+    // Türk KDV sistemi: Brüt tutar KDV dahildir, iç yüzde hesabı yapılır
+    const fullVatAmount = (grossAmount * vatRate) / (100 + vatRate)
 
     // Tevkifat hesaplama (varsa)
     let withholdingTaxAmount = 0
@@ -268,6 +273,10 @@ export default function NewIncomePage() {
       console.log('🔴 API RESPONSE:', data)
 
       if (data.success) {
+        // Cache'leri invalidate et
+        invalidateIncomes()
+        invalidateDashboard()
+
         // Başarılı durumda bildirimi ekle
         const selectedProject = projects.find(p => p.id === formData.project_id)
         if (selectedProject) {

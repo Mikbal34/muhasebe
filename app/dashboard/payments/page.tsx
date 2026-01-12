@@ -22,6 +22,7 @@ import {
   Download
 } from 'lucide-react'
 import { StatCardSkeleton, TableSkeleton, Skeleton } from '@/components/ui/skeleton'
+import { usePayments } from '@/hooks/use-payments'
 
 interface User {
   id: string
@@ -76,12 +77,13 @@ interface PaymentInstruction {
 
 export default function PaymentsPage() {
   const [user, setUser] = useState<User | null>(null)
-  const [payments, setPayments] = useState<PaymentInstruction[]>([])
-  const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const router = useRouter()
+
+  // React Query hooks - 5 dakika cache
+  const { data: payments = [], isLoading: paymentsLoading } = usePayments()
 
   const handleExportExcel = async () => {
     setExporting(true)
@@ -156,6 +158,7 @@ export default function PaymentsPage() {
     }
   }
 
+  // Sadece user kontrolü - data fetching React Query'de
   useEffect(() => {
     const token = localStorage.getItem('token')
     const userData = localStorage.getItem('user')
@@ -167,28 +170,10 @@ export default function PaymentsPage() {
 
     try {
       setUser(JSON.parse(userData))
-      fetchPayments(token)
     } catch (err) {
       router.push('/login')
     }
   }, [router])
-
-  const fetchPayments = async (token: string) => {
-    try {
-      const response = await fetch('/api/payments', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await response.json()
-
-      if (data.success) {
-        setPayments(data.data.payments || [])
-      }
-    } catch (err) {
-      console.error('Failed to fetch payments:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const filteredPayments = payments.filter(payment => {
     const recipientName = payment.user?.full_name || payment.personnel?.full_name || ''
@@ -235,7 +220,7 @@ export default function PaymentsPage() {
 
   const totalAmount = filteredPayments.reduce((sum, payment) => sum + payment.total_amount, 0)
 
-  if (loading || !user) {
+  if (paymentsLoading || !user) {
     return (
       <DashboardLayout user={user || { id: '', full_name: 'Yükleniyor...', email: '', role: 'manager' }}>
         <div className="space-y-6">

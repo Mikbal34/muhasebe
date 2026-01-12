@@ -40,11 +40,14 @@ export async function GET(request: NextRequest) {
       }
 
       if (search) {
+        // Sanitize search parameter - escape special characters for PostgREST
+        const sanitizedSearch = search.replace(/[%_\\(),.*]/g, '\\$&')
+
         // Search in project name, code, or representative names
         const { data: matchingUsers } = await ctx.supabase
           .from('users')
           .select('id')
-          .ilike('full_name', `%${search}%`)
+          .ilike('full_name', `%${sanitizedSearch}%`)
 
         const userIds = (matchingUsers || []).map((u: any) => u.id)
 
@@ -59,9 +62,9 @@ export async function GET(request: NextRequest) {
         }
 
         if (projectIdsFromUsers.length > 0) {
-          query = query.or(`name.ilike.%${search}%,code.ilike.%${search}%,id.in.(${projectIdsFromUsers.join(',')})`)
+          query = query.or(`name.ilike.%${sanitizedSearch}%,code.ilike.%${sanitizedSearch}%,id.in.(${projectIdsFromUsers.join(',')})`)
         } else {
-          query = query.or(`name.ilike.%${search}%,code.ilike.%${search}%`)
+          query = query.or(`name.ilike.%${sanitizedSearch}%,code.ilike.%${sanitizedSearch}%`)
         }
       }
 

@@ -25,6 +25,7 @@ import {
   Download
 } from 'lucide-react'
 import { StatCardSkeleton, AccordionGroupSkeleton, Skeleton } from '@/components/ui/skeleton'
+import { useIncomes, useInvalidateIncomes } from '@/hooks/use-incomes'
 
 interface User {
   id: string
@@ -68,8 +69,6 @@ interface Income {
 
 export default function IncomesPage() {
   const [user, setUser] = useState<User | null>(null)
-  const [incomes, setIncomes] = useState<Income[]>([])
-  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [projectFilter, setProjectFilter] = useState<string>('')
   const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({})
@@ -79,6 +78,11 @@ export default function IncomesPage() {
   const [actionDropdownOpen, setActionDropdownOpen] = useState(false)
   const router = useRouter()
 
+  // React Query hooks - 5 dakika cache
+  const { data: incomes = [], isLoading: incomesLoading } = useIncomes()
+  const invalidateIncomes = useInvalidateIncomes()
+
+  // Sadece user kontrolü - data fetching React Query'de
   useEffect(() => {
     const token = localStorage.getItem('token')
     const userData = localStorage.getItem('user')
@@ -90,28 +94,10 @@ export default function IncomesPage() {
 
     try {
       setUser(JSON.parse(userData))
-      fetchIncomes(token)
     } catch (err) {
       router.push('/login')
     }
-  }, [])
-
-  const fetchIncomes = async (token: string) => {
-    try {
-      const response = await fetch('/api/incomes', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await response.json()
-
-      if (data.success) {
-        setIncomes(data.data.incomes || [])
-      }
-    } catch (err) {
-      console.error('Failed to fetch incomes:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [router])
 
   const filteredIncomes = incomes.filter(income => {
     const matchesSearch = income.project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -169,11 +155,8 @@ export default function IncomesPage() {
   }
 
   const handleCollectionSuccess = () => {
-    // Refresh incomes list
-    const token = localStorage.getItem('token')
-    if (token) {
-      fetchIncomes(token)
-    }
+    // React Query cache'i invalidate et
+    invalidateIncomes()
   }
 
   const handleExportExcel = async () => {
@@ -214,7 +197,7 @@ export default function IncomesPage() {
     }
   }
 
-  if (loading || !user) {
+  if (incomesLoading || !user) {
     return (
       <DashboardLayout user={user || { id: '', full_name: 'Yükleniyor...', email: '', role: 'manager' }}>
         <div className="space-y-6">

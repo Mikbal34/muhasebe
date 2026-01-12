@@ -1,7 +1,28 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
+import {
+  generateExcelBuffer,
+  createExcelResponse,
+  ExcelColumn,
+  NUMBER_FORMATS
+} from '@/lib/utils/excel-factory'
 import { apiResponse, withAuth } from '@/lib/middleware/auth'
-import { createClient } from '@/lib/supabase/server'
-const ExcelJS = require('exceljs')
+
+// Kolon tanımları
+const columns: ExcelColumn[] = [
+  { key: 'month', label: 'Ay', width: 10, getValue: (e) => String(new Date(e.expense_date).getMonth() + 1) },
+  { key: 'year', label: 'Yil', width: 10, getValue: (e) => String(new Date(e.expense_date).getFullYear()) },
+  { key: 'project_code', label: 'Proje_Kodu', width: 15, getValue: (e) => e.project?.code || 'GENEL' },
+  { key: 'expense_type', label: 'Gider_Tipi', width: 30, getValue: (e) => e.description },
+  { key: 'is_tto', label: 'TTO_Gideri', width: 12, getValue: (e) => e.is_tto_expense ? 'Evet' : 'Hayir' },
+  { key: 'amount', label: 'Gider', width: 18, numFmt: NUMBER_FORMATS.currency, getValue: (e) => e.amount },
+]
+
+const excelConfig = {
+  title: 'PROJE BAZLI GIDER TABLOSU',
+  sheetName: 'Proje Bazli Gider Tablosu',
+  filename: 'proje_bazli_gider',
+  columns
+}
 
 export async function POST(request: NextRequest) {
   return withAuth(request, async (req, ctx) => {
@@ -11,12 +32,10 @@ export async function POST(request: NextRequest) {
 
     try {
       const body = await request.json()
-      const { project_id, start_date, end_date, columns } = body
-
-      const supabase = await createClient()
+      const { project_id, start_date, end_date, columns: selectedColumns, format = 'excel' } = body
 
       // Build query
-      let query = supabase
+      let query = ctx.supabase
         .from('expenses')
         .select(`
           id,
@@ -29,119 +48,47 @@ export async function POST(request: NextRequest) {
         `)
         .order('expense_date', { ascending: false })
 
-      if (project_id) {
-        query = query.eq('project_id', project_id)
-      }
-      if (start_date) {
-        query = query.gte('expense_date', start_date)
-      }
-      if (end_date) {
-        query = query.lte('expense_date', end_date)
-      }
+      if (project_id) query = query.eq('project_id', project_id)
+      if (start_date) query = query.gte('expense_date', start_date)
+      if (end_date) query = query.lte('expense_date', end_date)
 
       const { data: expenses, error } = await query
-
       if (error) throw error
 
-      // Generate Excel
-      const buffer = await generateExpenseExcel(expenses || [], columns)
+      // JSON preview format
+      if (format === 'json') {
+        const rows = (expenses || []).map((expense: any) => ({
+          id: expense.id,
+          month: new Date(expense.expense_date).getMonth() + 1,
+          year: new Date(expense.expense_date).getFullYear(),
+          expense_date: expense.expense_date,
+          project_code: expense.project?.code || 'GENEL',
+          project_name: expense.project?.name || 'Genel Gider',
+          expense_type: expense.expense_type,
+          description: expense.description,
+          is_tto: expense.is_tto_expense ? 'Evet' : 'Hayır',
+          amount: expense.amount
+        }))
 
-      const headers = new Headers()
-      headers.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-      const dateStr = new Date().toLocaleDateString('tr-TR').replace(/\./g, '-')
-      headers.set('Content-Disposition', `attachment; filename="proje_bazli_gider_${dateStr}.xlsx"`)
+        const totalAmount = rows.reduce((sum: number, r: any) => sum + (r.amount || 0), 0)
 
-      return new NextResponse(buffer, { headers })
+        return apiResponse.success({
+          rows,
+          summary: {
+            totalCount: rows.length,
+            totalAmount,
+            avgAmount: rows.length > 0 ? totalAmount / rows.length : 0
+          }
+        })
+      }
+
+      // Generate Excel using factory
+      const buffer = await generateExcelBuffer(expenses || [], excelConfig, selectedColumns)
+      return createExcelResponse(buffer, excelConfig.filename)
 
     } catch (error: any) {
       console.error('Expense export error:', error)
       return apiResponse.error('Export failed', error.message, 500)
     }
   })
-}
-
-// Tüm kolon tanımları
-const allColumnDefs = [
-  { key: 'month', label: 'Ay', width: 10, getValue: (expense: any) => String(new Date(expense.expense_date).getMonth() + 1) },
-  { key: 'year', label: 'Yil', width: 10, getValue: (expense: any) => String(new Date(expense.expense_date).getFullYear()) },
-  { key: 'project_code', label: 'Proje_Kodu', width: 15, getValue: (expense: any) => expense.project?.code || 'GENEL' },
-  { key: 'expense_type', label: 'Gider_Tipi', width: 30, getValue: (expense: any) => expense.description },
-  { key: 'is_tto', label: 'TTO_Gideri', width: 12, getValue: (expense: any) => expense.is_tto_expense ? 'Evet' : 'Hayir' },
-  { key: 'amount', label: 'Gider', width: 18, numFmt: '#,##0.00 "₺"', getValue: (expense: any) => expense.amount },
-]
-
-async function generateExpenseExcel(expenses: any[], columns?: string[]) {
-  const workbook = new ExcelJS.Workbook()
-  workbook.creator = 'Muhasebe Yazilimi'
-  workbook.created = new Date()
-
-  const worksheet = workbook.addWorksheet('Proje Bazli Gider Tablosu')
-
-  // Aktif kolonları belirle
-  const activeColumns = columns?.length
-    ? allColumnDefs.filter(col => columns.includes(col.key))
-    : allColumnDefs
-
-  // Header styling
-  const headerStyle = {
-    font: { bold: true, color: { argb: 'FFFFFF' } },
-    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: '14B8A6' } },
-    alignment: { horizontal: 'center', vertical: 'middle' },
-    border: {
-      top: { style: 'thin' },
-      bottom: { style: 'thin' },
-      left: { style: 'thin' },
-      right: { style: 'thin' }
-    }
-  }
-
-  const dataStyle = {
-    border: {
-      top: { style: 'thin' },
-      bottom: { style: 'thin' },
-      left: { style: 'thin' },
-      right: { style: 'thin' }
-    },
-    alignment: { horizontal: 'center', vertical: 'middle' }
-  }
-
-  // Title
-  const lastCol = String.fromCharCode(64 + activeColumns.length)
-  worksheet.mergeCells(`A1:${lastCol}1`)
-  const titleCell = worksheet.getCell('A1')
-  titleCell.value = 'PROJE BAZLI GIDER TABLOSU'
-  titleCell.font = { bold: true, size: 16 }
-  titleCell.alignment = { horizontal: 'center' }
-
-  // Headers - Row 3
-  activeColumns.forEach((col, index) => {
-    const cell = worksheet.getCell(3, index + 1)
-    cell.value = col.label
-    cell.style = headerStyle as any
-  })
-
-  // Data
-  expenses.forEach((expense, rowIndex) => {
-    const row = rowIndex + 4
-    activeColumns.forEach((col, colIndex) => {
-      const cell = worksheet.getCell(row, colIndex + 1)
-      cell.value = col.getValue(expense)
-      cell.style = dataStyle as any
-      // numFmt varsa hücreye de uygula
-      if (col.numFmt) {
-        cell.numFmt = col.numFmt
-      }
-    })
-  })
-
-  // Format and width columns
-  activeColumns.forEach((col, index) => {
-    const column = worksheet.getColumn(index + 1)
-    column.width = col.width
-    if (col.numFmt) {
-      column.numFmt = col.numFmt
-    }
-  })
-
-  return await workbook.xlsx.writeBuffer()
 }

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import Link from 'next/link'
 import { ArrowLeft, Save, User, Mail, Phone, CreditCard, IdCard, FileText, Building2, GraduationCap, Calendar } from 'lucide-react'
+import { useInvalidatePersonnel } from '@/hooks/use-personnel'
 
 interface User {
   id: string
@@ -33,6 +34,7 @@ export default function NewPersonnelPage() {
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const router = useRouter()
+  const invalidatePersonnel = useInvalidatePersonnel()
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -122,6 +124,9 @@ export default function NewPersonnelPage() {
       const data = await response.json()
 
       if (data.success) {
+        // Cache'i invalidate et
+        invalidatePersonnel()
+
         alert(data.message || 'Personel başarıyla oluşturuldu')
         router.push('/dashboard/personnel')
       } else {

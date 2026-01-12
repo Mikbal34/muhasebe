@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import PersonBadge from '@/components/ui/person-badge'
 import { ListItemSkeleton, DetailCardSkeleton, Skeleton } from '@/components/ui/skeleton'
+import { useBalances, useBalanceTransactions } from '@/hooks/use-balances'
 
 interface User {
   id: string
@@ -57,13 +58,15 @@ interface Transaction {
 
 export default function BalancesPage() {
   const [user, setUser] = useState<User | null>(null)
-  const [balances, setBalances] = useState<Balance[]>([])
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedBalance, setSelectedBalance] = useState<string | null>(null)
   const router = useRouter()
 
+  // React Query hooks - 5 dakika cache
+  const { data: balances = [], isLoading: balancesLoading } = useBalances()
+  const { data: transactions = [] } = useBalanceTransactions(selectedBalance)
+
+  // Sadece user kontrolü - data fetching React Query'de
   useEffect(() => {
     const token = localStorage.getItem('token')
     const userData = localStorage.getItem('user')
@@ -76,50 +79,13 @@ export default function BalancesPage() {
     try {
       const parsedUser = JSON.parse(userData)
       setUser(parsedUser)
-      fetchBalances(token)
     } catch (err) {
       router.push('/login')
     }
   }, [router])
 
-  const fetchBalances = async (token: string) => {
-    try {
-      const response = await fetch('/api/balances', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await response.json()
-
-      if (data.success) {
-        setBalances(data.data.balances || [])
-      }
-    } catch (err) {
-      console.error('Failed to fetch balances:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchTransactions = async (token: string, balanceId: string) => {
-    try {
-      const response = await fetch(`/api/balances/${balanceId}/transactions`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await response.json()
-
-      if (data.success) {
-        setTransactions(data.data.transactions || [])
-      }
-    } catch (err) {
-      console.error('Failed to fetch transactions:', err)
-    }
-  }
-
   const handleBalanceSelect = (balanceId: string) => {
     setSelectedBalance(balanceId)
-    const token = localStorage.getItem('token')
-    if (token) {
-      fetchTransactions(token, balanceId)
-    }
   }
 
   const filteredBalances = balances.filter(balance => {
@@ -155,7 +121,7 @@ export default function BalancesPage() {
 
   const selectedBalanceData = balances.find(b => b.id === selectedBalance)
 
-  if (loading || !user) {
+  if (balancesLoading || !user) {
     return (
       <DashboardLayout user={user || { id: '', full_name: 'Yükleniyor...', email: '', role: 'manager' }}>
         <div className="space-y-6">

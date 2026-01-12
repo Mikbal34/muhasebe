@@ -15,6 +15,8 @@ import {
   Save
 } from 'lucide-react'
 import { SearchableSelect } from '@/components/ui/searchable-select'
+import { useInvalidateIncomes } from '@/hooks/use-incomes'
+import { useInvalidateDashboard } from '@/hooks/use-dashboard'
 
 interface User {
   id: string
@@ -55,6 +57,8 @@ export default function EditIncomePage({ params }: { params: { id: string } }) {
   const [saving, setSaving] = useState(false)
   const [projects, setProjects] = useState<Project[]>([])
   const router = useRouter()
+  const invalidateIncomes = useInvalidateIncomes()
+  const invalidateDashboard = useInvalidateDashboard()
 
   const [formData, setFormData] = useState({
     project_id: '',
@@ -153,7 +157,8 @@ export default function EditIncomePage({ params }: { params: { id: string } }) {
     const selectedProject = projects.find(p => p.id === formData.project_id)
     const companyRate = selectedProject?.company_rate || 0
 
-    const vatAmount = (grossAmount * vatRate) / 100
+    // Türk KDV sistemi: Brüt tutar KDV dahildir, iç yüzde hesabı
+    const vatAmount = (grossAmount * vatRate) / (100 + vatRate)
     const netAmount = grossAmount - vatAmount
     const companyAmount = (netAmount * companyRate) / 100
     const distributableAmount = netAmount - companyAmount
@@ -220,6 +225,8 @@ export default function EditIncomePage({ params }: { params: { id: string } }) {
       const data = await response.json()
 
       if (data.success) {
+        invalidateIncomes()
+        invalidateDashboard()
         router.push(`/dashboard/incomes/${params.id}` as any)
       } else {
         setErrors({ submit: data.error || 'Gelir kaydı güncellenemedi' })

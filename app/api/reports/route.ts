@@ -79,14 +79,8 @@ export async function POST(request: NextRequest) {
         case 'project':
           reportData = await generateProjectReport(ctx.supabase, parameters)
           break
-        case 'academician':
-          reportData = await generateAcademicianReport(ctx.supabase, parameters)
-          break
         case 'company':
           reportData = await generateCompanyReport(ctx.supabase, parameters)
-          break
-        case 'payments':
-          reportData = await generatePaymentsReport(ctx.supabase, parameters)
           break
         default:
           return apiResponse.error('Invalid report type', 'Unsupported report type', 400)
@@ -129,17 +123,16 @@ async function generateProjectReport(supabase: any, parameters: any) {
       *,
       created_by_user:users!projects_created_by_fkey(full_name),
       representatives:project_representatives(
-        share_percentage,
-        is_lead,
+        role,
         user:users(full_name, email)
       ),
       incomes:incomes(
         id,
         gross_amount,
         net_amount,
-        income_date,
-        distributions:income_distributions(amount, user:users(full_name))
-      )
+        income_date
+      ),
+      allocations:manual_balance_allocations(amount, personnel:personnel(full_name))
     `)
 
   if (parameters.project_id) {
@@ -163,112 +156,13 @@ async function generateProjectReport(supabase: any, parameters: any) {
   }
 }
 
-async function generateAcademicianReport(supabase: any, parameters: any) {
-  // First get all academicians
-  let userQuery = supabase
-    .from('users')
-    .select('*')
-    .eq('role', 'academician')
-    .eq('is_active', true)
-
-  if (parameters.user_id) {
-    userQuery = userQuery.eq('id', parameters.user_id)
-  }
-
-  const { data: users, error: usersError } = await userQuery
-
-  if (usersError) {
-    console.error('Users query error:', usersError)
-    throw new Error(`Failed to fetch user data: ${usersError.message}`)
-  }
-
-  if (!users || users.length === 0) {
-    return {
-      academicians: [],
-      summary: {
-        totalAcademicians: 0,
-        totalBalance: 0,
-        totalEarnings: 0
-      }
-    }
-  }
-
-  // Now get their related data
-  const academicians = []
-
-  for (const user of users) {
-    // Get current balance (should be only one record per user)
-    const { data: balances, error: balanceError } = await supabase
-      .from('balances')
-      .select('available_amount, debt_amount, reserved_amount')
-      .eq('user_id', user.id)
-      .single()
-
-    // If no balance record exists, it's normal for new users
-
-    // Get income distributions
-    const { data: distributions } = await supabase
-      .from('income_distributions')
-      .select(`
-        amount,
-        income:incomes(gross_amount, income_date, project:projects(name, code))
-      `)
-      .eq('user_id', user.id)
-
-    // Get project representations
-    const { data: representations } = await supabase
-      .from('project_representatives')
-      .select(`
-        share_percentage,
-        is_lead,
-        project:projects(name, code, status)
-      `)
-      .eq('user_id', user.id)
-
-    academicians.push({
-      ...user,
-      balances: balances ? [balances] : [],
-      income_distributions: distributions || [],
-      project_representatives: representations || []
-    })
-  }
-
-  // Calculate summary
-  let totalBalance = 0
-  let totalEarnings = 0
-
-  academicians.forEach((academician: any) => {
-    // Sum current available balance (should be only one balance per user)
-    if (academician.balances && academician.balances.length > 0) {
-      totalBalance += academician.balances[0].available_amount || 0
-    }
-
-    // Sum all income distributions for total earnings
-    if (academician.income_distributions && academician.income_distributions.length > 0) {
-      academician.income_distributions.forEach((dist: any) => {
-        totalEarnings += dist.amount || 0
-      })
-    }
-  })
-
-  return {
-    academicians,
-    summary: {
-      totalAcademicians: academicians?.length || 0,
-      totalBalance,
-      totalEarnings
-    }
-  }
-}
-
 async function generateCompanyReport(supabase: any, parameters: any) {
   // Get income summary with project details
   let query = supabase
     .from('incomes')
     .select(`
       *,
-      project:projects(name, code, company_rate),
-      distributions:income_distributions(amount)
+      project:projects(name, code, company_rate)
     `)
 
   // Apply date filter if provided
@@ -320,58 +214,6 @@ async function generateCompanyReport(supabase: any, parameters: any) {
       netCompanyIncome: totalCommissions, // Şirketin net geliri = komisyon tutarı
       pendingPayments: payments?.filter((p: any) => p.status === 'pending').length || 0,
       completedPayments: payments?.filter((p: any) => p.status === 'completed').length || 0
-    }
-  }
-}
-
-async function generatePaymentsReport(supabase: any, parameters: any) {
-  let query = supabase
-    .from('payment_instructions')
-    .select(`
-      *,
-      user:users!payment_instructions_user_id_fkey(full_name, email, iban),
-      created_by_user:users!payment_instructions_created_by_fkey(full_name),
-      items:payment_instruction_items(
-        amount,
-        description,
-        income_distribution:income_distributions(
-          amount,
-          income:incomes(description, project:projects(name, code))
-        )
-      )
-    `)
-
-  if (parameters.start_date) {
-    query = query.gte('created_at', parameters.start_date)
-  }
-
-  if (parameters.end_date) {
-    query = query.lte('created_at', parameters.end_date)
-  }
-
-  if (parameters.user_id) {
-    query = query.eq('user_id', parameters.user_id)
-  }
-
-  const { data: paymentInstructions, error } = await query
-
-  if (error) {
-    throw new Error(`Failed to fetch payment instructions: ${error.message}`)
-  }
-
-  const statusSummary = paymentInstructions?.reduce((acc: any, p: any) => {
-    acc[p.status] = (acc[p.status] || 0) + 1
-    return acc
-  }, {})
-
-  return {
-    paymentInstructions,
-    summary: {
-      totalPayments: paymentInstructions?.length || 0,
-      totalAmount: paymentInstructions?.reduce((sum: number, p: any) => sum + (p.total_amount || 0), 0) || 0,
-      statusBreakdown: statusSummary || {},
-      avgPaymentAmount: paymentInstructions?.length > 0 ?
-        (paymentInstructions.reduce((sum: number, p: any) => sum + (p.total_amount || 0), 0) / paymentInstructions.length) : 0
     }
   }
 }

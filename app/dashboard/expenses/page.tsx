@@ -20,6 +20,7 @@ import {
   Download
 } from 'lucide-react'
 import { StatCardSkeleton, AccordionGroupSkeleton, Skeleton } from '@/components/ui/skeleton'
+import { useExpenses, useInvalidateExpenses } from '@/hooks/use-expenses'
 
 interface User {
   id: string
@@ -52,14 +53,17 @@ interface Expense {
 
 export default function ExpensesPage() {
   const [user, setUser] = useState<User | null>(null)
-  const [expenses, setExpenses] = useState<Expense[]>([])
-  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [projectFilter, setProjectFilter] = useState<string>('')
   const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({})
   const [exporting, setExporting] = useState(false)
   const router = useRouter()
 
+  // React Query hooks - 5 dakika cache
+  const { data: expenses = [], isLoading: expensesLoading } = useExpenses()
+  const invalidateExpenses = useInvalidateExpenses()
+
+  // Sadece user kontrolü - data fetching React Query'de
   useEffect(() => {
     const token = localStorage.getItem('token')
     const userData = localStorage.getItem('user')
@@ -71,28 +75,10 @@ export default function ExpensesPage() {
 
     try {
       setUser(JSON.parse(userData))
-      fetchExpenses(token)
     } catch (err) {
       router.push('/login')
     }
   }, [router])
-
-  const fetchExpenses = async (token: string) => {
-    try {
-      const response = await fetch('/api/expenses', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await response.json()
-
-      if (data.success) {
-        setExpenses(data.data.expenses || [])
-      }
-    } catch (err) {
-      console.error('Failed to fetch expenses:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleDelete = async (id: string) => {
     if (!confirm('Bu gideri silmek istediğinizden emin misiniz?')) {
@@ -109,7 +95,7 @@ export default function ExpensesPage() {
       const data = await response.json()
 
       if (data.success) {
-        setExpenses(expenses.filter(e => e.id !== id))
+        invalidateExpenses() // Cache'i invalidate et
         alert('Gider başarıyla silindi')
       } else {
         alert(data.error || 'Gider silinemedi')
@@ -215,7 +201,7 @@ export default function ExpensesPage() {
     }
   }
 
-  if (loading || !user) {
+  if (expensesLoading || !user) {
     return (
       <DashboardLayout user={user || { id: '', full_name: 'Yükleniyor...', email: '', role: 'manager' }}>
         <div className="space-y-6">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, forwardRef } from 'react'
+import { formatCurrencyInput } from '@/lib/utils/format'
 
 interface MoneyInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value'> {
     value: string | number
@@ -9,26 +10,9 @@ export const MoneyInput = forwardRef<HTMLInputElement, MoneyInputProps>(
     ({ value, onChange, className, ...props }, ref) => {
         const [displayValue, setDisplayValue] = useState('')
 
-        // Format number to Turkish currency string (e.g., 1234.56 -> 1.234,56)
-        const formatCurrency = (val: string | number) => {
-            if (!val && val !== 0) return ''
-
-            // Convert to string and handle decimals
-            let parts = val.toString().split('.')
-
-            // Add thousands separator to integer part
-            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.')
-
-            // Join with comma for decimal
-            return parts.join(',')
-        }
-
         useEffect(() => {
             // Update display value when external value changes
-            // We only do this if the parsed display value doesn't match the new value
-            // to avoid cursor jumping issues during typing if possible, though difficult with this approach
-            // For simplicity in this controlled component, we'll trust the parent's value
-            setDisplayValue(formatCurrency(value))
+            setDisplayValue(formatCurrencyInput(value))
         }, [value])
 
         const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

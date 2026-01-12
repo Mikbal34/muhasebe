@@ -18,6 +18,8 @@ import {
 import { MoneyInput } from '@/components/ui/money-input'
 import { useProjectNotifications } from '@/contexts/notification-context'
 import { triggerNotificationRefresh } from '@/utils/notifications'
+import { useInvalidateProjects } from '@/hooks/use-projects'
+import { useInvalidateDashboard } from '@/hooks/use-dashboard'
 import { supabase } from '@/lib/supabase/client'
 import PersonPicker, { Person, PersonType } from '@/components/ui/person-picker'
 import PersonBadge from '@/components/ui/person-badge'
@@ -44,6 +46,8 @@ export default function NewProjectPage() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const { notifyProjectCreated } = useProjectNotifications()
+  const invalidateProjects = useInvalidateProjects()
+  const invalidateDashboard = useInvalidateDashboard()
 
   // Form state
   const [formData, setFormData] = useState({
@@ -316,6 +320,10 @@ export default function NewProjectPage() {
       const data = await response.json()
 
       if (data.success) {
+        // Cache'leri invalidate et
+        invalidateProjects()
+        invalidateDashboard()
+
         // Trigger notification for new project
         notifyProjectCreated(formData.name, formData.code)
 

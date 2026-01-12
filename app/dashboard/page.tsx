@@ -23,6 +23,7 @@ import { StatCardSkeleton, ProgressBarSkeleton, MonthlyTableSkeleton, Skeleton }
 import { MiniChart } from '@/components/ui/mini-chart'
 import { CashFlowDiagram } from '@/components/charts/cash-flow-diagram'
 import { CashFlowData, CashFlowPeriod, PERIOD_OPTIONS } from '@/components/charts/cash-flow-types'
+import { useDashboard, useCashFlow } from '@/hooks/use-dashboard'
 
 interface User {
   id: string
@@ -31,62 +32,15 @@ interface User {
   role: 'admin' | 'manager'
 }
 
-interface DashboardStats {
-  totalProjects: number
-  activeProjects: number
-  totalIncome: number
-  totalPayments: number
-  pendingPayments: number
-  totalUsers: number
-  totalBalance: number
-}
-
-interface TTOFinancials {
-  total_commission: number
-  total_expenses: number
-  net_balance: number
-  debt_amount: number
-}
-
-interface YearBreakdown {
-  year: string
-  invoiced: number
-  commission: number
-  remaining: number
-}
-
-interface MonthlyData {
-  month: number
-  income: number
-  expense: number
-  difference: number
-}
-
-interface DashboardMetrics {
-  total_budget: number
-  total_invoiced: number
-  total_collected: number
-  total_outstanding: number
-  remaining_to_invoice: number
-  total_commission: number
-  active_project_count: number
-  progress_percentage: number
-  collection_percentage: number
-  year_breakdown: YearBreakdown[]
-  monthly_breakdown: Record<string, MonthlyData[]>
-}
-
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
-  const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [ttoFinancials, setTtoFinancials] = useState<TTOFinancials | null>(null)
-  const [dashboardMetrics, setDashboardMetrics] = useState<DashboardMetrics | null>(null)
   const [selectedYear, setSelectedYear] = useState<string>('2025')
-  const [loading, setLoading] = useState(true)
-  const [cashFlowData, setCashFlowData] = useState<CashFlowData | null>(null)
   const [cashFlowPeriod, setCashFlowPeriod] = useState<CashFlowPeriod>('month')
-  const [cashFlowLoading, setCashFlowLoading] = useState(false)
   const router = useRouter()
+
+  // React Query hooks - 5 dakika cache ile
+  const { stats, metrics: dashboardMetrics, ttoFinancials, isLoading } = useDashboard(user?.role)
+  const { data: cashFlowData, isLoading: cashFlowLoading } = useCashFlow(cashFlowPeriod)
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -100,124 +54,17 @@ export default function DashboardPage() {
     try {
       const parsedUser = JSON.parse(userData)
       setUser(parsedUser)
-      fetchDashboardStats(token)
-
-      // Fetch TTO financials if user is admin or manager
-      if (['admin', 'manager'].includes(parsedUser.role)) {
-        fetchTTOFinancials(token)
-        fetchDashboardMetrics(token)
-        fetchCashFlowData(token, 'month')
-      }
     } catch (err) {
       router.push('/login')
     }
   }, [router])
 
-  const fetchDashboardStats = async (token: string) => {
-    try {
-      // Fetch projects
-      const projectsResponse = await fetch('/api/projects', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const projectsData = await projectsResponse.json()
-
-      // Fetch incomes
-      const incomesResponse = await fetch('/api/incomes', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const incomesData = await incomesResponse.json()
-
-      // Fetch payments
-      const paymentsResponse = await fetch('/api/payments', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const paymentsData = await paymentsResponse.json()
-
-      // Fetch balances
-      const balancesResponse = await fetch('/api/balances', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const balancesData = await balancesResponse.json()
-
-      if (projectsData.success && incomesData.success && paymentsData.success && balancesData.success) {
-        const projects = projectsData.data.projects || []
-        const incomes = incomesData.data.incomes || []
-        const payments = paymentsData.data.payments || []
-        const balances = balancesData.data.balances || []
-
-        setStats({
-          totalProjects: projects.length,
-          activeProjects: projects.filter((p: any) => p.status === 'active').length,
-          totalIncome: incomes.reduce((sum: number, i: any) => sum + (i.gross_amount || 0), 0),
-          totalPayments: payments.reduce((sum: number, p: any) => sum + (p.total_amount || 0), 0),
-          pendingPayments: payments.filter((p: any) => p.status === 'pending').length,
-          totalUsers: balances.length,
-          totalBalance: balances.reduce((sum: number, b: any) => sum + (b.available_amount || 0), 0)
-        })
-      }
-    } catch (err) {
-      console.error('Failed to fetch dashboard stats:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchTTOFinancials = async (token: string) => {
-    try {
-      const response = await fetch('/api/balances/admin-summary', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await response.json()
-
-      if (data.success) {
-        setTtoFinancials(data.data)
-      }
-    } catch (err) {
-      console.error('Failed to fetch TTO financials:', err)
-    }
-  }
-
-  const fetchDashboardMetrics = async (token: string) => {
-    try {
-      const response = await fetch('/api/dashboard/metrics', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await response.json()
-
-      if (data.success) {
-        setDashboardMetrics(data.data)
-      }
-    } catch (err) {
-      console.error('Failed to fetch dashboard metrics:', err)
-    }
-  }
-
-  const fetchCashFlowData = async (token: string, period: CashFlowPeriod) => {
-    setCashFlowLoading(true)
-    try {
-      const response = await fetch(`/api/dashboard/cash-flow?period=${period}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const result = await response.json()
-
-      if (result.success) {
-        setCashFlowData(result.data.data)
-      }
-    } catch (err) {
-      console.error('Failed to fetch cash flow data:', err)
-    } finally {
-      setCashFlowLoading(false)
-    }
-  }
-
-  // Cash flow period değiştiğinde yeniden fetch et
+  // Cash flow period değiştiğinde React Query otomatik yeniden fetch eder
   const handleCashFlowPeriodChange = (newPeriod: CashFlowPeriod) => {
     setCashFlowPeriod(newPeriod)
-    const token = localStorage.getItem('token')
-    if (token) {
-      fetchCashFlowData(token, newPeriod)
-    }
   }
+
+  const loading = isLoading || !user
 
   if (loading || !user) {
     return (
@@ -541,38 +388,6 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Cash Flow Diagram */}
-            <div className="bg-slate-800 rounded-lg shadow-sm p-4 border border-slate-700">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-base font-bold text-slate-100">Nakit Akışı Diyagramı</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">Gelir ve gider akışı görselleştirmesi</p>
-                </div>
-                <select
-                  value={cashFlowPeriod}
-                  onChange={(e) => handleCashFlowPeriodChange(e.target.value as CashFlowPeriod)}
-                  className="px-3 py-2 border border-slate-600 rounded text-sm font-semibold text-slate-100 bg-slate-700 focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
-                >
-                  {PERIOD_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {cashFlowLoading ? (
-                <div className="flex items-center justify-center h-[400px]">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
-                </div>
-              ) : cashFlowData ? (
-                <CashFlowDiagram data={cashFlowData} width={800} height={400} />
-              ) : (
-                <div className="flex items-center justify-center h-[400px] text-slate-400">
-                  <p>Veri yüklenemedi</p>
-                </div>
-              )}
-            </div>
 
             {/* Year Breakdown Cards */}
             <div>

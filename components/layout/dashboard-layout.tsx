@@ -60,7 +60,7 @@ const navigationItems = [
     roles: ['admin', 'manager']
   },
   {
-    title: 'Ödeme ve Bakiye İşlemleri',
+    title: 'Ödemeler',
     icon: CreditCard,
     roles: ['admin', 'manager'],
     submenu: [
@@ -77,7 +77,7 @@ const navigationItems = [
     ]
   },
   {
-    title: 'Sistem Kullanıcıları ve Personeller',
+    title: 'Kullanıcılar',
     icon: UserCog,
     roles: ['admin', 'manager'],
     submenu: [

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { apiResponse, withAuth } from '@/lib/middleware/auth'
-import { createClient } from '@/lib/supabase/server'
 const ExcelJS = require('exceljs')
 
 export async function POST(request: NextRequest) {
@@ -11,12 +10,10 @@ export async function POST(request: NextRequest) {
 
     try {
       const body = await request.json()
-      const { start_date, end_date } = body
-
-      const supabase = await createClient()
+      const { start_date, end_date, format = 'excel' } = body
 
       // Fetch incomes
-      let incomeQuery = supabase
+      let incomeQuery = ctx.supabase
         .from('incomes')
         .select(`
           id,
@@ -44,7 +41,7 @@ export async function POST(request: NextRequest) {
       if (incomeError) throw incomeError
 
       // Fetch expenses
-      let expenseQuery = supabase
+      let expenseQuery = ctx.supabase
         .from('expenses')
         .select(`
           id,
@@ -67,6 +64,57 @@ export async function POST(request: NextRequest) {
       const { data: expenses, error: expenseError } = await expenseQuery
 
       if (expenseError) throw expenseError
+
+      // JSON format için önizleme verisi döndür
+      if (format === 'json') {
+        const incomeRows = (incomes || []).map((income: any) => ({
+          id: income.id,
+          project_code: income.project?.code || 'N/A',
+          project_name: income.project?.name || 'Bilinmiyor',
+          income_date: income.income_date,
+          gross_amount: income.gross_amount,
+          vat_amount: income.vat_amount,
+          net_amount: income.net_amount,
+          collected_amount: income.collected_amount || 0,
+          collection_date: income.collection_date,
+          description: income.description
+        }))
+
+        const expenseRows = (expenses || []).map((expense: any) => ({
+          id: expense.id,
+          project_code: expense.project?.code || 'GENEL',
+          project_name: expense.project?.name || 'Genel Gider',
+          expense_date: expense.expense_date,
+          amount: expense.amount,
+          expense_type: expense.expense_type,
+          description: expense.description,
+          is_tto: expense.is_tto_expense
+        }))
+
+        const totalGross = incomeRows.reduce((sum: number, r: any) => sum + (r.gross_amount || 0), 0)
+        const totalVat = incomeRows.reduce((sum: number, r: any) => sum + (r.vat_amount || 0), 0)
+        const totalNet = incomeRows.reduce((sum: number, r: any) => sum + (r.net_amount || 0), 0)
+        const totalCollected = incomeRows.reduce((sum: number, r: any) => sum + (r.collected_amount || 0), 0)
+        const totalExpense = expenseRows.reduce((sum: number, r: any) => sum + (r.amount || 0), 0)
+
+        return apiResponse.success({
+          rows: {
+            incomes: incomeRows,
+            expenses: expenseRows
+          },
+          summary: {
+            incomeCount: incomeRows.length,
+            expenseCount: expenseRows.length,
+            totalGross,
+            totalVat,
+            totalNet,
+            totalCollected,
+            totalExpense,
+            netProfit: totalNet - totalExpense,
+            collectionRate: totalGross > 0 ? (totalCollected / totalGross) * 100 : 0
+          }
+        })
+      }
 
       // Generate Excel with 3 sheets
       const buffer = await generateFinancialReport(incomes || [], expenses || [])

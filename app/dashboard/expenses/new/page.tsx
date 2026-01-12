@@ -8,6 +8,8 @@ import Link from 'next/link'
 import { Receipt, ArrowLeft, Save, Building2, Calendar, FileText } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SearchableSelect } from '@/components/ui/searchable-select'
+import { useInvalidateExpenses } from '@/hooks/use-expenses'
+import { useInvalidateDashboard } from '@/hooks/use-dashboard'
 
 interface User {
   id: string
@@ -34,6 +36,8 @@ export default function NewExpensePage() {
   const [submitting, setSubmitting] = useState(false)
   const [projectCollected, setProjectCollected] = useState<number>(0)
   const router = useRouter()
+  const invalidateExpenses = useInvalidateExpenses()
+  const invalidateDashboard = useInvalidateDashboard()
 
   const [formData, setFormData] = useState({
     expense_type: 'proje' as ExpenseType,
@@ -208,6 +212,10 @@ export default function NewExpensePage() {
       const data = await response.json()
 
       if (data.success) {
+        // Cache'leri invalidate et
+        invalidateExpenses()
+        invalidateDashboard()
+
         alert('Gider başarıyla oluşturuldu')
         router.push('/dashboard/expenses')
       } else {

@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
       return queryValidation.error
     }
 
-    const { user_id, page = 1, limit = 20, sort = 'last_updated', order = 'desc' } = queryValidation.data
+    const { user_id, page = 1, limit = 10000, sort = 'last_updated', order = 'desc' } = queryValidation.data
 
     try {
       let query = ctx.supabase

@@ -25,6 +25,7 @@ import {
 import { StatCardSkeleton, TableSkeleton, Skeleton } from '@/components/ui/skeleton'
 import { VirtualTable } from '@/components/ui/virtual-table'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
+import { usePersonnel, useInvalidatePersonnel } from '@/hooks/use-personnel'
 
 interface User {
   id: string
@@ -53,8 +54,6 @@ interface PersonnelData {
 
 export default function PersonnelPage() {
   const [user, setUser] = useState<User | null>(null)
-  const [personnel, setPersonnel] = useState<PersonnelData[]>([])
-  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
@@ -62,6 +61,11 @@ export default function PersonnelPage() {
   const [exporting, setExporting] = useState(false)
   const router = useRouter()
 
+  // React Query hooks - 5 dakika cache
+  const { data: personnel = [], isLoading: personnelLoading } = usePersonnel()
+  const invalidatePersonnel = useInvalidatePersonnel()
+
+  // Sadece user kontrolü - data fetching React Query'de
   useEffect(() => {
     const token = localStorage.getItem('token')
     const userData = localStorage.getItem('user')
@@ -80,29 +84,10 @@ export default function PersonnelPage() {
         router.push('/dashboard')
         return
       }
-
-      fetchPersonnel(token)
     } catch (err) {
       router.push('/login')
     }
   }, [router])
-
-  const fetchPersonnel = async (token: string) => {
-    try {
-      const response = await fetch('/api/personnel?include_inactive=true', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await response.json()
-
-      if (data.success) {
-        setPersonnel(data.data.personnel || [])
-      }
-    } catch (err) {
-      console.error('Failed to fetch personnel:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleDelete = async (personnelData: PersonnelData) => {
     setSelectedPersonnel(personnelData)
@@ -124,7 +109,7 @@ export default function PersonnelPage() {
       const data = await response.json()
 
       if (data.success) {
-        setPersonnel(prev => prev.filter(p => p.id !== selectedPersonnel.id))
+        invalidatePersonnel() // Cache'i invalidate et
         setDeleteModalOpen(false)
         setSelectedPersonnel(null)
         alert(data.message || 'Personel silindi')
@@ -196,7 +181,7 @@ export default function PersonnelPage() {
     }
   }
 
-  if (loading || !user) {
+  if (personnelLoading || !user) {
     return (
       <DashboardLayout user={user || { id: '', full_name: 'Yükleniyor...', email: '', role: 'admin' }}>
         <div className="space-y-6">

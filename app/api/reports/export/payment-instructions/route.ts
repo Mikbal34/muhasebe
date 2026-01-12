@@ -6,7 +6,8 @@ interface PaymentInstructionExportRequest {
   start_date?: string
   end_date?: string
   status?: 'pending' | 'completed' | 'rejected'
-  banking: {
+  format?: 'excel' | 'json'
+  banking?: {
     company_iban: string
     bank_name: string
     company_vkn: string
@@ -23,38 +24,15 @@ export async function POST(request: NextRequest) {
 
     try {
       const body: PaymentInstructionExportRequest = await request.json()
-      const { start_date, end_date, status, banking } = body
-
-      // Validate banking info
-      if (!banking?.company_iban || !banking?.company_vkn) {
-        return apiResponse.error(
-          'Missing banking info',
-          'Şirket IBAN ve VKN bilgileri gereklidir. Lütfen ayarlardan banka bilgilerini ekleyin.',
-          400
-        )
-      }
+      const { start_date, end_date, status, format = 'excel', banking } = body
 
       // Build query for payment instructions
       let query = ctx.supabase
         .from('payment_instructions')
         .select(`
           *,
-          user:users!payment_instructions_user_id_fkey(id, full_name, email, iban),
-          personnel:personnel!payment_instructions_personnel_id_fkey(id, full_name, email, iban),
-          items:payment_instruction_items(
-            id,
-            amount,
-            description,
-            income_distribution:income_distributions(
-              id,
-              amount,
-              income:incomes(
-                id,
-                description,
-                project:projects(id, name, code)
-              )
-            )
-          )
+          user:user_id(id, full_name, email, iban),
+          personnel:personnel_id(id, full_name, email, iban)
         `)
         .order('created_at', { ascending: false })
 
@@ -78,6 +56,54 @@ export async function POST(request: NextRequest) {
         return apiResponse.error('Failed to fetch payment instructions', error.message, 500)
       }
 
+      // JSON format için önizleme verisi döndür
+      if (format === 'json') {
+        const rows = (payments || []).map((payment: any) => {
+          const recipientName = payment.user?.full_name || payment.personnel?.full_name || 'Bilinmiyor'
+          const recipientIban = payment.user?.iban || payment.personnel?.iban || ''
+          const projectInfo = getProjectInfoFromPayment(payment)
+
+          return {
+            id: payment.id,
+            instruction_number: payment.instruction_number,
+            recipient_name: recipientName,
+            recipient_iban: recipientIban,
+            total_amount: payment.total_amount,
+            status: payment.status,
+            created_at: payment.created_at,
+            project_code: projectInfo.code,
+            project_name: projectInfo.name,
+            notes: payment.notes
+          }
+        })
+
+        const totalAmount = rows.reduce((sum: number, r: any) => sum + (r.total_amount || 0), 0)
+        const statusCounts = {
+          pending: rows.filter((r: any) => r.status === 'pending').length,
+          completed: rows.filter((r: any) => r.status === 'completed').length,
+          rejected: rows.filter((r: any) => r.status === 'rejected').length
+        }
+
+        return apiResponse.success({
+          rows,
+          summary: {
+            totalCount: rows.length,
+            totalAmount,
+            avgAmount: rows.length > 0 ? totalAmount / rows.length : 0,
+            statusCounts
+          }
+        })
+      }
+
+      // Validate banking info for Excel export
+      if (!banking?.company_iban || !banking?.company_vkn) {
+        return apiResponse.error(
+          'Missing banking info',
+          'Şirket IBAN ve VKN bilgileri gereklidir. Lütfen ayarlardan banka bilgilerini ekleyin.',
+          400
+        )
+      }
+
       // Generate Halkbank format Excel (empty template if no payments)
       const buffer = await generateHalkbankExcel(payments || [], banking)
 
@@ -98,7 +124,7 @@ export async function POST(request: NextRequest) {
 
 async function generateHalkbankExcel(
   payments: any[],
-  banking: PaymentInstructionExportRequest['banking']
+  banking: NonNullable<PaymentInstructionExportRequest['banking']>
 ) {
   const workbook = new ExcelJS.Workbook()
   workbook.creator = 'Muhasebe Yazılımı'
@@ -215,6 +241,17 @@ function buildPaymentDescription(payment: any, recipientName: string): string {
   }
 
   return `DANIŞMANLIK ÖDEMESİ - ${recipientName}`
+}
+
+function getProjectInfoFromPayment(payment: any): { code: string; name: string } {
+  // Direkt project ilişkisinden al
+  if (payment.project) {
+    return {
+      code: payment.project.code || '',
+      name: payment.project.name || ''
+    }
+  }
+  return { code: '', name: '' }
 }
 
 function getBankFullName(bankName: string): string {

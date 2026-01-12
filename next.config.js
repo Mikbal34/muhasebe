@@ -1,12 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: false, // Temporarily disable strict mode
+  // Derleme optimizasyonları
+  swcMinify: true,
+
+  // Gereksiz paketleri bundle'dan çıkar
   experimental: {
-    typedRoutes: true,
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons', 'date-fns'],
   },
-  images: {
-    domains: [],
-  },
+
+  // Powered by header'ı kaldır
+  poweredByHeader: false,
 }
 
 module.exports = nextConfig

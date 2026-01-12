@@ -24,6 +24,7 @@ import { VirtualGrid } from '@/components/ui/virtual-grid'
 import { VirtualTable } from '@/components/ui/virtual-table'
 import { useColumnCount } from '@/hooks/useColumnCount'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
+import { useProjects, useAcademicians, useInvalidateProjects } from '@/hooks/use-projects'
 
 interface User {
   id: string
@@ -72,13 +73,18 @@ interface Project {
 
 export default function ProjectsPage() {
   const [user, setUser] = useState<User | null>(null)
-  const [projects, setProjects] = useState<Project[]>([])
-  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [representativeFilter, setRepresentativeFilter] = useState<string>('')
-  const [academicians, setAcademicians] = useState<User[]>([])
   const router = useRouter()
+
+  // React Query hooks - 5 dakika cache
+  const { data: projects = [], isLoading: projectsLoading } = useProjects({
+    status: statusFilter || undefined,
+    representative_id: representativeFilter || undefined
+  })
+  const { data: academicians = [] } = useAcademicians()
+  const invalidateProjects = useInvalidateProjects()
 
   // Delete functionality
   const {
@@ -92,8 +98,7 @@ export default function ProjectsPage() {
     entityName: 'Proje',
     apiEndpoint: '/api/projects',
     onSuccess: () => {
-      const token = localStorage.getItem('token')
-      if (token) fetchProjects(token)
+      invalidateProjects() // React Query cache'i invalidate et
     },
     onError: (error) => {
       console.error('Delete error:', error)
@@ -103,6 +108,7 @@ export default function ProjectsPage() {
   // Export functionality
   const [exportingKunye, setExportingKunye] = useState(false)
 
+  // Sadece user kontrolü - data fetching React Query'de
   useEffect(() => {
     const token = localStorage.getItem('token')
     const userData = localStorage.getItem('user')
@@ -114,54 +120,10 @@ export default function ProjectsPage() {
 
     try {
       setUser(JSON.parse(userData))
-      fetchProjects(token)
-      fetchAcademicians(token)
     } catch (err) {
       router.push('/login')
     }
   }, [router])
-
-  const fetchAcademicians = async (token: string) => {
-    try {
-      const response = await fetch('/api/users', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await response.json()
-      if (data.success) {
-        setAcademicians(data.data.users || [])
-      }
-    } catch (err) {
-      console.error('Failed to fetch users:', err)
-    }
-  }
-
-  const fetchProjects = async (token: string) => {
-    try {
-      const queryParams = new URLSearchParams()
-      if (statusFilter) queryParams.append('status', statusFilter)
-      if (representativeFilter) queryParams.append('representative_id', representativeFilter)
-
-      const response = await fetch(`/api/projects?${queryParams.toString()}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await response.json()
-
-      if (data.success) {
-        setProjects(data.data.projects || [])
-      }
-    } catch (err) {
-      console.error('Failed to fetch projects:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (token) {
-      fetchProjects(token)
-    }
-  }, [statusFilter, representativeFilter])
 
   // View mode state
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
@@ -236,7 +198,7 @@ export default function ProjectsPage() {
     }
   }
 
-  if (loading || !user) {
+  if (projectsLoading || !user) {
     return (
       <DashboardLayout user={user || { id: '', full_name: 'Yükleniyor...', email: '', role: 'manager' }}>
         <div className="space-y-6">

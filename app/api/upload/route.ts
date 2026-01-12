@@ -1,6 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 
+// Allowed buckets - whitelist to prevent arbitrary bucket access
+const ALLOWED_BUCKETS = ['contracts', 'documents'] as const
+type AllowedBucket = typeof ALLOWED_BUCKETS[number]
+
+// Allowed file types per bucket with magic number signatures
+const BUCKET_CONFIG: Record<AllowedBucket, {
+  allowedTypes: string[]
+  maxSize: number
+  magicNumbers?: { bytes: number[], offset: number }[]
+}> = {
+  contracts: {
+    allowedTypes: ['application/pdf'],
+    maxSize: 10 * 1024 * 1024, // 10MB
+    // PDF magic number: %PDF- (0x25 0x50 0x44 0x46 0x2D)
+    magicNumbers: [{ bytes: [0x25, 0x50, 0x44, 0x46, 0x2D], offset: 0 }]
+  },
+  documents: {
+    allowedTypes: ['application/pdf', 'image/png', 'image/jpeg'],
+    maxSize: 10 * 1024 * 1024, // 10MB
+    magicNumbers: [
+      { bytes: [0x25, 0x50, 0x44, 0x46, 0x2D], offset: 0 }, // PDF
+      { bytes: [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A], offset: 0 }, // PNG
+      { bytes: [0xFF, 0xD8, 0xFF], offset: 0 } // JPEG
+    ]
+  }
+}
+
+// Validate file by checking magic numbers
+async function validateFileMagicNumber(buffer: Buffer, bucket: AllowedBucket): Promise<boolean> {
+  const config = BUCKET_CONFIG[bucket]
+  if (!config.magicNumbers || config.magicNumbers.length === 0) return true
+
+  for (const magic of config.magicNumbers) {
+    const slice = buffer.slice(magic.offset, magic.offset + magic.bytes.length)
+    if (magic.bytes.every((byte, i) => slice[i] === byte)) {
+      return true
+    }
+  }
+  return false
+}
+
 // POST /api/upload - Upload file to storage
 export async function POST(request: NextRequest) {
   try {
@@ -42,7 +83,17 @@ export async function POST(request: NextRequest) {
     // Parse the multipart form data
     const formData = await request.formData()
     const file = formData.get('file') as File | null
-    const bucket = formData.get('bucket') as string || 'contracts'
+    const bucketParam = formData.get('bucket') as string || 'contracts'
+
+    // Validate bucket against whitelist
+    if (!ALLOWED_BUCKETS.includes(bucketParam as AllowedBucket)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid storage bucket' },
+        { status: 400 }
+      )
+    }
+    const bucket = bucketParam as AllowedBucket
+    const config = BUCKET_CONFIG[bucket]
 
     if (!file) {
       return NextResponse.json(
@@ -51,30 +102,38 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate file type (only PDF allowed for contracts)
-    if (bucket === 'contracts' && file.type !== 'application/pdf') {
+    // Validate MIME type against bucket's allowed types
+    if (!config.allowedTypes.includes(file.type)) {
       return NextResponse.json(
-        { success: false, error: 'Only PDF files are allowed' },
+        { success: false, error: `Bu depolama alanına yalnızca ${config.allowedTypes.join(', ')} dosyaları yüklenebilir` },
         { status: 400 }
       )
     }
 
-    // Validate file size (max 10MB)
-    const maxSize = 10 * 1024 * 1024 // 10MB
-    if (file.size > maxSize) {
+    // Validate file size
+    if (file.size > config.maxSize) {
       return NextResponse.json(
-        { success: false, error: 'File size must be less than 10MB' },
+        { success: false, error: `Dosya boyutu ${config.maxSize / (1024 * 1024)}MB'dan küçük olmalıdır` },
         { status: 400 }
       )
     }
-
-    // Generate unique filename
-    const fileExt = file.name.split('.').pop()
-    const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`
 
     // Convert File to ArrayBuffer then to Buffer for upload
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
+
+    // Validate file content by checking magic numbers (prevents MIME type spoofing)
+    const isValidMagic = await validateFileMagicNumber(buffer, bucket)
+    if (!isValidMagic) {
+      return NextResponse.json(
+        { success: false, error: 'Dosya içeriği belirtilen türle eşleşmiyor' },
+        { status: 400 }
+      )
+    }
+
+    // Generate unique filename with sanitized extension
+    const fileExt = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin'
+    const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`
 
     // Upload to Supabase Storage using admin client (bypasses RLS)
     const { error: uploadError } = await adminSupabase.storage

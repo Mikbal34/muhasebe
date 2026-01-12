@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { apiResponse, withAuth } from '@/lib/middleware/auth'
+import { formatCurrencyExcel } from '@/lib/utils/format'
 const ExcelJS = require('exceljs')
 
 export async function POST(request: NextRequest) {
@@ -117,10 +118,10 @@ async function generateExcelFile(
 
     if (reportType === 'company') {
       const summaryData = [
-        ['Brüt Gelir', formatCurrency(data.summary.totalGrossIncome)],
-        ['Komisyon', formatCurrency(data.summary.totalCommissions)],
-        ['Dağıtılan', formatCurrency(data.summary.totalDistributed)],
-        ['Net Şirket Geliri', formatCurrency(data.summary.netCompanyIncome)]
+        ['Brüt Gelir', formatCurrencyExcel(data.summary.totalGrossIncome)],
+        ['Komisyon', formatCurrencyExcel(data.summary.totalCommissions)],
+        ['Dağıtılan', formatCurrencyExcel(data.summary.totalDistributed)],
+        ['Net Şirket Geliri', formatCurrencyExcel(data.summary.netCompanyIncome)]
       ]
 
       summaryData.forEach(([label, value], index) => {
@@ -135,8 +136,8 @@ async function generateExcelFile(
     if (reportType === 'project') {
       const summaryData = [
         ['Toplam Proje', data.summary.totalProjects || 0],
-        ['Toplam Bütçe', formatCurrency(data.summary.totalBudget)],
-        ['Toplam Gelir', formatCurrency(data.summary.totalIncome)]
+        ['Toplam Bütçe', formatCurrencyExcel(data.summary.totalBudget)],
+        ['Toplam Gelir', formatCurrencyExcel(data.summary.totalIncome)]
       ]
 
       summaryData.forEach(([label, value], index) => {
@@ -148,21 +149,6 @@ async function generateExcelFile(
       currentRow += summaryData.length + 2
     }
 
-    if (reportType === 'payments') {
-      const summaryData = [
-        ['Toplam Ödeme', data.summary.totalPayments || 0],
-        ['Toplam Tutar', formatCurrency(data.summary.totalAmount)],
-        ['Ortalama Ödeme', formatCurrency(data.summary.avgPaymentAmount)]
-      ]
-
-      summaryData.forEach(([label, value], index) => {
-        const row = currentRow + index
-        worksheet.getCell(`A${row}`).value = label
-        worksheet.getCell(`B${row}`).value = value
-        worksheet.getCell(`A${row}`).font = { bold: true }
-      })
-      currentRow += summaryData.length + 2
-    }
   }
 
   // Detailed data sections
@@ -189,9 +175,9 @@ async function generateExcelFile(
       const row = currentRow + index
       worksheet.getCell(`A${row}`).value = income.project?.name || 'Proje Bulunamadı'
       worksheet.getCell(`B${row}`).value = income.description || ''
-      worksheet.getCell(`C${row}`).value = formatCurrency(income.gross_amount)
-      worksheet.getCell(`D${row}`).value = formatCurrency(income.net_amount)
-      worksheet.getCell(`E${row}`).value = formatCurrency(income.vat_amount)
+      worksheet.getCell(`C${row}`).value = formatCurrencyExcel(income.gross_amount)
+      worksheet.getCell(`D${row}`).value = formatCurrencyExcel(income.net_amount)
+      worksheet.getCell(`E${row}`).value = formatCurrencyExcel(income.vat_amount)
       worksheet.getCell(`F${row}`).value = formatDate(income.income_date)
 
       // Apply border style
@@ -200,43 +186,6 @@ async function generateExcelFile(
       }
     })
     currentRow += data.incomes.length
-  }
-
-  if (reportType === 'payments' && data.paymentInstructions && data.paymentInstructions.length > 0) {
-    // Payment instructions section
-    worksheet.mergeCells(`A${currentRow}:F${currentRow}`)
-    const paymentsTitleCell = worksheet.getCell(`A${currentRow}`)
-    paymentsTitleCell.value = 'ÖDEME TALİMATLARI'
-    paymentsTitleCell.font = { bold: true, size: 14 }
-    paymentsTitleCell.alignment = { horizontal: 'center' }
-    currentRow += 2
-
-    // Headers
-    const paymentHeaders = ['Talimat No', 'Alıcı', 'Tutar', 'Durum', 'Oluşturma', 'Ödeme Tarihi']
-    paymentHeaders.forEach((header, index) => {
-      const cell = worksheet.getCell(`${String.fromCharCode(65 + index)}${currentRow}`)
-      cell.value = header
-      cell.style = headerStyle as any
-    })
-    currentRow++
-
-    // Data
-    data.paymentInstructions.forEach((payment: any, index: number) => {
-      const row = currentRow + index
-      worksheet.getCell(`A${row}`).value = payment.instruction_number || ''
-      worksheet.getCell(`B${row}`).value = payment.user?.full_name || ''
-      worksheet.getCell(`C${row}`).value = formatCurrency(payment.total_amount)
-      worksheet.getCell(`D${row}`).value = payment.status === 'pending' ? 'Bekliyor' :
-                                          payment.status === 'completed' ? 'Tamamlandı' :
-                                          payment.status === 'cancelled' ? 'İptal' : payment.status
-      worksheet.getCell(`E${row}`).value = formatDate(payment.created_at)
-      worksheet.getCell(`F${row}`).value = formatDate(payment.payment_date)
-
-      // Apply border style
-      for (let col = 0; col < 6; col++) {
-        worksheet.getCell(`${String.fromCharCode(65 + col)}${row}`).style = dataStyle as any
-      }
-    })
   }
 
   if (reportType === 'project' && data.projects && data.projects.length > 0) {
@@ -262,9 +211,9 @@ async function generateExcelFile(
       const row = currentRow + index
       worksheet.getCell(`A${row}`).value = project.code || ''
       worksheet.getCell(`B${row}`).value = project.name || ''
-      worksheet.getCell(`C${row}`).value = formatCurrency(project.budget)
-      worksheet.getCell(`D${row}`).value = formatCurrency(project.total_received || 0)
-      worksheet.getCell(`E${row}`).value = formatCurrency(project.remaining_budget || 0)
+      worksheet.getCell(`C${row}`).value = formatCurrencyExcel(project.budget)
+      worksheet.getCell(`D${row}`).value = formatCurrencyExcel(project.total_received || 0)
+      worksheet.getCell(`E${row}`).value = formatCurrencyExcel(project.remaining_budget || 0)
       worksheet.getCell(`F${row}`).value = project.status === 'active' ? 'Aktif' :
                                           project.status === 'completed' ? 'Tamamlandı' :
                                           project.status === 'cancelled' ? 'İptal' : project.status
@@ -305,8 +254,8 @@ async function generateExcelFile(
       worksheet.getCell(`B${row}`).value = academician.email || ''
       worksheet.getCell(`C${row}`).value = academician.phone || ''
       worksheet.getCell(`D${row}`).value = academician.iban || ''
-      worksheet.getCell(`E${row}`).value = formatCurrency(academician.balances?.[0]?.available_amount || 0)
-      worksheet.getCell(`F${row}`).value = formatCurrency(totalEarnings)
+      worksheet.getCell(`E${row}`).value = formatCurrencyExcel(academician.balances?.[0]?.available_amount || 0)
+      worksheet.getCell(`F${row}`).value = formatCurrencyExcel(totalEarnings)
 
       // Apply border style
       for (let col = 0; col < 6; col++) {
@@ -323,9 +272,7 @@ async function generateExcelFile(
   return await workbook.xlsx.writeBuffer()
 }
 
-function formatCurrency(amount: number | null | undefined): string {
-  return `₺${(amount || 0).toLocaleString('tr-TR')}`
-}
+// formatCurrency moved to @/lib/utils/format - use formatCurrencyExcel
 
 function formatDate(date: string | null | undefined): string {
   if (!date) return ''

@@ -34,9 +34,10 @@ export async function GET(request: NextRequest) {
         query = query.eq('is_active', true)
       }
 
-      // Search by name or email
+      // Search by name or email (sanitize to prevent injection)
       if (search) {
-        query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`)
+        const sanitizedSearch = search.replace(/[%_\\(),.*]/g, '\\$&')
+        query = query.or(`full_name.ilike.%${sanitizedSearch}%,email.ilike.%${sanitizedSearch}%`)
       }
 
       const { data: personnel, error, count } = await query

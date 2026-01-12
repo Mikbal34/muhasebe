@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { apiResponse, withAuth } from '@/lib/middleware/auth'
-import { createClient } from '@/lib/supabase/server'
 const ExcelJS = require('exceljs')
 
 export async function POST(request: NextRequest) {
@@ -11,12 +10,10 @@ export async function POST(request: NextRequest) {
 
     try {
       const body = await request.json()
-      const { project_id, columns } = body
-
-      const supabase = await createClient()
+      const { project_id, columns, format = 'excel' } = body
 
       // Build query
-      let query = supabase
+      let query = ctx.supabase
         .from('projects')
         .select(`
           id,
@@ -65,6 +62,76 @@ export async function POST(request: NextRequest) {
       const { data: projects, error } = await query
 
       if (error) throw error
+
+      // JSON format için önizleme verisi döndür
+      if (format === 'json') {
+        const rows: any[] = []
+        let totalBudget = 0
+        let totalPersonnel = 0
+
+        ;(projects || []).forEach((project: any) => {
+          totalBudget += project.budget || 0
+          const representatives = project.project_representatives || []
+
+          if (representatives.length === 0) {
+            rows.push({
+              id: project.id,
+              code: project.code,
+              name: project.name,
+              budget: project.budget,
+              vat: project.budget * 0.20,
+              start_date: project.start_date,
+              end_date: project.end_date,
+              contract_date: project.contract_date,
+              extension_date: project.extension_date,
+              status: project.status,
+              detailed_name: project.detailed_name,
+              person_name: '',
+              person_email: '',
+              person_title: '',
+              person_gender: '',
+              person_faculty: '',
+              person_department: '',
+              person_university: ''
+            })
+          } else {
+            representatives.forEach((rep: any) => {
+              const person = rep.user || rep.personnel
+              totalPersonnel++
+              rows.push({
+                id: project.id,
+                code: project.code,
+                name: project.name,
+                budget: project.budget,
+                vat: project.budget * 0.20,
+                start_date: project.start_date,
+                end_date: project.end_date,
+                contract_date: project.contract_date,
+                extension_date: project.extension_date,
+                status: project.status,
+                detailed_name: project.detailed_name,
+                person_name: person?.full_name || '',
+                person_email: person?.email || '',
+                person_title: person?.title || '',
+                person_gender: person?.gender || '',
+                person_faculty: person?.faculty || '',
+                person_department: person?.department || '',
+                person_university: person?.university || 'Yıldız Teknik Üniversitesi'
+              })
+            })
+          }
+        })
+
+        return apiResponse.success({
+          rows,
+          summary: {
+            totalProjects: (projects || []).length,
+            totalPersonnel,
+            totalBudget,
+            totalVat: totalBudget * 0.20
+          }
+        })
+      }
 
       // Generate Excel
       const buffer = await generateProjectCardExcel(projects || [], columns)

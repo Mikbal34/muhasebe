@@ -18,6 +18,7 @@ import {
   Eye,
   EyeOff
 } from 'lucide-react'
+import { useInvalidateUsers } from '@/hooks/use-users'
 
 interface User {
   id: string
@@ -41,6 +42,7 @@ export default function NewUserPage() {
   const [copied, setCopied] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
+  const invalidateUsers = useInvalidateUsers()
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -128,6 +130,9 @@ export default function NewUserPage() {
       const data = await response.json()
 
       if (response.ok) {
+        // Cache'i invalidate et
+        invalidateUsers()
+
         setGeneratedPassword(data.data.tempPassword)
         setShowPasswordModal(true)
       } else {

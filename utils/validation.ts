@@ -1,4 +1,5 @@
 // Form validation utilities
+import { formatCurrencyStandard } from '@/lib/utils/format'
 
 export interface ValidationRule<T = any> {
   validator: (value: T) => boolean
@@ -195,20 +196,16 @@ export const FinancialValidation = {
   },
 
   calculateVat: (grossAmount: number, vatRate: number): number => {
-    return (grossAmount * vatRate) / 100
+    // Türk KDV sistemi: Brüt tutar KDV dahildir, iç yüzde hesabı
+    return (grossAmount * vatRate) / (100 + vatRate)
   },
 
   calculateNet: (grossAmount: number, vatRate: number): number => {
     return grossAmount - FinancialValidation.calculateVat(grossAmount, vatRate)
   },
 
-  formatCurrency: (amount: number, locale = 'tr-TR'): string => {
-    return new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: 'TRY',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(amount)
+  formatCurrency: (amount: number, _locale = 'tr-TR'): string => {
+    return formatCurrencyStandard(amount)
   },
 
   formatAmount: (amount: number, decimals = 2): string => {

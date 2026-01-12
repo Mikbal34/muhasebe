@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react'
 import { CashFlowData, CashFlowNode, CashFlowLink, FLOW_COLORS } from './cash-flow-types'
+import { formatCurrencyChart } from '@/lib/utils/format'
 
 interface CashFlowDiagramProps {
   data: CashFlowData
@@ -21,15 +22,6 @@ interface LayoutLink extends CashFlowLink {
   sourceY: number
   targetY: number
   thickness: number
-}
-
-// Para formatı
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('tr-TR', {
-    style: 'decimal',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(value) + ' \u20BA'
 }
 
 // Bezier curve path oluştur
@@ -340,7 +332,7 @@ export function CashFlowDiagram({
                       className="font-bold"
                       style={{ fontSize: node.h < 50 ? '12px' : '15px' }}
                     >
-                      {formatCurrency(node.value)}
+                      {formatCurrencyChart(node.value)}
                     </span>
                   </div>
                 </foreignObject>
@@ -380,7 +372,7 @@ export function CashFlowDiagram({
                   {node.label}
                 </div>
                 <div className="text-slate-300 mt-1">
-                  {formatCurrency(node.value)}
+                  {formatCurrencyChart(node.value)}
                 </div>
                 <div className="text-slate-400 text-xs">
                   Toplam gelirin %{percentage}&apos;i
@@ -402,7 +394,7 @@ export function CashFlowDiagram({
           <span>Net Kalan</span>
         </div>
         <div className="text-xs text-slate-500">
-          | Toplam Gider: {formatCurrency(data.totalExpenses)}
+          | Toplam Gider: {formatCurrencyChart(data.totalExpenses)}
         </div>
       </div>
     </div>

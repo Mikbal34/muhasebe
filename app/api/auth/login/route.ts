@@ -2,10 +2,16 @@ import { NextRequest } from 'next/server'
 import { loginSchema } from '@/lib/schemas/validation'
 import { apiResponse, validateRequest } from '@/lib/middleware/auth'
 import { createClient } from '@/lib/supabase/server'
+import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 
 export async function POST(request: NextRequest) {
+  // Apply rate limiting for login attempts (5 per minute)
+  const rateCheck = await checkRateLimit(request, RATE_LIMITS.auth, 'login')
+  if (!rateCheck.allowed) {
+    return rateLimitResponse(rateCheck.resetIn)
+  }
+
   try {
-    console.log('Login request received')
     // Validate request data
     const validation = await validateRequest(request, loginSchema)
     if ('error' in validation) {
@@ -30,14 +36,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user profile
-    console.log('Looking for user profile with ID:', authData.user.id)
     const { data: profile, error: profileError } = await supabase
       .from('users')
       .select('*')
       .eq('id', authData.user.id)
       .single()
-
-    console.log('Profile query result:', { profile, profileError })
 
     if (profileError || !profile) {
       console.error('Profile lookup failed:', profileError)

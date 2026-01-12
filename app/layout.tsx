@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { NotificationProvider } from '@/contexts/notification-context'
 import { NotificationToast } from '@/components/ui/notification'
+import { QueryProvider } from '@/providers/query-provider'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -19,10 +20,12 @@ export default function RootLayout({
   return (
     <html lang="tr">
       <body className={inter.className}>
-        <NotificationProvider>
-          {children}
-          <NotificationToast />
-        </NotificationProvider>
+        <QueryProvider>
+          <NotificationProvider>
+            {children}
+            <NotificationToast />
+          </NotificationProvider>
+        </QueryProvider>
       </body>
     </html>
   )

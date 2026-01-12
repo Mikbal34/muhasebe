@@ -189,11 +189,17 @@ export const apiResponse = {
   },
 
   error: (error: string, message?: string, status: number = 400) => {
+    // For 500 errors, hide internal details in production
+    const isProduction = process.env.NODE_ENV === 'production'
+    const safeMessage = (status >= 500 && isProduction)
+      ? 'Beklenmeyen bir hata oluştu. Lütfen daha sonra tekrar deneyin.'
+      : message
+
     return NextResponse.json(
       {
         success: false,
         error,
-        ...(message && { message }),
+        ...(safeMessage && { message: safeMessage }),
       },
       { status }
     )

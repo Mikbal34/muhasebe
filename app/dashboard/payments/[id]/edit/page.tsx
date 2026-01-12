@@ -19,6 +19,9 @@ import {
   AlertTriangle
 } from 'lucide-react'
 import { usePaymentNotifications } from '@/contexts/notification-context'
+import { useInvalidatePayments } from '@/hooks/use-payments'
+import { useInvalidateBalances } from '@/hooks/use-balances'
+import { useInvalidateDashboard } from '@/hooks/use-dashboard'
 
 interface User {
   id: string
@@ -76,6 +79,9 @@ export default function EditPaymentPage({ params }: { params: { id: string } }) 
   const [saving, setSaving] = useState(false)
   const router = useRouter()
   const { notifyPaymentStatusChange } = usePaymentNotifications()
+  const invalidatePayments = useInvalidatePayments()
+  const invalidateBalances = useInvalidateBalances()
+  const invalidateDashboard = useInvalidateDashboard()
 
   const [formData, setFormData] = useState({
     notes: '',
@@ -214,6 +220,11 @@ export default function EditPaymentPage({ params }: { params: { id: string } }) 
       const data = await response.json()
 
       if (data.success) {
+        // Invalidate caches
+        invalidatePayments()
+        invalidateBalances()
+        invalidateDashboard()
+
         // Trigger notification if status changed
         if (payment && formData.status !== payment.status) {
           notifyPaymentStatusChange(
