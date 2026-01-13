@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google'
 import { NotificationProvider } from '@/contexts/notification-context'
 import { NotificationToast } from '@/components/ui/notification'
 import { QueryProvider } from '@/providers/query-provider'
+import { AuthProvider } from '@/contexts/auth-context'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -21,10 +22,12 @@ export default function RootLayout({
     <html lang="tr">
       <body className={inter.className}>
         <QueryProvider>
-          <NotificationProvider>
-            {children}
-            <NotificationToast />
-          </NotificationProvider>
+          <AuthProvider>
+            <NotificationProvider>
+              {children}
+              <NotificationToast />
+            </NotificationProvider>
+          </AuthProvider>
         </QueryProvider>
       </body>
     </html>
