@@ -6,6 +6,9 @@ import Link from 'next/link'
 import { Calculator, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 
+// Prevent double execution
+let codeExchanged = false
+
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -32,17 +35,28 @@ export default function ResetPasswordPage() {
         const urlParams = new URLSearchParams(search)
         const code = urlParams.get('code')
 
-        if (code) {
+        if (code && !codeExchanged) {
+          codeExchanged = true // Prevent double execution
           console.log('Found code, exchanging for session...')
           const { data, error } = await supabase.auth.exchangeCodeForSession(code)
           if (data?.session) {
             console.log('Session established from code')
             setIsReady(true)
             setChecking(false)
+            // Remove code from URL to prevent re-use on refresh
+            window.history.replaceState({}, '', '/reset-password')
             return
           }
           if (error) {
             console.error('Code exchange error:', error)
+          }
+        } else if (code && codeExchanged) {
+          // Code already used, check for existing session
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session) {
+            setIsReady(true)
+            setChecking(false)
+            return
           }
         }
 
