@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Calculator, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -16,42 +16,67 @@ export default function ResetPasswordPage() {
   const [isReady, setIsReady] = useState(false)
   const [checking, setChecking] = useState(true)
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   useEffect(() => {
-    // Listen for auth state changes - this handles both PKCE and implicit flows
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth event:', event, session ? 'has session' : 'no session')
+    const verifyToken = async () => {
+      try {
+        // Get token from URL
+        const tokenHash = searchParams.get('token_hash')
+        const type = searchParams.get('type')
 
-      if (event === 'PASSWORD_RECOVERY') {
-        // User clicked the reset link and was verified by Supabase
-        setIsReady(true)
-        setChecking(false)
-      } else if (event === 'SIGNED_IN' && session) {
-        // Session established
-        setIsReady(true)
+        if (tokenHash && type === 'recovery') {
+          console.log('Verifying token hash...')
+
+          // Verify the token using verifyOtp
+          const { data, error } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: 'recovery',
+          })
+
+          if (data?.session) {
+            console.log('Token verified, session created')
+            setIsReady(true)
+            setChecking(false)
+            // Clean URL
+            window.history.replaceState({}, '', '/reset-password')
+            return
+          }
+
+          if (error) {
+            console.error('Token verification error:', error)
+          }
+        }
+
+        // Fallback: Check for existing session or auth state changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+          console.log('Auth event:', event)
+          if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
+            setIsReady(true)
+            setChecking(false)
+          }
+        })
+
+        // Check existing session
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+          setIsReady(true)
+        }
+
+        // Give time for auth events
+        setTimeout(() => {
+          setChecking(false)
+        }, 2000)
+
+        return () => subscription.unsubscribe()
+      } catch (err) {
+        console.error('Verification error:', err)
         setChecking(false)
       }
-    })
-
-    // Also check for existing session
-    const checkSession = async () => {
-      // Small delay to let Supabase process the URL tokens
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      const { data: { session } } = await supabase.auth.getSession()
-
-      if (session) {
-        console.log('Found existing session')
-        setIsReady(true)
-      }
-
-      setChecking(false)
     }
 
-    checkSession()
-
-    return () => subscription.unsubscribe()
-  }, [])
+    verifyToken()
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -261,5 +286,25 @@ export default function ResetPasswordPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-teal-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        <div className="sm:mx-auto sm:w-full sm:max-w-md">
+          <div className="flex justify-center">
+            <Calculator className="h-12 w-12 text-teal-600" />
+          </div>
+          <div className="mt-8 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto"></div>
+            <p className="mt-4 text-slate-600">Yükleniyor...</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <ResetPasswordContent />
+    </Suspense>
   )
 }
