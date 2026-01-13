@@ -65,38 +65,33 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return
     }
 
-    // Initial session check
-    const initSession = async () => {
-      try {
-        const { data: { session: currentSession }, error } = await supabase.auth.getSession()
+    let hasInitialized = false
 
-        if (error) {
-          console.error('Session check error:', error)
-          handleSessionExpired()
-          return
-        }
-
-        if (currentSession) {
-          setSession(currentSession)
-          setUser(currentSession.user)
-        } else {
-          // No session and not on auth page - redirect to login
-          handleSessionExpired()
-        }
-      } catch (err) {
-        console.error('Init session error:', err)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    initSession()
-
-    // Listen to auth state changes
+    // Listen to auth state changes - this is the PRIMARY mechanism
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-      console.log('Auth state change:', event)
+      console.log('Auth state change:', event, newSession ? 'has session' : 'no session')
 
       switch (event) {
+        case 'INITIAL_SESSION':
+          // This fires when Supabase finishes loading session from storage
+          hasInitialized = true
+          if (newSession) {
+            setSession(newSession)
+            setUser(newSession.user)
+          } else {
+            // No session after initialization - check if user was previously logged in
+            const hadToken = localStorage.getItem('token')
+            if (hadToken) {
+              // User had a token but session is gone - session expired
+              handleSessionExpired()
+            } else {
+              // User never logged in - just redirect to login
+              router.push('/login')
+            }
+          }
+          setIsLoading(false)
+          break
+
         case 'SIGNED_IN':
           setSession(newSession)
           setUser(newSession?.user || null)
@@ -106,7 +101,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         case 'SIGNED_OUT':
           setSession(null)
           setUser(null)
-          if (!isAuthPage) {
+          // Only show expired modal if we had initialized (not on first load)
+          if (hasInitialized && !isAuthPage) {
             handleSessionExpired()
           }
           break
@@ -124,13 +120,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     })
 
     // Periodic session check (every 60 seconds)
+    // Only check if we have initialized and had a session
     const intervalId = setInterval(async () => {
-      if (isAuthPage) return
+      if (isAuthPage || !hasInitialized) return
 
       try {
         const { data: { session: currentSession }, error } = await supabase.auth.getSession()
 
-        if (error || !currentSession) {
+        // Only show expired if there was a token before (user was logged in)
+        if ((error || !currentSession) && localStorage.getItem('token')) {
           console.log('Session expired during interval check')
           handleSessionExpired()
         }
@@ -151,7 +149,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       clearInterval(intervalId)
       window.removeEventListener('auth:unauthorized', handleUnauthorized)
     }
-  }, [isAuthPage, handleSessionExpired])
+  }, [isAuthPage, handleSessionExpired, router])
 
   return (
     <AuthContext.Provider value={{ user, session, isLoading, signOut }}>
