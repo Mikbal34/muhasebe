@@ -202,18 +202,20 @@ export async function GET(request: NextRequest) {
         new Decimal(0)
       )
 
-      // Get user and personnel balances
+      // Get user and personnel balances - PROJE BAZLI
       const userIds = (representatives || []).filter((rep: any) => rep.user_id).map((rep: any) => rep.user_id)
       const personnelIds = (representatives || []).filter((rep: any) => rep.personnel_id).map((rep: any) => rep.personnel_id)
 
       const { data: userBalances, error: userBalancesError } = await supabase
         .from('balances')
-        .select('user_id, available_amount')
+        .select('user_id, available_amount, project_id')
+        .eq('project_id', projectId)
         .in('user_id', userIds.length > 0 ? userIds : ['00000000-0000-0000-0000-000000000000'])
 
       const { data: personnelBalances, error: personnelBalancesError } = await supabase
         .from('balances')
-        .select('personnel_id, available_amount')
+        .select('personnel_id, available_amount, project_id')
+        .eq('project_id', projectId)
         .in('personnel_id', personnelIds.length > 0 ? personnelIds : ['00000000-0000-0000-0000-000000000000'])
 
       const balancesByUser = (userBalances || []).reduce((acc: Record<string, number>, bal: any) => {
@@ -367,12 +369,13 @@ export async function POST(request: NextRequest) {
         return apiResponse.error('Failed to create allocation', allocationError.message, 500)
       }
 
-      // Update balance (for both users and personnel)
+      // Update balance (for both users and personnel) - PROJE BAZLI
       const { error: balanceError } = await (supabase as any).rpc('update_balance', {
         p_type: 'income',
         p_amount: amount,
         p_user_id: user_id || null,
         p_personnel_id: personnel_id || null,
+        p_project_id: project_id,
         p_reference_type: 'manual_allocation',
         p_reference_id: allocation.id,
         p_description: `Manuel bakiye dağıtımı: ${(project as any).code} - ${(project as any).name}${notes ? ` (${notes})` : ''}`,

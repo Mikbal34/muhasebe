@@ -7,16 +7,24 @@ interface Person {
   iban: string | null
 }
 
+interface Project {
+  id: string
+  code: string
+  name: string
+}
+
 interface Balance {
   id: string
   user_id: string | null
   personnel_id: string | null
+  project_id: string | null
   available_amount: number
   debt_amount: number
   reserved_amount: number
   last_updated: string
   user: Person | null
   personnel: Person | null
+  project: Project | null
 }
 
 interface Transaction {

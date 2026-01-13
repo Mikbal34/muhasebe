@@ -19,7 +19,10 @@ import {
   CheckCircle,
   XCircle,
   AlertTriangle,
-  Download
+  Download,
+  ChevronDown,
+  ChevronRight,
+  Building2
 } from 'lucide-react'
 import { StatCardSkeleton, TableSkeleton, Skeleton } from '@/components/ui/skeleton'
 import { usePayments } from '@/hooks/use-payments'
@@ -35,11 +38,17 @@ interface PaymentInstruction {
   id: string
   instruction_number: string
   user_id: string
+  project_id: string | null
   total_amount: number
   status: 'pending' | 'approved' | 'processing' | 'completed' | 'rejected'
   notes: string | null
   created_at: string
   approved_at: string | null
+  project: {
+    id: string
+    code: string
+    name: string
+  } | null
   user: {
     id: string
     full_name: string
@@ -80,6 +89,8 @@ export default function PaymentsPage() {
   const [exporting, setExporting] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
+  const [projectFilter, setProjectFilter] = useState<string>('')
+  const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({})
   const router = useRouter()
 
   // React Query hooks - 5 dakika cache
@@ -175,13 +186,23 @@ export default function PaymentsPage() {
     }
   }, [router])
 
+  // Get unique projects from payments - artık doğrudan payment.project kullanılıyor
+  const projects = Array.from(
+    new Set(
+      payments
+        .filter(payment => payment.project)
+        .map(payment => JSON.stringify(payment.project))
+    )
+  ).map(str => JSON.parse(str)) as Array<{ id: string; code: string; name: string }>
+
   const filteredPayments = payments.filter(payment => {
     const recipientName = payment.user?.full_name || payment.personnel?.full_name || ''
     const matchesSearch = recipientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          payment.instruction_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          payment.notes?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = !statusFilter || payment.status === statusFilter
-    return matchesSearch && matchesStatus
+    const matchesProject = !projectFilter || payment.project?.id === projectFilter
+    return matchesSearch && matchesStatus && matchesProject
   })
 
   const getStatusInfo = (status: string) => {
@@ -219,6 +240,32 @@ export default function PaymentsPage() {
   }, {} as Record<string, number>)
 
   const totalAmount = filteredPayments.reduce((sum, payment) => sum + payment.total_amount, 0)
+
+  // Group payments by project - artık doğrudan payment.project kullanılıyor
+  const paymentsByProject = filteredPayments.reduce((acc, payment) => {
+    const project = payment.project
+    const projectKey = project?.id || 'no-project'
+
+    if (!acc[projectKey]) {
+      acc[projectKey] = {
+        project: project || { id: 'no-project', code: '-', name: 'Projesi Belirsiz' },
+        payments: [] as PaymentInstruction[],
+        totalAmount: 0
+      }
+    }
+    acc[projectKey].payments.push(payment)
+    acc[projectKey].totalAmount += payment.total_amount
+    return acc
+  }, {} as Record<string, { project: { id: string; code: string; name: string }; payments: PaymentInstruction[]; totalAmount: number }>)
+
+  const projectGroups = Object.values(paymentsByProject)
+
+  const toggleProject = (projectId: string) => {
+    setExpandedProjects(prev => ({
+      ...prev,
+      [projectId]: !prev[projectId]
+    }))
+  }
 
   if (paymentsLoading || !user) {
     return (
@@ -332,7 +379,7 @@ export default function PaymentsPage() {
 
         {/* Filters */}
         <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
               <input
@@ -342,6 +389,21 @@ export default function PaymentsPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9 w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-600 focus:border-teal-600 text-slate-900 placeholder-slate-400"
               />
+            </div>
+
+            <div className="relative">
+              <select
+                value={projectFilter}
+                onChange={(e) => setProjectFilter(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-600 focus:border-teal-600 text-slate-900 appearance-none cursor-pointer"
+              >
+                <option value="">Tüm Projeler</option>
+                {projects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.code} - {project.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="relative">
@@ -363,138 +425,23 @@ export default function PaymentsPage() {
           </div>
         </div>
 
-        {/* Payments Table */}
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
-                    Talimat No
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
-                    Alıcı
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
-                    Tutar
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
-                    Durum
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
-                    Tarih
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
-                    Notlar
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-900 uppercase">
-                    İşlemler
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-slate-200">
-                {filteredPayments.map((payment) => {
-                  const statusInfo = getStatusInfo(payment.status)
-                  const StatusIcon = statusInfo.icon
-
-                  return (
-                    <tr key={payment.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="text-sm font-bold text-teal-600">
-                          {payment.instruction_number}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-bold text-slate-900">
-                            {payment.user?.full_name || payment.personnel?.full_name || '-'}
-                          </div>
-                          <div className="text-xs font-medium text-slate-500">
-                            {payment.user?.email || payment.personnel?.email || '-'}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-bold text-slate-900">
-                          ₺{payment.total_amount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </div>
-                        <div className="text-xs font-medium text-slate-500">
-                          {payment.items.length} kalem
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold shadow-sm ${statusInfo.color}`}>
-                          <StatusIcon className="h-3 w-3 mr-1" />
-                          {statusInfo.text}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-slate-900">
-                          {new Date(payment.created_at).toLocaleDateString('tr-TR')}
-                        </div>
-                        {payment.approved_at && (
-                          <div className="text-xs font-medium text-emerald-600">
-                            Onay: {new Date(payment.approved_at).toLocaleDateString('tr-TR')}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-slate-700 max-w-xs truncate">
-                          {payment.notes || '-'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end space-x-2">
-                          <Link
-                            href={`/dashboard/payments/${payment.id}` as any}
-                            className="p-2 text-slate-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all duration-200 hover:scale-110"
-                            title="Görüntüle"
-                          >
-                            <Eye className="h-5 w-5" />
-                          </Link>
-
-                          {(user.role === 'admin' || user.role === 'manager') && (
-                            <>
-                              <Link
-                                href={`/dashboard/payments/${payment.id}/edit` as any}
-                                className="p-2 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all duration-200 hover:scale-110"
-                                title="Düzenle"
-                              >
-                                <Edit className="h-5 w-5" />
-                              </Link>
-
-                              <button
-                                className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 hover:scale-110"
-                                title="Sil"
-                              >
-                                <Trash2 className="h-5 w-5" />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {filteredPayments.length === 0 && (
-            <div className="text-center py-12 px-6">
+        {/* Payments by Project (Accordion) */}
+        <div className="space-y-4">
+          {projectGroups.length === 0 ? (
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-12 text-center">
               <div className="h-16 w-16 bg-slate-100 rounded-lg flex items-center justify-center mx-auto mb-4">
                 <FileText className="h-8 w-8 text-slate-400" />
               </div>
               <h3 className="text-base font-bold text-slate-900 mb-2">
-                {searchTerm || statusFilter ? 'Ödeme talimatı bulunamadı' : 'Henüz ödeme talimatı yok'}
+                {searchTerm || statusFilter || projectFilter ? 'Ödeme talimatı bulunamadı' : 'Henüz ödeme talimatı yok'}
               </h3>
               <p className="text-sm text-slate-600 mb-4">
-                {searchTerm || statusFilter
+                {searchTerm || statusFilter || projectFilter
                   ? 'Arama kriterlerinizi değiştirmeyi deneyin'
                   : 'İlk ödeme talimatını oluşturmak için butona tıklayın'
                 }
               </p>
-              {(user.role === 'admin' || user.role === 'manager') && !searchTerm && !statusFilter && (
+              {(user.role === 'admin' || user.role === 'manager') && !searchTerm && !statusFilter && !projectFilter && (
                 <Link
                   href="/dashboard/payments/new"
                   className="inline-flex items-center px-3 py-2 text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 transition-colors"
@@ -504,6 +451,171 @@ export default function PaymentsPage() {
                 </Link>
               )}
             </div>
+          ) : (
+            projectGroups.map((group) => {
+              const isExpanded = expandedProjects[group.project.id]
+
+              return (
+                <div key={group.project.id} className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+                  {/* Project Header (Accordion Toggle) */}
+                  <button
+                    onClick={() => toggleProject(group.project.id)}
+                    className="w-full px-4 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="flex items-center gap-2">
+                        {isExpanded ? (
+                          <ChevronDown className="h-5 w-5 text-slate-600" />
+                        ) : (
+                          <ChevronRight className="h-5 w-5 text-slate-600" />
+                        )}
+                        <div className="h-8 w-8 bg-slate-700 rounded-lg flex items-center justify-center">
+                          <Building2 className="h-4 w-4 text-white" />
+                        </div>
+                      </div>
+
+                      <div className="text-left">
+                        <h3 className="text-base font-bold text-slate-900">{group.project.name}</h3>
+                        <p className="text-sm text-slate-600">{group.project.code}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <div className="text-right bg-white rounded-lg px-3 py-2 border border-slate-200">
+                        <p className="text-xs text-slate-600 uppercase">Talimat Sayısı</p>
+                        <p className="text-base font-bold text-slate-900">{group.payments.length}</p>
+                      </div>
+                      <div className="text-right bg-white rounded-lg px-3 py-2 border border-slate-200">
+                        <p className="text-xs text-slate-600 uppercase">Toplam Tutar</p>
+                        <p className="text-base font-bold text-slate-900">
+                          ₺{group.totalAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Project Payments (Collapsible) */}
+                  {isExpanded && (
+                    <div className="border-t border-slate-200">
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-slate-200">
+                          <thead className="bg-slate-50">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
+                                Talimat No
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
+                                Alıcı
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
+                                Tutar
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
+                                Durum
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
+                                Tarih
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
+                                Notlar
+                              </th>
+                              <th className="px-4 py-3 text-right text-xs font-semibold text-slate-900 uppercase">
+                                İşlemler
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-slate-200">
+                            {group.payments.map((payment) => {
+                              const statusInfo = getStatusInfo(payment.status)
+                              const StatusIcon = statusInfo.icon
+
+                              return (
+                                <tr key={payment.id} className="hover:bg-slate-50 transition-colors">
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <div className="text-sm font-bold text-teal-600">
+                                      {payment.instruction_number}
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <div>
+                                      <div className="text-sm font-bold text-slate-900">
+                                        {payment.user?.full_name || payment.personnel?.full_name || '-'}
+                                      </div>
+                                      <div className="text-xs font-medium text-slate-500">
+                                        {payment.user?.email || payment.personnel?.email || '-'}
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <div className="text-sm font-bold text-slate-900">
+                                      ₺{payment.total_amount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </div>
+                                    <div className="text-xs font-medium text-slate-500">
+                                      {payment.items.length} kalem
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold shadow-sm ${statusInfo.color}`}>
+                                      <StatusIcon className="h-3 w-3 mr-1" />
+                                      {statusInfo.text}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <div className="text-sm font-medium text-slate-900">
+                                      {new Date(payment.created_at).toLocaleDateString('tr-TR')}
+                                    </div>
+                                    {payment.approved_at && (
+                                      <div className="text-xs font-medium text-emerald-600">
+                                        Onay: {new Date(payment.approved_at).toLocaleDateString('tr-TR')}
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="text-sm font-medium text-slate-700 max-w-xs truncate">
+                                      {payment.notes || '-'}
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                                    <div className="flex justify-end space-x-2">
+                                      <Link
+                                        href={`/dashboard/payments/${payment.id}` as any}
+                                        className="p-2 text-slate-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all duration-200 hover:scale-110"
+                                        title="Görüntüle"
+                                      >
+                                        <Eye className="h-5 w-5" />
+                                      </Link>
+
+                                      {(user.role === 'admin' || user.role === 'manager') && (
+                                        <>
+                                          <Link
+                                            href={`/dashboard/payments/${payment.id}/edit` as any}
+                                            className="p-2 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all duration-200 hover:scale-110"
+                                            title="Düzenle"
+                                          >
+                                            <Edit className="h-5 w-5" />
+                                          </Link>
+
+                                          <button
+                                            className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 hover:scale-110"
+                                            title="Sil"
+                                          >
+                                            <Trash2 className="h-5 w-5" />
+                                          </button>
+                                        </>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })
           )}
         </div>
       </div>

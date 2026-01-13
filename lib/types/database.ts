@@ -423,6 +423,7 @@ export interface Database {
           id: string
           user_id: string | null
           personnel_id: string | null
+          project_id: string | null
           available_amount: number
           debt_amount: number
           reserved_amount: number
@@ -434,6 +435,7 @@ export interface Database {
           id?: string
           user_id?: string | null
           personnel_id?: string | null
+          project_id?: string | null
           available_amount?: number
           debt_amount?: number
           reserved_amount?: number
@@ -445,6 +447,7 @@ export interface Database {
           id?: string
           user_id?: string | null
           personnel_id?: string | null
+          project_id?: string | null
           available_amount?: number
           debt_amount?: number
           reserved_amount?: number
@@ -456,8 +459,15 @@ export interface Database {
           {
             foreignKeyName: "balances_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "balances_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           }
         ]
@@ -515,6 +525,7 @@ export interface Database {
           instruction_number: string
           user_id: string | null
           recipient_personnel_id: string | null
+          project_id: string | null
           total_amount: number
           status: PaymentInstructionStatus
           bank_export_file: string | null
@@ -530,6 +541,7 @@ export interface Database {
           instruction_number?: string
           user_id?: string | null
           recipient_personnel_id?: string | null
+          project_id?: string | null
           total_amount: number
           status?: PaymentInstructionStatus
           bank_export_file?: string | null
@@ -545,6 +557,7 @@ export interface Database {
           instruction_number?: string
           user_id?: string | null
           recipient_personnel_id?: string | null
+          project_id?: string | null
           total_amount?: number
           status?: PaymentInstructionStatus
           bank_export_file?: string | null
@@ -575,6 +588,13 @@ export interface Database {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_instructions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           }
         ]

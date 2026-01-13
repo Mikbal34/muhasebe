@@ -37,6 +37,22 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             income_date,
             description,
             created_at
+          ),
+          expenses(
+            id,
+            description,
+            amount,
+            expense_date,
+            created_at
+          ),
+          payment_instructions(
+            id,
+            instruction_number,
+            total_amount,
+            status,
+            created_at,
+            personnel:personnel!payment_instructions_personnel_id_fkey(id, full_name),
+            user:users!payment_instructions_user_id_fkey(id, full_name)
           )
         `)
         .eq('id', id)

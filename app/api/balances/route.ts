@@ -19,7 +19,8 @@ export async function GET(request: NextRequest) {
         .select(`
           *,
           user:users!balances_user_id_fkey(id, full_name, email, iban),
-          personnel:personnel!balances_personnel_id_fkey(id, full_name, email, iban)
+          personnel:personnel!balances_personnel_id_fkey(id, full_name, email, iban),
+          project:projects!balances_project_id_fkey(id, code, name)
         `)
 
       // Apply filters based on user role

@@ -153,6 +153,7 @@ export const paymentInstructionItemSchema = z.object({
 export const createPaymentInstructionSchema = z.object({
   user_id: z.string().uuid('Geçersiz kullanıcı ID').nullable().optional(),
   personnel_id: z.string().uuid('Geçersiz personel ID').nullable().optional(),
+  project_id: z.string().uuid('Geçersiz proje ID'),
   total_amount: z.number().positive('Toplam tutar pozitif olmalı'),
   status: paymentInstructionStatusSchema.default('pending'),
   notes: z.string().max(1000, 'Notlar çok uzun').nullable().optional(),

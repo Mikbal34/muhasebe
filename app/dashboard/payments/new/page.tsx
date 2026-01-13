@@ -35,7 +35,14 @@ interface PersonWithBalance {
   full_name: string
   email: string
   iban: string | null
-  balance: number
+  balance: number // Total balance across all projects
+}
+
+interface ProjectBalance {
+  project_id: string
+  project_code: string
+  project_name: string
+  available_amount: number
 }
 
 interface IncomeDistribution {
@@ -70,6 +77,7 @@ export default function NewPaymentPage() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(false)
   const [people, setPeople] = useState<PersonWithBalance[]>([])
+  const [projectBalances, setProjectBalances] = useState<ProjectBalance[]>([])
   const [availableDistributions, setAvailableDistributions] = useState<IncomeDistribution[]>([])
   const router = useRouter()
   const { notifyPaymentCreated } = usePaymentNotifications()
@@ -80,6 +88,7 @@ export default function NewPaymentPage() {
   const [formData, setFormData] = useState({
     person_id: '',  // Will hold either user_id or personnel_id
     person_type: '' as 'user' | 'personnel' | '',
+    project_id: '',  // Required - payment from which project
     notes: ''
   })
 
@@ -112,11 +121,15 @@ export default function NewPaymentPage() {
 
   useEffect(() => {
     if (formData.person_id && formData.person_type) {
+      fetchProjectBalances(formData.person_id, formData.person_type)
       fetchAvailableDistributions(formData.person_id, formData.person_type)
     } else {
+      setProjectBalances([])
       setAvailableDistributions([])
       setSelectedItems([])
     }
+    // Reset project selection when person changes
+    setFormData(prev => ({ ...prev, project_id: '' }))
   }, [formData.person_id, formData.person_type])
 
   const fetchPeopleWithBalances = async (token: string) => {
@@ -128,27 +141,74 @@ export default function NewPaymentPage() {
       const balanceData = await balanceResponse.json()
 
       if (balanceData.success) {
-        // Map balances to people with balances
-        const peopleWithBalances: PersonWithBalance[] = balanceData.data.balances
-          .map((balance: any) => {
-            const person = balance.user || balance.personnel
-            if (!person) return null
+        // Group balances by person and calculate total across all projects
+        const peopleMap = new Map<string, PersonWithBalance>()
 
-            return {
+        balanceData.data.balances.forEach((balance: any) => {
+          const person = balance.user || balance.personnel
+          if (!person) return
+
+          const personId = person.id
+          const personType = balance.user_id ? 'user' as const : 'personnel' as const
+          const existingPerson = peopleMap.get(personId)
+
+          if (existingPerson) {
+            // Add to existing balance
+            existingPerson.balance += (balance.available_amount || 0)
+          } else {
+            // Create new person entry
+            peopleMap.set(personId, {
               id: person.id,
-              type: balance.user_id ? 'user' as const : 'personnel' as const,
+              type: personType,
               full_name: person.full_name,
               email: person.email,
               iban: person.iban,
               balance: balance.available_amount || 0
-            }
-          })
-          .filter((p: any) => p !== null && p.balance > 0) // Only show people with balance > 0
+            })
+          }
+        })
+
+        // Filter only people with balance > 0
+        const peopleWithBalances = Array.from(peopleMap.values())
+          .filter(p => p.balance > 0)
 
         setPeople(peopleWithBalances)
       }
     } catch (err) {
       console.error('Failed to fetch people with balances:', err)
+    }
+  }
+
+  const fetchProjectBalances = async (personId: string, personType: 'user' | 'personnel') => {
+    try {
+      const token = localStorage.getItem('token')
+      const balanceResponse = await fetch('/api/balances', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const balanceData = await balanceResponse.json()
+
+      if (balanceData.success) {
+        // Filter balances for this person and group by project
+        const personBalances: ProjectBalance[] = balanceData.data.balances
+          .filter((balance: any) => {
+            if (personType === 'user') {
+              return balance.user_id === personId
+            } else {
+              return balance.personnel_id === personId
+            }
+          })
+          .filter((balance: any) => balance.project && balance.available_amount > 0)
+          .map((balance: any) => ({
+            project_id: balance.project.id,
+            project_code: balance.project.code,
+            project_name: balance.project.name,
+            available_amount: balance.available_amount || 0
+          }))
+
+        setProjectBalances(personBalances)
+      }
+    } catch (err) {
+      console.error('Failed to fetch project balances:', err)
     }
   }
 
@@ -216,15 +276,21 @@ export default function NewPaymentPage() {
       newErrors.person_id = 'Alıcı seçimi gerekli'
     }
 
+    if (!formData.project_id) {
+      newErrors.project_id = 'Proje seçimi gerekli'
+    }
+
     if (selectedItems.length === 0) {
       newErrors.items = 'En az bir ödeme kalemi eklenme gerekli'
     }
 
     const selectedPerson = people.find(p => p.id === formData.person_id)
+    const selectedProject = projectBalances.find(p => p.project_id === formData.project_id)
     const totalAmount = selectedItems.reduce((sum, item) => sum + item.amount, 0)
 
-    if (selectedPerson && totalAmount > selectedPerson.balance) {
-      newErrors.total = `Toplam tutar kullanılabilir bakiyeden (₺${selectedPerson.balance.toLocaleString('tr-TR')}) fazla olamaz`
+    // Check against project-specific balance instead of total balance
+    if (selectedProject && totalAmount > selectedProject.available_amount) {
+      newErrors.total = `Toplam tutar bu projedeki bakiyeden (₺${selectedProject.available_amount.toLocaleString('tr-TR')}) fazla olamaz`
     }
 
     selectedItems.forEach((item, index) => {
@@ -261,6 +327,7 @@ export default function NewPaymentPage() {
         body: JSON.stringify({
           user_id: formData.person_type === 'user' ? formData.person_id : null,
           personnel_id: formData.person_type === 'personnel' ? formData.person_id : null,
+          project_id: formData.project_id,
           total_amount: selectedItems.reduce((sum, item) => sum + item.amount, 0),
           notes: formData.notes.trim() || null,
           items: selectedItems.map(item => ({
@@ -397,6 +464,79 @@ export default function NewPaymentPage() {
             </div>
           </div>
 
+          {/* Project Selection */}
+          {selectedPerson && projectBalances.length > 0 && (
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+              <h2 className="text-base font-semibold text-gray-900 mb-4">
+                Proje Seçimi *
+              </h2>
+              <p className="text-sm text-gray-600 mb-4">
+                Ödemenin hangi projeden yapılacağını seçin. Her proje için ayrı bakiye gösterilmektedir.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {projectBalances.map((project) => {
+                  const isSelected = formData.project_id === project.project_id
+                  return (
+                    <div
+                      key={project.project_id}
+                      onClick={() => {
+                        setFormData({ ...formData, project_id: project.project_id })
+                        // Clear selected items when project changes
+                        setSelectedItems([])
+                      }}
+                      className={`cursor-pointer border rounded-lg p-4 transition-all ${
+                        isSelected
+                          ? 'border-teal-500 bg-teal-50 ring-2 ring-teal-500'
+                          : 'border-gray-200 hover:border-teal-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className={`font-medium ${isSelected ? 'text-teal-900' : 'text-gray-900'}`}>
+                            {project.project_code}
+                          </p>
+                          <p className={`text-sm mt-1 ${isSelected ? 'text-teal-700' : 'text-gray-600'}`}>
+                            {project.project_name}
+                          </p>
+                        </div>
+                        {isSelected && (
+                          <div className="bg-teal-500 rounded-full p-1">
+                            <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <p className={`text-xs ${isSelected ? 'text-teal-600' : 'text-gray-500'}`}>Kullanılabilir Bakiye</p>
+                        <p className={`text-lg font-bold ${isSelected ? 'text-teal-700' : 'text-gray-900'}`}>
+                          ₺{project.available_amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              {errors.project_id && <p className="mt-2 text-sm text-red-600">{errors.project_id}</p>}
+            </div>
+          )}
+
+          {/* No projects available warning */}
+          {selectedPerson && projectBalances.length === 0 && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-center gap-2">
+                <svg className="h-5 w-5 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <p className="text-yellow-800 font-medium">Bu kişinin hiçbir projede bakiyesi bulunmamaktadır.</p>
+              </div>
+              <p className="text-sm text-yellow-700 mt-2">
+                Önce manuel dağıtım yaparak bakiye oluşturmanız gerekmektedir.
+              </p>
+            </div>
+          )}
+
           {/* Available Distributions */}
           {availableDistributions.length > 0 && (
             <div className="bg-white rounded-lg shadow-sm border p-4">
@@ -491,19 +631,30 @@ export default function NewPaymentPage() {
           )}
 
           {/* Manual Payment Items */}
-          {formData.person_id && (
+          {formData.person_id && formData.project_id && (
             <div className="bg-white rounded-lg shadow-sm border p-4">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-base font-semibold text-gray-900">
-                  Manuel Ödeme
-                </h2>
+                <div>
+                  <h2 className="text-base font-semibold text-gray-900">
+                    Ödeme Kalemi Ekle
+                  </h2>
+                  {(() => {
+                    const selectedProject = projectBalances.find(p => p.project_id === formData.project_id)
+                    return selectedProject && (
+                      <p className="text-sm text-gray-600 mt-1">
+                        <span className="font-medium">{selectedProject.project_code}</span> projesinden -
+                        Bakiye: <span className="font-semibold text-teal-600">₺{selectedProject.available_amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                      </p>
+                    )
+                  })()}
+                </div>
                 <button
                   type="button"
                   onClick={addManualItem}
                   className="px-3 py-2 bg-green-600 text-white text-sm font-semibold rounded hover:bg-green-700 transition-colors flex items-center gap-2"
                 >
                   <Plus className="h-4 w-4" />
-                  Manuel Ödeme Ekle
+                  Ödeme Ekle
                 </button>
               </div>
 
@@ -561,11 +712,23 @@ export default function NewPaymentPage() {
           )}
 
           {/* Payment Summary */}
-          {selectedItems.length > 0 && (
+          {selectedItems.length > 0 && formData.project_id && (
             <div className="bg-white rounded-lg shadow-sm border p-4">
               <h2 className="text-base font-semibold text-gray-900 mb-4">
                 Ödeme Özeti
               </h2>
+
+              {/* Selected Project Info */}
+              {(() => {
+                const selectedProject = projectBalances.find(p => p.project_id === formData.project_id)
+                return selectedProject && (
+                  <div className="bg-teal-50 p-3 rounded-lg mb-4 border border-teal-200">
+                    <p className="text-sm text-teal-700">
+                      <span className="font-medium">Proje:</span> {selectedProject.project_code} - {selectedProject.project_name}
+                    </p>
+                  </div>
+                )
+              })()}
 
               <div className="space-y-3">
                 {selectedItems.map((item, index) => {
@@ -574,11 +737,7 @@ export default function NewPaymentPage() {
                     <div key={index} className="flex justify-between items-center py-2 border-b border-gray-200">
                       <div>
                         <p className="font-medium text-gray-900">{item.description}</p>
-                        {item.isManual ? (
-                          <p className="text-sm text-green-600">
-                            Manuel ödeme
-                          </p>
-                        ) : distribution && (
+                        {!item.isManual && distribution && (
                           <p className="text-sm text-gray-600">
                             {distribution.income.project.code} - {distribution.income.project.name}
                           </p>
@@ -628,7 +787,7 @@ export default function NewPaymentPage() {
             </Link>
             <button
               type="submit"
-              disabled={loading || selectedItems.length === 0}
+              disabled={loading || selectedItems.length === 0 || !formData.project_id}
               className="px-3 py-2 bg-teal-600 text-white text-sm font-semibold rounded hover:bg-teal-700 disabled:opacity-50 transition-colors"
             >
               {loading ? 'Oluşturuluyor...' : 'Ödeme Talimatı Oluştur'}

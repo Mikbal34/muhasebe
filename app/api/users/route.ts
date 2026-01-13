@@ -47,11 +47,16 @@ export async function POST(request: NextRequest) {
 
     try {
       const body = await req.json()
-      const { full_name, email, role } = body
+      const { full_name, email, password, role } = body
 
       // Validate required fields
-      if (!full_name || !email || !role) {
-        return apiResponse.error('Full name, email and role are required', undefined, 400)
+      if (!full_name || !email || !password || !role) {
+        return apiResponse.error('Full name, email, password and role are required', undefined, 400)
+      }
+
+      // Validate password length
+      if (password.length < 6) {
+        return apiResponse.error('Password must be at least 6 characters', undefined, 400)
       }
 
       // Create admin client for auth operations (requires service role key)
@@ -78,14 +83,11 @@ export async function POST(request: NextRequest) {
         await adminSupabase.auth.admin.deleteUser(existingAuthUser.id)
       }
 
-      // Generate random password
-      const randomPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12).toUpperCase() + '123!'
-
-      // Create user in Supabase Auth with generated password
+      // Create user in Supabase Auth with provided password
       console.log('Creating auth user with email:', email)
       const { data: authUser, error: authError } = await adminSupabase.auth.admin.createUser({
         email,
-        password: randomPassword,
+        password: password,
         email_confirm: true,
         user_metadata: {
           full_name
@@ -124,11 +126,9 @@ export async function POST(request: NextRequest) {
         return apiResponse.error('Failed to create user profile', profileError.message, 500)
       }
 
-      // TODO: Send password reset email to user instead of returning password
-      // For now, admin should use "Forgot Password" flow for the new user
       return apiResponse.success(
         { user: userProfile },
-        'Kullanıcı başarıyla oluşturuldu. Kullanıcı giriş için "Şifremi Unuttum" özelliğini kullanmalıdır.'
+        'Kullanıcı başarıyla oluşturuldu'
       )
 
     } catch (error: any) {

@@ -4,11 +4,17 @@ interface PaymentInstruction {
   id: string
   instruction_number: string
   user_id: string
+  project_id: string | null
   total_amount: number
   status: 'pending' | 'approved' | 'processing' | 'completed' | 'rejected'
   notes: string | null
   created_at: string
   approved_at: string | null
+  project: {
+    id: string
+    code: string
+    name: string
+  } | null
   user: {
     id: string
     full_name: string

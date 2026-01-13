@@ -34,16 +34,42 @@ interface Person {
   iban: string | null
 }
 
+interface Project {
+  id: string
+  code: string
+  name: string
+}
+
 interface Balance {
   id: string
   user_id: string | null
   personnel_id: string | null
+  project_id: string | null
   available_amount: number
   debt_amount: number
   reserved_amount: number
   last_updated: string
   user: Person | null
   personnel: Person | null
+  project: Project | null
+}
+
+interface PersonSummary {
+  id: string
+  type: 'user' | 'personnel'
+  full_name: string
+  email: string
+  iban: string | null
+  totalBalance: number
+  projectBalances: Array<{
+    balanceId: string
+    projectId: string
+    projectCode: string
+    projectName: string
+    available: number
+    debt: number
+    reserved: number
+  }>
 }
 
 interface Transaction {
@@ -59,12 +85,13 @@ interface Transaction {
 export default function BalancesPage() {
   const [user, setUser] = useState<User | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedBalance, setSelectedBalance] = useState<string | null>(null)
+  const [selectedPerson, setSelectedPerson] = useState<string | null>(null)
+  const [selectedBalanceId, setSelectedBalanceId] = useState<string | null>(null)
   const router = useRouter()
 
   // React Query hooks - 5 dakika cache
   const { data: balances = [], isLoading: balancesLoading } = useBalances()
-  const { data: transactions = [] } = useBalanceTransactions(selectedBalance)
+  const { data: transactions = [] } = useBalanceTransactions(selectedBalanceId)
 
   // Sadece user kontrolü - data fetching React Query'de
   useEffect(() => {
@@ -84,14 +111,58 @@ export default function BalancesPage() {
     }
   }, [router])
 
-  const handleBalanceSelect = (balanceId: string) => {
-    setSelectedBalance(balanceId)
+  // Group balances by person and aggregate project balances
+  const personSummaries: PersonSummary[] = (() => {
+    const personMap = new Map<string, PersonSummary>()
+
+    balances.forEach(balance => {
+      const person = balance.user || balance.personnel
+      if (!person) return
+
+      const personId = person.id
+      const personType = balance.user_id ? 'user' : 'personnel'
+
+      if (!personMap.has(personId)) {
+        personMap.set(personId, {
+          id: personId,
+          type: personType as 'user' | 'personnel',
+          full_name: person.full_name,
+          email: person.email,
+          iban: person.iban,
+          totalBalance: 0,
+          projectBalances: []
+        })
+      }
+
+      const personSummary = personMap.get(personId)!
+      personSummary.totalBalance += balance.available_amount
+
+      if (balance.project) {
+        personSummary.projectBalances.push({
+          balanceId: balance.id,
+          projectId: balance.project.id,
+          projectCode: balance.project.code,
+          projectName: balance.project.name,
+          available: balance.available_amount,
+          debt: balance.debt_amount,
+          reserved: balance.reserved_amount
+        })
+      }
+    })
+
+    return Array.from(personMap.values())
+  })()
+
+  const handlePersonSelect = (personId: string) => {
+    setSelectedPerson(personId)
+    setSelectedBalanceId(null) // Reset balance selection when person changes
   }
 
-  const filteredBalances = balances.filter(balance => {
-    const person = balance.user || balance.personnel
-    if (!person) return false
+  const handleBalanceSelect = (balanceId: string) => {
+    setSelectedBalanceId(balanceId)
+  }
 
+  const filteredPersons = personSummaries.filter(person => {
     return person.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
            person.email.toLowerCase().includes(searchTerm.toLowerCase())
   })
@@ -119,7 +190,8 @@ export default function BalancesPage() {
     }
   }
 
-  const selectedBalanceData = balances.find(b => b.id === selectedBalance)
+  const selectedPersonData = personSummaries.find(p => p.id === selectedPerson)
+  const selectedBalanceData = balances.find(b => b.id === selectedBalanceId)
 
   if (balancesLoading || !user) {
     return (
@@ -182,12 +254,12 @@ export default function BalancesPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Balances List */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Person List */}
           <div className="bg-white rounded-lg shadow-sm border">
             <div className="p-4 border-b border-gray-200">
               <h2 className="text-base font-semibold text-gray-900 mb-4">
-                Personel & Kullanıcı Bakiyeleri
+                Personel & Kullanıcılar
               </h2>
 
               <div className="relative">
@@ -203,60 +275,46 @@ export default function BalancesPage() {
             </div>
 
             <div className="max-h-96 overflow-y-auto">
-              {filteredBalances.map((balance) => {
-                const person = balance.user || balance.personnel
-                const personType = balance.user_id ? 'user' : 'personnel'
-
-                if (!person) return null
-
-                return (
-                  <div
-                    key={balance.id}
-                    className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
-                      selectedBalance === balance.id ? 'bg-teal-50 border-teal-200' : ''
-                    }`}
-                    onClick={() => handleBalanceSelect(balance.id)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div className="h-10 w-10 bg-slate-700 rounded-lg flex items-center justify-center mr-3">
-                          <span className="text-sm font-medium text-white">
-                            {person.full_name.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium text-gray-900">{person.full_name}</p>
-                            <PersonBadge type={personType} />
-                          </div>
-                          <p className="text-sm text-gray-600">{person.email}</p>
-                          {!person.iban && (
-                            <p className="text-xs text-red-500">IBAN eksik</p>
-                          )}
-                        </div>
+              {filteredPersons.map((person) => (
+                <div
+                  key={person.id}
+                  className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
+                    selectedPerson === person.id ? 'bg-teal-50 border-teal-200' : ''
+                  }`}
+                  onClick={() => handlePersonSelect(person.id)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <div className="h-10 w-10 bg-slate-700 rounded-lg flex items-center justify-center mr-3">
+                        <span className="text-sm font-medium text-white">
+                          {person.full_name.charAt(0).toUpperCase()}
+                        </span>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-green-600">
-                          ₺{balance.available_amount.toLocaleString('tr-TR')}
-                        </p>
-                        {balance.debt_amount > 0 && (
-                          <p className="text-sm text-red-600">
-                            Borç: ₺{balance.debt_amount.toLocaleString('tr-TR')}
-                          </p>
-                        )}
-                        {balance.reserved_amount > 0 && (
-                          <p className="text-sm text-blue-600">
-                            Rezerve: ₺{balance.reserved_amount.toLocaleString('tr-TR')}
-                          </p>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-gray-900">{person.full_name}</p>
+                          <PersonBadge type={person.type} />
+                        </div>
+                        <p className="text-sm text-gray-600">{person.email}</p>
+                        {!person.iban && (
+                          <p className="text-xs text-red-500">IBAN eksik</p>
                         )}
                       </div>
                     </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-green-600">
+                        ₺{person.totalBalance.toLocaleString('tr-TR')}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {person.projectBalances.length} proje
+                      </p>
+                    </div>
                   </div>
-                )
-              })}
+                </div>
+              ))}
             </div>
 
-            {filteredBalances.length === 0 && (
+            {filteredPersons.length === 0 && (
               <div className="text-center py-8">
                 <PiggyBank className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                 <p className="text-gray-600">
@@ -266,21 +324,87 @@ export default function BalancesPage() {
             )}
           </div>
 
-          {/* Transaction History */}
+          {/* Project Balances */}
           <div className="bg-white rounded-lg shadow-sm border">
             <div className="p-4 border-b border-gray-200">
               <h2 className="text-base font-semibold text-gray-900">
-                İşlem Geçmişi
-                {selectedBalanceData && (
+                Proje Bazlı Bakiyeler
+                {selectedPersonData && (
                   <span className="text-sm font-normal text-gray-600 ml-2">
-                    - {(selectedBalanceData.user || selectedBalanceData.personnel)?.full_name}
+                    - {selectedPersonData.full_name}
                   </span>
                 )}
               </h2>
             </div>
 
             <div className="max-h-96 overflow-y-auto">
-              {selectedBalance ? (
+              {selectedPersonData ? (
+                selectedPersonData.projectBalances.length > 0 ? (
+                  <div className="divide-y divide-gray-100">
+                    {selectedPersonData.projectBalances.map((projectBalance) => (
+                      <div
+                        key={projectBalance.balanceId}
+                        className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
+                          selectedBalanceId === projectBalance.balanceId ? 'bg-blue-50 border-l-4 border-blue-500' : ''
+                        }`}
+                        onClick={() => handleBalanceSelect(projectBalance.balanceId)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-gray-900">{projectBalance.projectCode}</p>
+                            <p className="text-sm text-gray-600">{projectBalance.projectName}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold text-green-600">
+                              ₺{projectBalance.available.toLocaleString('tr-TR')}
+                            </p>
+                            {projectBalance.debt > 0 && (
+                              <p className="text-xs text-red-600">
+                                Borç: ₺{projectBalance.debt.toLocaleString('tr-TR')}
+                              </p>
+                            )}
+                            {projectBalance.reserved > 0 && (
+                              <p className="text-xs text-blue-600">
+                                Rezerve: ₺{projectBalance.reserved.toLocaleString('tr-TR')}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <PiggyBank className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-gray-600">Bu kişinin henüz proje bakiyesi yok</p>
+                  </div>
+                )
+              ) : (
+                <div className="text-center py-8">
+                  <PiggyBank className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-gray-600">
+                    Proje bakiyelerini görmek için bir kişi seçin
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Transaction History */}
+          <div className="bg-white rounded-lg shadow-sm border">
+            <div className="p-4 border-b border-gray-200">
+              <h2 className="text-base font-semibold text-gray-900">
+                İşlem Geçmişi
+                {selectedBalanceData?.project && (
+                  <span className="text-sm font-normal text-gray-600 ml-2">
+                    - {selectedBalanceData.project.code}
+                  </span>
+                )}
+              </h2>
+            </div>
+
+            <div className="max-h-96 overflow-y-auto">
+              {selectedBalanceId ? (
                 transactions.length > 0 ? (
                   <div className="divide-y divide-gray-100">
                     {transactions.map((transaction) => {
@@ -291,12 +415,12 @@ export default function BalancesPage() {
                         <div key={transaction.id} className="p-4 hover:bg-gray-50">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center">
-                              <div className={`p-2 rounded-full bg-gray-100 mr-3`}>
+                              <div className="p-2 rounded-full bg-gray-100 mr-3">
                                 <TypeIcon className={`h-4 w-4 ${typeInfo.color}`} />
                               </div>
                               <div>
                                 <p className="font-medium text-gray-900">{typeInfo.text}</p>
-                                <p className="text-sm text-gray-600">
+                                <p className="text-sm text-gray-600 max-w-[200px] truncate">
                                   {transaction.description || 'İşlem açıklaması yok'}
                                 </p>
                                 <p className="text-xs text-gray-500">
@@ -327,9 +451,9 @@ export default function BalancesPage() {
                 )
               ) : (
                 <div className="text-center py-8">
-                  <PiggyBank className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <History className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                   <p className="text-gray-600">
-                    İşlem geçmişini görmek için bir kişi seçin
+                    İşlem geçmişini görmek için bir proje bakiyesi seçin
                   </p>
                 </div>
               )}

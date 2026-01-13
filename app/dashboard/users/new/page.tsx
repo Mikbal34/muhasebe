@@ -10,11 +10,7 @@ import {
   ArrowLeft,
   Shield,
   Building2,
-  GraduationCap,
   Mail,
-  UserPlus,
-  Copy,
-  Check,
   Eye,
   EyeOff
 } from 'lucide-react'
@@ -34,12 +30,10 @@ export default function NewUserPage() {
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
+    password: '',
     role: 'manager' as 'admin' | 'manager'
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [generatedPassword, setGeneratedPassword] = useState<string | null>(null)
-  const [showPasswordModal, setShowPasswordModal] = useState(false)
-  const [copied, setCopied] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
   const invalidateUsers = useInvalidateUsers()
@@ -98,6 +92,12 @@ export default function NewUserPage() {
       newErrors.email = 'Geçerli bir e-posta adresi giriniz'
     }
 
+    if (!formData.password.trim()) {
+      newErrors.password = 'Şifre gereklidir'
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Şifre en az 6 karakter olmalıdır'
+    }
+
     if (!formData.role) {
       newErrors.role = 'Rol seçimi gereklidir'
     }
@@ -133,8 +133,9 @@ export default function NewUserPage() {
         // Cache'i invalidate et
         invalidateUsers()
 
-        setGeneratedPassword(data.data.tempPassword)
-        setShowPasswordModal(true)
+        // Başarılı - kullanıcılar listesine yönlendir
+        alert('Kullanıcı başarıyla oluşturuldu!')
+        router.push('/dashboard/users')
       } else {
         setErrors({ submit: data.message || 'Kullanıcı oluşturulurken hata oluştu' })
       }
@@ -144,32 +145,6 @@ export default function NewUserPage() {
     } finally {
       setSaving(false)
     }
-  }
-
-  const copyToClipboard = async () => {
-    if (generatedPassword) {
-      try {
-        await navigator.clipboard.writeText(generatedPassword)
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
-      } catch (err) {
-        console.error('Failed to copy password:', err)
-      }
-    }
-  }
-
-  const closePasswordModal = () => {
-    setShowPasswordModal(false)
-    setGeneratedPassword(null)
-    setCopied(false)
-    setShowPassword(false)
-    // Reset form
-    setFormData({
-      full_name: '',
-      email: '',
-      role: 'manager'
-    })
-    router.push('/dashboard/users')
   }
 
   const getRoleInfo = (role: string) => {
@@ -297,6 +272,34 @@ export default function NewUserPage() {
                   <p className="text-red-600 text-sm mt-1">{errors.email}</p>
                 )}
               </div>
+
+              {/* Password */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Şifre *
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={formData.password}
+                    onChange={(e) => handleInputChange('password', e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 pr-10 ${
+                      errors.password ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                    placeholder="En az 6 karakter"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="text-red-600 text-sm mt-1">{errors.password}</p>
+                )}
+              </div>
             </div>
 
             {/* Role Selection */}
@@ -350,10 +353,9 @@ export default function NewUserPage() {
               <div className="flex items-start space-x-3">
                 <Mail className="h-5 w-5 text-blue-600 mt-0.5" />
                 <div>
-                  <h4 className="text-sm font-medium text-blue-900">Otomatik E-posta Gönderimi</h4>
+                  <h4 className="text-sm font-medium text-blue-900">Giriş Bilgileri</h4>
                   <p className="text-sm text-blue-800 mt-1">
-                    Kullanıcı oluşturulduktan sonra, geçici şifre ile birlikte e-posta gönderilecektir.
-                    Kullanıcı ilk girişte şifresini değiştirmek zorunda kalacaktır.
+                    Kullanıcı sisteme girilen e-posta adresi ve şifre ile giriş yapabilecektir.
                   </p>
                 </div>
               </div>
@@ -384,89 +386,6 @@ export default function NewUserPage() {
         </div>
       </div>
 
-      {/* Password Modal */}
-      {showPasswordModal && generatedPassword && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="text-center mb-6">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
-                <Check className="h-6 w-6 text-green-600" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Kullanıcı Başarıyla Oluşturuldu!
-              </h3>
-              <p className="text-sm text-gray-600">
-                Aşağıdaki geçici şifre oluşturuldu. Bu şifreyi güvenli bir yerde saklayın ve kullanıcıya iletin.
-              </p>
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                E-posta
-              </label>
-              <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-md">
-                {formData.email}
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Geçici Şifre
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={generatedPassword}
-                  readOnly
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 font-mono text-sm pr-20"
-                />
-                <div className="absolute inset-y-0 right-0 flex items-center space-x-1 pr-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="p-1 text-gray-400 hover:text-gray-600"
-                    title={showPassword ? 'Şifreyi Gizle' : 'Şifreyi Göster'}
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={copyToClipboard}
-                    className="p-1 text-gray-400 hover:text-gray-600"
-                    title="Kopyala"
-                  >
-                    {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-              {copied && (
-                <p className="text-xs text-green-600 mt-1">Şifre panoya kopyalandı!</p>
-              )}
-            </div>
-
-            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-6">
-              <div className="flex">
-                <div className="ml-3">
-                  <h4 className="text-sm font-medium text-yellow-800">Önemli Not</h4>
-                  <p className="text-sm text-yellow-700 mt-1">
-                    Bu şifre sadece bir kez gösteriliyor. Lütfen güvenli bir yerde saklayın ve kullanıcıya güvenli bir şekilde iletin.
-                    İlk girişte kullanıcı şifresini değiştirebilir.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-center">
-              <button
-                onClick={closePasswordModal}
-                className="px-6 py-2 bg-teal-600 text-white text-sm font-semibold rounded hover:bg-teal-700 transition-colors"
-              >
-                Tamam
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </DashboardLayout>
   )
 }

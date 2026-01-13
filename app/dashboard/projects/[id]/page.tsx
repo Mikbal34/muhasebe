@@ -96,6 +96,22 @@ interface Project {
     description: string
     created_at: string
   }>
+  expenses?: Array<{
+    id: string
+    description: string
+    amount: number
+    expense_date: string
+    created_at: string
+  }>
+  payment_instructions?: Array<{
+    id: string
+    instruction_number: string
+    total_amount: number
+    status: 'pending' | 'approved' | 'processing' | 'completed' | 'rejected'
+    created_at: string
+    personnel?: { id: string; full_name: string } | null
+    user?: { id: string; full_name: string } | null
+  }>
 }
 
 export default function ProjectDetailPage() {
@@ -286,6 +302,30 @@ export default function ProjectDetailPage() {
 
   const totalIncome = project.incomes?.reduce((sum, income) => sum + (income.gross_amount || 0), 0) || 0
   const totalNetIncome = project.incomes?.reduce((sum, income) => sum + (income.net_amount || 0), 0) || 0
+  const totalExpense = project.expenses?.reduce((sum, expense) => sum + (expense.amount || 0), 0) || 0
+  const totalPayment = project.payment_instructions?.reduce((sum, payment) => sum + (payment.total_amount || 0), 0) || 0
+
+  const getPaymentStatusText = (status: string) => {
+    switch (status) {
+      case 'pending': return 'Bekliyor'
+      case 'approved': return 'Onaylandı'
+      case 'processing': return 'İşleniyor'
+      case 'completed': return 'Tamamlandı'
+      case 'rejected': return 'Reddedildi'
+      default: return status
+    }
+  }
+
+  const getPaymentStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'text-yellow-600'
+      case 'approved': return 'text-blue-600'
+      case 'processing': return 'text-purple-600'
+      case 'completed': return 'text-green-600'
+      case 'rejected': return 'text-red-600'
+      default: return 'text-gray-600'
+    }
+  }
 
   return (
     <DashboardLayout user={user}>
@@ -404,7 +444,7 @@ export default function ProjectDetailPage() {
         </div>
 
         {/* Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-slate-200">
             <p className="text-xs text-slate-600 uppercase mb-1">Bütçe</p>
             <p className="text-lg font-bold text-slate-900">
@@ -423,6 +463,20 @@ export default function ProjectDetailPage() {
             <p className="text-xs text-slate-600 uppercase mb-1">Net Gelir</p>
             <p className="text-lg font-bold text-purple-600">
               ₺{totalNetIncome.toLocaleString('tr-TR')}
+            </p>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-slate-200">
+            <p className="text-xs text-slate-600 uppercase mb-1">Giderler</p>
+            <p className="text-lg font-bold text-red-600">
+              ₺{totalExpense.toLocaleString('tr-TR')}
+            </p>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-slate-200">
+            <p className="text-xs text-slate-600 uppercase mb-1">Ödemeler</p>
+            <p className="text-lg font-bold text-orange-600">
+              ₺{totalPayment.toLocaleString('tr-TR')}
             </p>
           </div>
 
@@ -708,6 +762,77 @@ export default function ProjectDetailPage() {
             <div className="text-center py-8">
               <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
               <p className="text-gray-600">Henüz gelir kaydı yok</p>
+            </div>
+          )}
+        </div>
+
+        {/* Giderler */}
+        <div className="bg-white p-6 rounded-lg shadow-sm border">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Giderler</h2>
+          {project.expenses && project.expenses.length > 0 ? (
+            <div className="space-y-3">
+              {project.expenses
+                .sort((a, b) => {
+                  const dateA = new Date(a.created_at || a.expense_date).getTime()
+                  const dateB = new Date(b.created_at || b.expense_date).getTime()
+                  return dateB - dateA
+                })
+                .map((expense) => (
+                  <div key={expense.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">{expense.description || 'Gider'}</p>
+                      <p className="text-sm text-gray-600">
+                        {new Date(expense.expense_date).toLocaleDateString('tr-TR')}
+                      </p>
+                    </div>
+                    <p className="font-semibold text-red-600">
+                      -₺{expense.amount.toLocaleString('tr-TR')}
+                    </p>
+                  </div>
+                ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Wallet className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+              <p className="text-gray-600">Henüz gider kaydı yok</p>
+            </div>
+          )}
+        </div>
+
+        {/* Ödeme Talimatları */}
+        <div className="bg-white p-6 rounded-lg shadow-sm border">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Ödeme Talimatları</h2>
+          {project.payment_instructions && project.payment_instructions.length > 0 ? (
+            <div className="space-y-3">
+              {project.payment_instructions
+                .sort((a, b) => {
+                  const dateA = new Date(a.created_at).getTime()
+                  const dateB = new Date(b.created_at).getTime()
+                  return dateB - dateA
+                })
+                .map((payment) => (
+                  <div key={payment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        {payment.personnel?.full_name || payment.user?.full_name || 'Bilinmiyor'}
+                      </p>
+                      <p className="text-sm text-gray-600">{payment.instruction_number}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-orange-600">
+                        ₺{payment.total_amount.toLocaleString('tr-TR')}
+                      </p>
+                      <p className={`text-xs ${getPaymentStatusColor(payment.status)}`}>
+                        {getPaymentStatusText(payment.status)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+              <p className="text-gray-600">Henüz ödeme talimatı yok</p>
             </div>
           )}
         </div>

@@ -122,6 +122,15 @@ export default function LoginPage() {
               </div>
             </div>
 
+            <div className="flex items-center justify-end">
+              <Link
+                href="/forgot-password"
+                className="text-sm font-medium text-teal-600 hover:text-teal-500"
+              >
+                Şifremi unuttum
+              </Link>
+            </div>
+
             <div>
               <button
                 type="submit"
