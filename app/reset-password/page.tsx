@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Calculator, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -16,40 +16,76 @@ export default function ResetPasswordPage() {
   const [isValidSession, setIsValidSession] = useState(false)
   const [checkingSession, setCheckingSession] = useState(true)
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   useEffect(() => {
-    // Check if there's a valid recovery session
-    const checkSession = async () => {
+    const handleRecovery = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
+        // Check for hash fragment (Supabase puts tokens there)
+        const hashParams = new URLSearchParams(window.location.hash.substring(1))
+        const accessToken = hashParams.get('access_token')
+        const refreshToken = hashParams.get('refresh_token')
+        const type = hashParams.get('type')
 
-        // Supabase automatically handles the recovery token from URL
-        if (session) {
-          setIsValidSession(true)
-        } else {
-          // Listen for auth state changes (recovery link handling)
-          const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (event === 'PASSWORD_RECOVERY' && session) {
-              setIsValidSession(true)
-            }
+        // Also check URL params (some Supabase versions use query params)
+        const code = searchParams.get('code')
+        const tokenHash = searchParams.get('token_hash')
+
+        if (accessToken && type === 'recovery') {
+          // Set session from hash tokens
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || '',
           })
 
-          // Give some time for the auth state to update
-          setTimeout(() => {
+          if (data.session) {
+            setIsValidSession(true)
             setCheckingSession(false)
-          }, 2000)
-
-          return () => subscription.unsubscribe()
+            return
+          }
         }
+
+        if (code) {
+          // Exchange code for session (PKCE flow)
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+          if (data.session) {
+            setIsValidSession(true)
+            setCheckingSession(false)
+            return
+          }
+        }
+
+        // Check existing session
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+          setIsValidSession(true)
+          setCheckingSession(false)
+          return
+        }
+
+        // Listen for auth state changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+          console.log('Auth event:', event)
+          if ((event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') && session) {
+            setIsValidSession(true)
+            setCheckingSession(false)
+          }
+        })
+
+        // Give some time for the auth state to update
+        setTimeout(() => {
+          setCheckingSession(false)
+        }, 3000)
+
+        return () => subscription.unsubscribe()
       } catch (err) {
-        console.error('Session check error:', err)
-      } finally {
+        console.error('Recovery handling error:', err)
         setCheckingSession(false)
       }
     }
 
-    checkSession()
-  }, [])
+    handleRecovery()
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -263,5 +299,25 @@ export default function ResetPasswordPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-teal-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        <div className="sm:mx-auto sm:w-full sm:max-w-md">
+          <div className="flex justify-center">
+            <Calculator className="h-12 w-12 text-teal-600" />
+          </div>
+          <div className="mt-8 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto"></div>
+            <p className="mt-4 text-slate-600">Yükleniyor...</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <ResetPasswordContent />
+    </Suspense>
   )
 }
