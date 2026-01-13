@@ -1,97 +1,115 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Calculator, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 
-function ResetPasswordContent() {
+export default function ResetPasswordPage() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
-  const [isValidSession, setIsValidSession] = useState(false)
-  const [checkingSession, setCheckingSession] = useState(true)
+  const [isReady, setIsReady] = useState(false)
+  const [checking, setChecking] = useState(true)
+  const [debugInfo, setDebugInfo] = useState('')
   const router = useRouter()
-  const searchParams = useSearchParams()
 
   useEffect(() => {
-    const handleRecovery = async () => {
+    const init = async () => {
       try {
-        // Check for hash fragment (Supabase puts tokens there)
-        const hashParams = new URLSearchParams(window.location.hash.substring(1))
-        const accessToken = hashParams.get('access_token')
-        const refreshToken = hashParams.get('refresh_token')
-        const type = hashParams.get('type')
+        // Get current URL info for debugging
+        const fullUrl = window.location.href
+        const hash = window.location.hash
+        const search = window.location.search
 
-        // Also check URL params (some Supabase versions use query params)
-        const code = searchParams.get('code')
-        const tokenHash = searchParams.get('token_hash')
+        setDebugInfo(`URL: ${fullUrl.substring(0, 100)}...`)
 
-        if (accessToken && type === 'recovery') {
-          // Set session from hash tokens
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken || '',
-          })
-
-          if (data.session) {
-            setIsValidSession(true)
-            setCheckingSession(false)
-            return
-          }
-        }
+        // First, check if there's a code in the URL (PKCE flow)
+        const urlParams = new URLSearchParams(search)
+        const code = urlParams.get('code')
 
         if (code) {
-          // Exchange code for session (PKCE flow)
+          console.log('Found code, exchanging for session...')
           const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-          if (data.session) {
-            setIsValidSession(true)
-            setCheckingSession(false)
+          if (data?.session) {
+            console.log('Session established from code')
+            setIsReady(true)
+            setChecking(false)
             return
+          }
+          if (error) {
+            console.error('Code exchange error:', error)
           }
         }
 
-        // Check existing session
+        // Check hash for tokens (implicit flow)
+        if (hash) {
+          const hashParams = new URLSearchParams(hash.substring(1))
+          const accessToken = hashParams.get('access_token')
+          const refreshToken = hashParams.get('refresh_token')
+          const type = hashParams.get('type')
+
+          if (accessToken && refreshToken) {
+            console.log('Found tokens in hash, setting session...')
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            })
+            if (data?.session) {
+              console.log('Session established from hash tokens')
+              setIsReady(true)
+              setChecking(false)
+              return
+            }
+            if (error) {
+              console.error('Set session error:', error)
+            }
+          }
+        }
+
+        // Check for existing session
         const { data: { session } } = await supabase.auth.getSession()
         if (session) {
-          setIsValidSession(true)
-          setCheckingSession(false)
+          console.log('Found existing session')
+          setIsReady(true)
+          setChecking(false)
           return
         }
 
-        // Listen for auth state changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-          console.log('Auth event:', event)
-          if ((event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') && session) {
-            setIsValidSession(true)
-            setCheckingSession(false)
+        // Listen for auth changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+          console.log('Auth state changed:', event)
+          if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+            if (session) {
+              setIsReady(true)
+              setChecking(false)
+            }
           }
         })
 
-        // Give some time for the auth state to update
+        // Wait a bit for any auth events
         setTimeout(() => {
-          setCheckingSession(false)
-        }, 3000)
+          setChecking(false)
+        }, 2000)
 
         return () => subscription.unsubscribe()
       } catch (err) {
-        console.error('Recovery handling error:', err)
-        setCheckingSession(false)
+        console.error('Init error:', err)
+        setChecking(false)
       }
     }
 
-    handleRecovery()
-  }, [searchParams])
+    init()
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
-    // Validate passwords
     if (password.length < 6) {
       setError('Şifre en az 6 karakter olmalıdır')
       return
@@ -115,11 +133,8 @@ function ResetPasswordContent() {
       }
 
       setSuccess(true)
-
-      // Sign out after password reset
       await supabase.auth.signOut()
 
-      // Redirect to login after 3 seconds
       setTimeout(() => {
         router.push('/login')
       }, 3000)
@@ -130,7 +145,8 @@ function ResetPasswordContent() {
     }
   }
 
-  if (checkingSession) {
+  // Loading state
+  if (checking) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-teal-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -146,7 +162,8 @@ function ResetPasswordContent() {
     )
   }
 
-  if (!isValidSession && !checkingSession) {
+  // Invalid/expired link
+  if (!isReady && !checking) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-teal-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -164,10 +181,14 @@ function ResetPasswordContent() {
               <h2 className="text-xl font-bold text-slate-900 mb-2">
                 Geçersiz veya Süresi Dolmuş Bağlantı
               </h2>
-              <p className="text-sm text-slate-600 mb-6">
+              <p className="text-sm text-slate-600 mb-4">
                 Bu şifre sıfırlama bağlantısı geçersiz veya süresi dolmuş olabilir.
-                Lütfen yeni bir şifre sıfırlama bağlantısı isteyin.
               </p>
+              {debugInfo && (
+                <p className="text-xs text-slate-400 mb-4 break-all">
+                  Debug: {debugInfo}
+                </p>
+              )}
               <Link
                 href="/forgot-password"
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700"
@@ -181,6 +202,7 @@ function ResetPasswordContent() {
     )
   }
 
+  // Success state
   if (success) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-teal-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -200,7 +222,7 @@ function ResetPasswordContent() {
                 Şifre Başarıyla Güncellendi
               </h2>
               <p className="text-sm text-slate-600 mb-6">
-                Şifreniz başarıyla değiştirildi. Giriş sayfasına yönlendiriliyorsunuz...
+                Giriş sayfasına yönlendiriliyorsunuz...
               </p>
               <Link
                 href="/login"
@@ -215,6 +237,7 @@ function ResetPasswordContent() {
     )
   }
 
+  // Password reset form
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-teal-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -224,9 +247,6 @@ function ResetPasswordContent() {
         <h2 className="mt-6 text-center text-3xl font-bold text-slate-900">
           Yeni Şifre Belirle
         </h2>
-        <p className="mt-2 text-center text-sm text-slate-600">
-          Hesabınız için yeni bir şifre oluşturun.
-        </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
@@ -299,25 +319,5 @@ function ResetPasswordContent() {
         </div>
       </div>
     </div>
-  )
-}
-
-export default function ResetPasswordPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-teal-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-        <div className="sm:mx-auto sm:w-full sm:max-w-md">
-          <div className="flex justify-center">
-            <Calculator className="h-12 w-12 text-teal-600" />
-          </div>
-          <div className="mt-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto"></div>
-            <p className="mt-4 text-slate-600">Yükleniyor...</p>
-          </div>
-        </div>
-      </div>
-    }>
-      <ResetPasswordContent />
-    </Suspense>
   )
 }
