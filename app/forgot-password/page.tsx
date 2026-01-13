@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Calculator, Mail, ArrowLeft, CheckCircle } from 'lucide-react'
+import { supabase } from '@/lib/supabase/client'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -15,23 +16,31 @@ export default function ForgotPasswordPage() {
     setLoading(true)
     setError('')
 
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      setError('Geçerli bir e-posta adresi girin')
+      setLoading(false)
+      return
+    }
+
     try {
-      const response = await fetch('/api/auth/forgot-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
+      // Use client-side Supabase to preserve PKCE verifier in browser
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${siteUrl}/reset-password`,
       })
 
-      const data = await response.json()
-
-      if (data.success) {
+      if (resetError) {
+        console.error('Reset password error:', resetError)
+        // Don't expose if email exists or not
         setSuccess(true)
       } else {
-        setError(data.message || 'Bir hata oluştu')
+        setSuccess(true)
       }
     } catch (err) {
+      console.error('Forgot password error:', err)
       setError('Bir hata oluştu. Lütfen tekrar deneyin.')
     } finally {
       setLoading(false)
