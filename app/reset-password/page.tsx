@@ -6,9 +6,6 @@ import Link from 'next/link'
 import { Calculator, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 
-// Prevent double execution
-let codeExchanged = false
-
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -18,106 +15,42 @@ export default function ResetPasswordPage() {
   const [success, setSuccess] = useState(false)
   const [isReady, setIsReady] = useState(false)
   const [checking, setChecking] = useState(true)
-  const [debugInfo, setDebugInfo] = useState('')
   const router = useRouter()
 
   useEffect(() => {
-    const init = async () => {
-      try {
-        // Get current URL info for debugging
-        const fullUrl = window.location.href
-        const hash = window.location.hash
-        const search = window.location.search
+    // Listen for auth state changes - this handles both PKCE and implicit flows
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth event:', event, session ? 'has session' : 'no session')
 
-        setDebugInfo(`URL: ${fullUrl.substring(0, 100)}...`)
-
-        // First, check if there's a code in the URL (PKCE flow)
-        const urlParams = new URLSearchParams(search)
-        const code = urlParams.get('code')
-
-        if (code && !codeExchanged) {
-          codeExchanged = true // Prevent double execution
-          console.log('Found code, exchanging for session...')
-          const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-          if (data?.session) {
-            console.log('Session established from code')
-            setIsReady(true)
-            setChecking(false)
-            // Remove code from URL to prevent re-use on refresh
-            window.history.replaceState({}, '', '/reset-password')
-            return
-          }
-          if (error) {
-            console.error('Code exchange error:', error)
-          }
-        } else if (code && codeExchanged) {
-          // Code already used, check for existing session
-          const { data: { session } } = await supabase.auth.getSession()
-          if (session) {
-            setIsReady(true)
-            setChecking(false)
-            return
-          }
-        }
-
-        // Check hash for tokens (implicit flow)
-        if (hash) {
-          const hashParams = new URLSearchParams(hash.substring(1))
-          const accessToken = hashParams.get('access_token')
-          const refreshToken = hashParams.get('refresh_token')
-          const type = hashParams.get('type')
-
-          if (accessToken && refreshToken) {
-            console.log('Found tokens in hash, setting session...')
-            const { data, error } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken,
-            })
-            if (data?.session) {
-              console.log('Session established from hash tokens')
-              setIsReady(true)
-              setChecking(false)
-              return
-            }
-            if (error) {
-              console.error('Set session error:', error)
-            }
-          }
-        }
-
-        // Check for existing session
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session) {
-          console.log('Found existing session')
-          setIsReady(true)
-          setChecking(false)
-          return
-        }
-
-        // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-          console.log('Auth state changed:', event)
-          if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
-            if (session) {
-              setIsReady(true)
-              setChecking(false)
-            }
-          }
-        })
-
-        // Wait a bit for any auth events
-        setTimeout(() => {
-          setChecking(false)
-        }, 2000)
-
-        return () => subscription.unsubscribe()
-      } catch (err) {
-        console.error('Init error:', err)
+      if (event === 'PASSWORD_RECOVERY') {
+        // User clicked the reset link and was verified by Supabase
+        setIsReady(true)
+        setChecking(false)
+      } else if (event === 'SIGNED_IN' && session) {
+        // Session established
+        setIsReady(true)
         setChecking(false)
       }
+    })
+
+    // Also check for existing session
+    const checkSession = async () => {
+      // Small delay to let Supabase process the URL tokens
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (session) {
+        console.log('Found existing session')
+        setIsReady(true)
+      }
+
+      setChecking(false)
     }
 
-    init()
+    checkSession()
+
+    return () => subscription.unsubscribe()
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -195,14 +128,9 @@ export default function ResetPasswordPage() {
               <h2 className="text-xl font-bold text-slate-900 mb-2">
                 Geçersiz veya Süresi Dolmuş Bağlantı
               </h2>
-              <p className="text-sm text-slate-600 mb-4">
+              <p className="text-sm text-slate-600 mb-6">
                 Bu şifre sıfırlama bağlantısı geçersiz veya süresi dolmuş olabilir.
               </p>
-              {debugInfo && (
-                <p className="text-xs text-slate-400 mb-4 break-all">
-                  Debug: {debugInfo}
-                </p>
-              )}
               <Link
                 href="/forgot-password"
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700"
