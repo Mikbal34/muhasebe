@@ -25,7 +25,8 @@ import {
   Building2
 } from 'lucide-react'
 import { StatCardSkeleton, TableSkeleton, Skeleton } from '@/components/ui/skeleton'
-import { usePayments } from '@/hooks/use-payments'
+import { usePayments, DateRange } from '@/hooks/use-payments'
+import { DateRangePicker } from '@/components/ui/date-range-picker'
 
 interface User {
   id: string
@@ -91,10 +92,11 @@ export default function PaymentsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [projectFilter, setProjectFilter] = useState<string>('')
   const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({})
+  const [dateRange, setDateRange] = useState<DateRange>({ startDate: null, endDate: null })
   const router = useRouter()
 
   // React Query hooks - 5 dakika cache
-  const { data: payments = [], isLoading: paymentsLoading } = usePayments()
+  const { data: payments = [], isLoading: paymentsLoading } = usePayments(dateRange)
 
   const handleExportExcel = async () => {
     setExporting(true)
@@ -379,7 +381,7 @@ export default function PaymentsPage() {
 
         {/* Filters */}
         <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
               <input
@@ -418,6 +420,11 @@ export default function PaymentsPage() {
                 <option value="rejected">İptal Edildi</option>
               </select>
             </div>
+
+            <DateRangePicker
+              value={dateRange}
+              onChange={setDateRange}
+            />
 
             <div className="col-span-full text-sm text-slate-700">
               {filteredPayments.length} talimat görüntüleniyor

@@ -14,6 +14,7 @@ interface DateRangePickerProps {
   value: DateRange
   onChange: (range: DateRange) => void
   className?: string
+  align?: 'left' | 'right'
 }
 
 // Preset options
@@ -27,7 +28,7 @@ const presets = [
   { label: 'Tüm Zamanlar', getValue: () => ({ startDate: null, endDate: null }) },
 ]
 
-export function DateRangePicker({ value, onChange, className = '' }: DateRangePickerProps) {
+export function DateRangePicker({ value, onChange, className = '', align = 'left' }: DateRangePickerProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [tempStart, setTempStart] = useState(value.startDate || '')
   const [tempEnd, setTempEnd] = useState(value.endDate || '')
@@ -107,7 +108,7 @@ export function DateRangePicker({ value, onChange, className = '' }: DateRangePi
           />
 
           {/* Dropdown Content */}
-          <div className="absolute top-full left-0 mt-2 z-50 bg-white rounded-lg shadow-xl border border-slate-200 p-4 min-w-[320px]">
+          <div className={`absolute top-full mt-2 z-50 bg-white rounded-lg shadow-xl border border-slate-200 p-4 min-w-[320px] ${align === 'right' ? 'right-0' : 'left-0'}`}>
             {/* Presets */}
             <div className="mb-4">
               <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Hızlı Seçim</p>

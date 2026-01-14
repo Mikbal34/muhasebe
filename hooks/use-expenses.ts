@@ -38,12 +38,23 @@ const fetchWithAuth = async (url: string) => {
   return response.json()
 }
 
+export interface DateRange {
+  startDate: string | null
+  endDate: string | null
+}
+
 // Expenses Hook
-export function useExpenses() {
+export function useExpenses(dateRange?: DateRange) {
   return useQuery({
-    queryKey: ['expenses'],
+    queryKey: ['expenses', dateRange?.startDate || 'all', dateRange?.endDate || 'all'],
     queryFn: async (): Promise<Expense[]> => {
-      const data = await fetchWithAuth('/api/expenses')
+      const params = new URLSearchParams()
+      if (dateRange?.startDate) params.set('start_date', dateRange.startDate)
+      if (dateRange?.endDate) params.set('end_date', dateRange.endDate)
+      const queryString = params.toString()
+      const url = `/api/expenses${queryString ? `?${queryString}` : ''}`
+
+      const data = await fetchWithAuth(url)
       if (!data.success) throw new Error('Failed to fetch expenses')
       return data.data?.expenses || []
     },

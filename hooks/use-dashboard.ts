@@ -118,21 +118,24 @@ export interface DateRange {
 
 // Dashboard Metrics Hook (ağır sorgu - daha uzun cache)
 export function useDashboardMetrics(dateRange?: DateRange) {
-  const queryParams = new URLSearchParams()
-  if (dateRange?.startDate) queryParams.set('startDate', dateRange.startDate)
-  if (dateRange?.endDate) queryParams.set('endDate', dateRange.endDate)
-  const queryString = queryParams.toString()
-
   return useQuery({
-    queryKey: ['dashboard', 'metrics', dateRange?.startDate, dateRange?.endDate],
+    queryKey: ['dashboard', 'metrics', dateRange?.startDate || 'all', dateRange?.endDate || 'all'],
     queryFn: async (): Promise<DashboardMetrics> => {
+      // Build URL inside queryFn to ensure fresh values
+      const params = new URLSearchParams()
+      if (dateRange?.startDate) params.set('startDate', dateRange.startDate)
+      if (dateRange?.endDate) params.set('endDate', dateRange.endDate)
+      const queryString = params.toString()
+
       const url = `/api/dashboard/metrics${queryString ? `?${queryString}` : ''}`
+      console.log('Fetching metrics with URL:', url) // Debug log
+
       const data = await fetchWithAuth(url)
       if (!data.success) throw new Error('Failed to fetch metrics')
       return data.data
     },
-    staleTime: 5 * 60 * 1000, // 5 dakika - ağır sorgu için cache
-    gcTime: 30 * 60 * 1000,   // 30 dakika cache'te tut
+    staleTime: 1 * 60 * 1000, // 1 dakika - filtre değişince hızlı güncelleme
+    gcTime: 10 * 60 * 1000,   // 10 dakika cache'te tut
     enabled: !!getToken()
   })
 }

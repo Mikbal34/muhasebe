@@ -76,6 +76,7 @@ export default function ProjectsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [representativeFilter, setRepresentativeFilter] = useState<string>('')
+  const [sortOrder, setSortOrder] = useState<string>('')
   const router = useRouter()
 
   // React Query hooks - 5 dakika cache
@@ -133,7 +134,7 @@ export default function ProjectsPage() {
   const columnCount = useColumnCount({ sm: 1, md: 2, lg: 3 })
 
   const filteredProjects = useMemo(() => {
-    return projects.filter(project => {
+    let result = projects.filter(project => {
       const matchesSearch = project.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
         project.code.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
         project.representatives.some(rep => {
@@ -142,7 +143,20 @@ export default function ProjectsPage() {
         })
       return matchesSearch
     })
-  }, [projects, debouncedSearch])
+
+    // Sıralama uygula
+    if (sortOrder === 'budget_desc') {
+      result = [...result].sort((a, b) => b.budget - a.budget)
+    } else if (sortOrder === 'budget_asc') {
+      result = [...result].sort((a, b) => a.budget - b.budget)
+    } else if (sortOrder === 'date_desc') {
+      result = [...result].sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime())
+    } else if (sortOrder === 'date_asc') {
+      result = [...result].sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())
+    }
+
+    return result
+  }, [projects, debouncedSearch, sortOrder])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -284,7 +298,7 @@ export default function ProjectsPage() {
 
         {/* Filters */}
         <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
               <input
@@ -321,6 +335,20 @@ export default function ProjectsPage() {
                     {academician.full_name}
                   </option>
                 ))}
+              </select>
+            </div>
+
+            <div className="relative">
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-600 focus:border-teal-600 text-slate-900 appearance-none cursor-pointer"
+              >
+                <option value="">Sıralama</option>
+                <option value="budget_desc">Bütçe (Yüksek → Düşük)</option>
+                <option value="budget_asc">Bütçe (Düşük → Yüksek)</option>
+                <option value="date_desc">Tarih (Yeni → Eski)</option>
+                <option value="date_asc">Tarih (Eski → Yeni)</option>
               </select>
             </div>
 

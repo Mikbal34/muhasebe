@@ -20,7 +20,8 @@ import {
   Download
 } from 'lucide-react'
 import { StatCardSkeleton, AccordionGroupSkeleton, Skeleton } from '@/components/ui/skeleton'
-import { useExpenses, useInvalidateExpenses } from '@/hooks/use-expenses'
+import { useExpenses, useInvalidateExpenses, DateRange } from '@/hooks/use-expenses'
+import { DateRangePicker } from '@/components/ui/date-range-picker'
 
 interface User {
   id: string
@@ -57,10 +58,11 @@ export default function ExpensesPage() {
   const [projectFilter, setProjectFilter] = useState<string>('')
   const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({})
   const [exporting, setExporting] = useState(false)
+  const [dateRange, setDateRange] = useState<DateRange>({ startDate: null, endDate: null })
   const router = useRouter()
 
   // React Query hooks - 5 dakika cache
-  const { data: expenses = [], isLoading: expensesLoading } = useExpenses()
+  const { data: expenses = [], isLoading: expensesLoading } = useExpenses(dateRange)
   const invalidateExpenses = useInvalidateExpenses()
 
   // Sadece user kontrolü - data fetching React Query'de
@@ -301,7 +303,7 @@ export default function ExpensesPage() {
 
         {/* Filters */}
         <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
@@ -330,6 +332,11 @@ export default function ExpensesPage() {
                 ))}
               </select>
             </div>
+
+            <DateRangePicker
+              value={dateRange}
+              onChange={setDateRange}
+            />
           </div>
         </div>
 

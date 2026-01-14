@@ -66,12 +66,23 @@ const fetchWithAuth = async (url: string) => {
   return response.json()
 }
 
+export interface DateRange {
+  startDate: string | null
+  endDate: string | null
+}
+
 // Payments Hook
-export function usePayments() {
+export function usePayments(dateRange?: DateRange) {
   return useQuery({
-    queryKey: ['payments'],
+    queryKey: ['payments', dateRange?.startDate || 'all', dateRange?.endDate || 'all'],
     queryFn: async (): Promise<PaymentInstruction[]> => {
-      const data = await fetchWithAuth('/api/payments')
+      const params = new URLSearchParams()
+      if (dateRange?.startDate) params.set('start_date', dateRange.startDate)
+      if (dateRange?.endDate) params.set('end_date', dateRange.endDate)
+      const queryString = params.toString()
+      const url = `/api/payments${queryString ? `?${queryString}` : ''}`
+
+      const data = await fetchWithAuth(url)
       if (!data.success) throw new Error('Failed to fetch payments')
       return data.data?.payments || []
     },

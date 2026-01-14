@@ -15,20 +15,34 @@ export async function GET(request: NextRequest) {
       const startDate = url.searchParams.get('startDate')
       const endDate = url.searchParams.get('endDate')
 
-      // 1. Get total budget from ALL projects (not just active)
-      const { data: allProjects, error: projectsError } = await ctx.supabase
+      console.log('Dashboard metrics - Date filters:', { startDate, endDate })
+
+      // 1. Get total budget from projects (filtered by start_date if provided)
+      let projectsQuery = ctx.supabase
         .from('projects')
-        .select('budget, status')
+        .select('budget, status, start_date')
+
+      // Filter projects by start_date
+      if (startDate) {
+        projectsQuery = projectsQuery.gte('start_date', startDate)
+      }
+      if (endDate) {
+        projectsQuery = projectsQuery.lte('start_date', endDate)
+      }
+
+      const { data: allProjects, error: projectsError } = await projectsQuery
 
       if (projectsError) {
         console.error('Projects fetch error:', projectsError)
         return apiResponse.error('Failed to fetch projects', projectsError.message, 500)
       }
 
-      // Total budget includes all projects (active + completed)
+      console.log('Filtered projects count:', allProjects?.length || 0)
+
+      // Total budget includes filtered projects (active + completed)
       const totalBudget = allProjects?.reduce((sum, p) => sum + (p.budget || 0), 0) || 0
 
-      // 2. Get active project count (only active ones)
+      // 2. Get active project count (only active ones from filtered)
       const activeProjectCount = allProjects?.filter(p => p.status === 'active').length || 0
 
       // 3. Get all incomes with income_date for year grouping
@@ -51,6 +65,8 @@ export async function GET(request: NextRequest) {
         return apiResponse.error('Failed to fetch incomes', incomesError.message, 500)
       }
 
+      console.log('Filtered incomes count:', incomes?.length || 0)
+
       // Calculate total invoiced (kesilen fatura)
       const totalInvoiced = incomes?.reduce((sum, i) => sum + (i.gross_amount || 0), 0) || 0
 
@@ -63,15 +79,27 @@ export async function GET(request: NextRequest) {
       // Calculate remaining to invoice (kesilecek fatura)
       const remainingToInvoice = totalBudget - totalInvoiced
 
-      // 4. Get all commissions with income dates for year grouping
-      const { data: commissions, error: commissionsError } = await ctx.supabase
+      // 4. Get all commissions with created_at for year grouping
+      let commissionsQuery = ctx.supabase
         .from('commissions')
-        .select('amount, income_id, incomes(income_date)')
+        .select('amount, created_at')
+
+      // Apply date filters to commissions using created_at
+      if (startDate) {
+        commissionsQuery = commissionsQuery.gte('created_at', startDate)
+      }
+      if (endDate) {
+        commissionsQuery = commissionsQuery.lte('created_at', endDate + 'T23:59:59')
+      }
+
+      const { data: commissions, error: commissionsError } = await commissionsQuery
 
       if (commissionsError) {
         console.error('Commissions fetch error:', commissionsError)
         return apiResponse.error('Failed to fetch commissions', commissionsError.message, 500)
       }
+
+      console.log('Filtered commissions count:', commissions?.length || 0)
 
       // Calculate total TTO commission
       const totalCommission = commissions?.reduce((sum, c) => sum + (c.amount || 0), 0) || 0
@@ -96,6 +124,34 @@ export async function GET(request: NextRequest) {
         return apiResponse.error('Failed to fetch expenses', expensesError.message, 500)
       }
 
+      console.log('Filtered expenses count:', expenses?.length || 0)
+
+      // 4c. Get all payment instructions with created_at for monthly grouping
+      let paymentsQuery = ctx.supabase
+        .from('payment_instructions')
+        .select('total_amount, created_at, status')
+        .eq('status', 'completed') // Sadece tamamlanan ödemeler
+
+      // Apply date filters if provided
+      if (startDate) {
+        paymentsQuery = paymentsQuery.gte('created_at', startDate)
+      }
+      if (endDate) {
+        paymentsQuery = paymentsQuery.lte('created_at', endDate + 'T23:59:59')
+      }
+
+      const { data: payments, error: paymentsError } = await paymentsQuery
+
+      if (paymentsError) {
+        console.error('Payments fetch error:', paymentsError)
+        return apiResponse.error('Failed to fetch payments', paymentsError.message, 500)
+      }
+
+      console.log('Filtered payments count:', payments?.length || 0)
+
+      // Calculate total payments
+      const totalPayments = payments?.reduce((sum, p) => sum + (p.total_amount || 0), 0) || 0
+
       // 5. Group data by year
       const yearData: Record<string, { invoiced: number; commission: number; remaining: number; planned: number }> = {}
 
@@ -116,10 +172,10 @@ export async function GET(request: NextRequest) {
         }
       })
 
-      // Process commissions by year
+      // Process commissions by year (using created_at)
       commissions?.forEach((commission: any) => {
-        if (commission.incomes?.income_date) {
-          const year = new Date(commission.incomes.income_date).getFullYear().toString()
+        if (commission.created_at) {
+          const year = new Date(commission.created_at).getFullYear().toString()
           if (!yearData[year]) {
             yearData[year] = { invoiced: 0, commission: 0, remaining: 0, planned: 0 }
           }
@@ -143,7 +199,7 @@ export async function GET(request: NextRequest) {
       }))
 
       // 7. Create monthly breakdown for each year
-      const monthlyBreakdown: Record<string, Array<{ month: number; income: number; expense: number; difference: number }>> = {}
+      const monthlyBreakdown: Record<string, Array<{ month: number; income: number; expense: number; payment: number; difference: number }>> = {}
 
       years.forEach((year) => {
         // Initialize 12 months with zero values
@@ -151,6 +207,7 @@ export async function GET(request: NextRequest) {
           month: i + 1, // 1-12
           income: 0,
           expense: 0,
+          payment: 0,
           difference: 0,
         }))
 
@@ -176,6 +233,17 @@ export async function GET(request: NextRequest) {
           }
         })
 
+        // Add payment data by month
+        payments?.forEach((payment: any) => {
+          if (payment.created_at) {
+            const date = new Date(payment.created_at)
+            if (date.getFullYear().toString() === year) {
+              const monthIndex = date.getMonth() // 0-11
+              months[monthIndex].payment += payment.total_amount || 0
+            }
+          }
+        })
+
         // Calculate difference for each month
         months.forEach((month) => {
           month.difference = month.income - month.expense
@@ -193,6 +261,7 @@ export async function GET(request: NextRequest) {
         total_outstanding: totalOutstanding,
         remaining_to_invoice: remainingToInvoice,
         total_commission: totalCommission,
+        total_payments: totalPayments,
         active_project_count: activeProjectCount,
 
         // Progress percentage

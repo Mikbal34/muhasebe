@@ -49,12 +49,23 @@ const fetchWithAuth = async (url: string) => {
   return response.json()
 }
 
+export interface DateRange {
+  startDate: string | null
+  endDate: string | null
+}
+
 // Incomes Hook
-export function useIncomes() {
+export function useIncomes(dateRange?: DateRange) {
   return useQuery({
-    queryKey: ['incomes'],
+    queryKey: ['incomes', dateRange?.startDate || 'all', dateRange?.endDate || 'all'],
     queryFn: async (): Promise<Income[]> => {
-      const data = await fetchWithAuth('/api/incomes')
+      const params = new URLSearchParams()
+      if (dateRange?.startDate) params.set('start_date', dateRange.startDate)
+      if (dateRange?.endDate) params.set('end_date', dateRange.endDate)
+      const queryString = params.toString()
+      const url = `/api/incomes${queryString ? `?${queryString}` : ''}`
+
+      const data = await fetchWithAuth(url)
       if (!data.success) throw new Error('Failed to fetch incomes')
       return data.data?.incomes || []
     },

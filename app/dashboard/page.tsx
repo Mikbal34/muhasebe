@@ -278,6 +278,7 @@ export default function DashboardPage() {
               <DateRangePicker
                 value={dateRange}
                 onChange={setDateRange}
+                align="right"
               />
             </div>
 
@@ -525,6 +526,68 @@ export default function DashboardPage() {
                       : 'text-red-600'
                   }`}>
                     ₺{(dashboardMetrics.monthly_breakdown[selectedYear]?.reduce((sum, m) => sum + m.difference, 0) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Monthly Payment Table */}
+            <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Aylık Ödeme Talimatları</h3>
+                  <p className="text-xs text-slate-600 mt-0.5">Tamamlanan ödemelerin aylık dağılımı</p>
+                </div>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(e.target.value)}
+                  className="px-3 py-2 border border-slate-300 rounded text-sm font-semibold text-slate-900 bg-white focus:outline-none focus:ring-1 focus:ring-teal-600 focus:border-teal-600"
+                >
+                  <option value="2024">2024</option>
+                  <option value="2025">2025</option>
+                  <option value="2026">2026</option>
+                </select>
+              </div>
+
+              <div className="overflow-x-auto rounded border border-slate-200">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-300 bg-slate-50">
+                      <th className="py-3 px-3 text-left font-semibold text-slate-900 sticky left-0 bg-slate-50">Kategori</th>
+                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Oca</th>
+                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Şub</th>
+                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Mar</th>
+                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Nis</th>
+                      <th className="py-3 px-2 text-center font-semibold text-slate-700">May</th>
+                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Haz</th>
+                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Tem</th>
+                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Ağu</th>
+                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Eyl</th>
+                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Eki</th>
+                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Kas</th>
+                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Ara</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {/* Ödemeler Row */}
+                    <tr className="hover:bg-slate-50">
+                      <td className="py-3 px-3 font-semibold text-slate-900 sticky left-0 bg-white hover:bg-slate-50">Dağıtılan Ödemeler</td>
+                      {dashboardMetrics.monthly_breakdown[selectedYear]?.map((monthData: any, index) => (
+                        <td key={index} className="py-3 px-2 text-center text-orange-600 font-semibold">
+                          {monthData.payment > 0 ? `₺${monthData.payment.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}` : '-'}
+                        </td>
+                      ))}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Payment Summary */}
+              <div className="mt-3 pt-3 border-t border-slate-200 grid grid-cols-1 gap-3 text-center">
+                <div>
+                  <p className="text-xs text-slate-600 mb-1">Toplam Dağıtılan Ödeme</p>
+                  <p className="text-base font-bold text-orange-600">
+                    ₺{(dashboardMetrics.monthly_breakdown[selectedYear]?.reduce((sum: number, m: any) => sum + (m.payment || 0), 0) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
               </div>
