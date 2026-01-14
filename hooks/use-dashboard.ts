@@ -111,12 +111,23 @@ export function useTTOFinancials() {
   })
 }
 
+export interface DateRange {
+  startDate: string | null
+  endDate: string | null
+}
+
 // Dashboard Metrics Hook (ağır sorgu - daha uzun cache)
-export function useDashboardMetrics() {
+export function useDashboardMetrics(dateRange?: DateRange) {
+  const queryParams = new URLSearchParams()
+  if (dateRange?.startDate) queryParams.set('startDate', dateRange.startDate)
+  if (dateRange?.endDate) queryParams.set('endDate', dateRange.endDate)
+  const queryString = queryParams.toString()
+
   return useQuery({
-    queryKey: ['dashboard', 'metrics'],
+    queryKey: ['dashboard', 'metrics', dateRange?.startDate, dateRange?.endDate],
     queryFn: async (): Promise<DashboardMetrics> => {
-      const data = await fetchWithAuth('/api/dashboard/metrics')
+      const url = `/api/dashboard/metrics${queryString ? `?${queryString}` : ''}`
+      const data = await fetchWithAuth(url)
       if (!data.success) throw new Error('Failed to fetch metrics')
       return data.data
     },
@@ -141,12 +152,12 @@ export function useCashFlow(period: string) {
 }
 
 // Combined hook for the dashboard page
-export function useDashboard(userRole: string | undefined) {
+export function useDashboard(userRole: string | undefined, dateRange?: DateRange) {
   const isAdminOrManager = userRole === 'admin' || userRole === 'manager'
 
   const statsQuery = useDashboardStats()
   const ttoQuery = useTTOFinancials()
-  const metricsQuery = useDashboardMetrics()
+  const metricsQuery = useDashboardMetrics(dateRange)
 
   return {
     stats: statsQuery.data,

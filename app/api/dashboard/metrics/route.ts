@@ -10,6 +10,11 @@ export async function GET(request: NextRequest) {
         return apiResponse.error('Unauthorized', 'Only admins and managers can access dashboard metrics', 403)
       }
 
+      // Get date range filters from query params
+      const url = new URL(request.url)
+      const startDate = url.searchParams.get('startDate')
+      const endDate = url.searchParams.get('endDate')
+
       // 1. Get total budget from ALL projects (not just active)
       const { data: allProjects, error: projectsError } = await ctx.supabase
         .from('projects')
@@ -27,9 +32,19 @@ export async function GET(request: NextRequest) {
       const activeProjectCount = allProjects?.filter(p => p.status === 'active').length || 0
 
       // 3. Get all incomes with income_date for year grouping
-      const { data: incomes, error: incomesError } = await ctx.supabase
+      let incomesQuery = ctx.supabase
         .from('incomes')
         .select('gross_amount, collected_amount, income_date')
+
+      // Apply date filters if provided
+      if (startDate) {
+        incomesQuery = incomesQuery.gte('income_date', startDate)
+      }
+      if (endDate) {
+        incomesQuery = incomesQuery.lte('income_date', endDate)
+      }
+
+      const { data: incomes, error: incomesError } = await incomesQuery
 
       if (incomesError) {
         console.error('Incomes fetch error:', incomesError)
@@ -62,9 +77,19 @@ export async function GET(request: NextRequest) {
       const totalCommission = commissions?.reduce((sum, c) => sum + (c.amount || 0), 0) || 0
 
       // 4b. Get all expenses with expense_date for monthly grouping
-      const { data: expenses, error: expensesError } = await ctx.supabase
+      let expensesQuery = ctx.supabase
         .from('expenses')
         .select('amount, expense_date')
+
+      // Apply date filters if provided
+      if (startDate) {
+        expensesQuery = expensesQuery.gte('expense_date', startDate)
+      }
+      if (endDate) {
+        expensesQuery = expensesQuery.lte('expense_date', endDate)
+      }
+
+      const { data: expenses, error: expensesError } = await expensesQuery
 
       if (expensesError) {
         console.error('Expenses fetch error:', expensesError)
@@ -182,6 +207,12 @@ export async function GET(request: NextRequest) {
 
         // All available years (for future expansion)
         all_years: Object.keys(yearData).sort().reverse(),
+
+        // Applied filters
+        filters: {
+          startDate: startDate || null,
+          endDate: endDate || null,
+        },
       })
     } catch (error: any) {
       console.error('Dashboard metrics API error:', error)

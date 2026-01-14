@@ -23,7 +23,8 @@ import { StatCardSkeleton, ProgressBarSkeleton, MonthlyTableSkeleton, Skeleton }
 import { MiniChart } from '@/components/ui/mini-chart'
 import { CashFlowDiagram } from '@/components/charts/cash-flow-diagram'
 import { CashFlowData, CashFlowPeriod, PERIOD_OPTIONS } from '@/components/charts/cash-flow-types'
-import { useDashboard, useCashFlow } from '@/hooks/use-dashboard'
+import { useDashboard, useCashFlow, DateRange } from '@/hooks/use-dashboard'
+import { DateRangePicker } from '@/components/ui/date-range-picker'
 
 interface User {
   id: string
@@ -36,10 +37,11 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
   const [selectedYear, setSelectedYear] = useState<string>('2025')
   const [cashFlowPeriod, setCashFlowPeriod] = useState<CashFlowPeriod>('month')
+  const [dateRange, setDateRange] = useState<DateRange>({ startDate: null, endDate: null })
   const router = useRouter()
 
   // React Query hooks - 5 dakika cache ile
-  const { stats, metrics: dashboardMetrics, ttoFinancials, isLoading } = useDashboard(user?.role)
+  const { stats, metrics: dashboardMetrics, ttoFinancials, isLoading } = useDashboard(user?.role, dateRange)
   const { data: cashFlowData, isLoading: cashFlowLoading } = useCashFlow(cashFlowPeriod)
 
   useEffect(() => {
@@ -268,9 +270,15 @@ export default function DashboardPage() {
         {/* TTO Dashboard (Admin and Manager) */}
         {['admin', 'manager'].includes(user.role) && dashboardMetrics && (
           <div className="space-y-6">
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">Finansal Gösterge Tablosu</h2>
-              <p className="text-sm text-slate-600">TTO Mali Durum Özeti</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Finansal Gösterge Tablosu</h2>
+                <p className="text-sm text-slate-600">TTO Mali Durum Özeti</p>
+              </div>
+              <DateRangePicker
+                value={dateRange}
+                onChange={setDateRange}
+              />
             </div>
 
             {/* Main 6 Cards */}
