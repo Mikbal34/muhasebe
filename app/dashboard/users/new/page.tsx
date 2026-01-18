@@ -151,14 +151,14 @@ export default function NewUserPage() {
     switch (role) {
       case 'admin':
         return {
-          color: 'bg-red-100 text-red-800',
+          color: 'bg-navy/10 text-navy',
           icon: Shield,
           text: 'Yönetici',
           description: 'Tam sistem erişimi'
         }
       case 'manager':
         return {
-          color: 'bg-blue-100 text-blue-800',
+          color: 'bg-gold/20 text-gold',
           icon: Building2,
           text: 'Mali İşler',
           description: 'Tam sistem erişimi'
@@ -177,7 +177,7 @@ export default function NewUserPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-navy mx-auto"></div>
           <p className="mt-2 text-gray-600">Yükleniyor...</p>
         </div>
       </div>
@@ -244,7 +244,7 @@ export default function NewUserPage() {
                   type="text"
                   value={formData.full_name}
                   onChange={(e) => handleInputChange('full_name', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 ${
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 ${
                     errors.full_name ? 'border-red-300' : 'border-gray-300'
                   }`}
                   placeholder="Kullanıcının ad ve soyadını girin"
@@ -263,7 +263,7 @@ export default function NewUserPage() {
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 ${
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 ${
                     errors.email ? 'border-red-300' : 'border-gray-300'
                   }`}
                   placeholder="kullanici@example.com"
@@ -283,7 +283,7 @@ export default function NewUserPage() {
                     type={showPassword ? 'text' : 'password'}
                     value={formData.password}
                     onChange={(e) => handleInputChange('password', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 pr-10 ${
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 pr-10 ${
                       errors.password ? 'border-red-300' : 'border-gray-300'
                     }`}
                     placeholder="En az 6 karakter"
@@ -318,7 +318,7 @@ export default function NewUserPage() {
                       key={role}
                       className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
                         isSelected
-                          ? 'border-teal-500 bg-teal-50'
+                          ? 'border-navy bg-navy/5'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                       onClick={() => handleInputChange('role', role)}
@@ -332,7 +332,7 @@ export default function NewUserPage() {
                           <div className="text-sm text-gray-600">{roleInfo.description}</div>
                         </div>
                         <div className={`w-4 h-4 rounded-full border-2 ${
-                          isSelected ? 'border-teal-500 bg-teal-500' : 'border-gray-300'
+                          isSelected ? 'border-navy bg-navy' : 'border-gray-300'
                         }`}>
                           {isSelected && (
                             <div className="w-full h-full rounded-full bg-white scale-50"></div>
@@ -349,12 +349,12 @@ export default function NewUserPage() {
             </div>
 
             {/* Info Box */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="bg-navy/5 border border-navy/20 rounded-lg p-4">
               <div className="flex items-start space-x-3">
-                <Mail className="h-5 w-5 text-blue-600 mt-0.5" />
+                <Mail className="h-5 w-5 text-navy mt-0.5" />
                 <div>
-                  <h4 className="text-sm font-medium text-blue-900">Giriş Bilgileri</h4>
-                  <p className="text-sm text-blue-800 mt-1">
+                  <h4 className="text-sm font-medium text-navy">Giriş Bilgileri</h4>
+                  <p className="text-sm text-slate-700 mt-1">
                     Kullanıcı sisteme girilen e-posta adresi ve şifre ile giriş yapabilecektir.
                   </p>
                 </div>
@@ -372,7 +372,7 @@ export default function NewUserPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="inline-flex items-center px-3 py-2 text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 disabled:opacity-50 transition-colors"
+                className="inline-flex items-center px-3 py-2 text-sm font-semibold rounded text-white bg-navy hover:bg-navy/90 disabled:opacity-50 transition-colors"
               >
                 {saving ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />

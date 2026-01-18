@@ -8,25 +8,26 @@ import {
   FileText,
   Plus,
   Search,
-  Filter,
   Eye,
   Edit,
   Trash2,
-  User,
   Calendar,
-  DollarSign,
   Clock,
   CheckCircle,
   XCircle,
-  AlertTriangle,
   Download,
   ChevronDown,
   ChevronRight,
-  Building2
+  Building2,
+  Wallet,
+  CreditCard,
+  TrendingUp,
+  FolderOpen
 } from 'lucide-react'
-import { StatCardSkeleton, TableSkeleton, Skeleton } from '@/components/ui/skeleton'
+import { StatCardSkeleton, AccordionGroupSkeleton, Skeleton } from '@/components/ui/skeleton'
 import { usePayments, DateRange } from '@/hooks/use-payments'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
+import { turkishIncludes } from '@/lib/utils/string'
 
 interface User {
   id: string
@@ -95,7 +96,6 @@ export default function PaymentsPage() {
   const [dateRange, setDateRange] = useState<DateRange>({ startDate: null, endDate: null })
   const router = useRouter()
 
-  // React Query hooks - 5 dakika cache
   const { data: payments = [], isLoading: paymentsLoading } = usePayments(dateRange)
 
   const handleExportExcel = async () => {
@@ -103,7 +103,6 @@ export default function PaymentsPage() {
     try {
       const token = localStorage.getItem('token')
 
-      // Get settings from localStorage
       const savedSettings = localStorage.getItem('systemSettings')
       let banking = {
         company_iban: '',
@@ -122,7 +121,6 @@ export default function PaymentsPage() {
         }
       }
 
-      // Check if required settings are configured
       if (!banking.company_iban || !banking.company_vkn) {
         alert('Excel export için şirket IBAN ve VKN bilgileri gereklidir. Lütfen Ayarlar sayfasından banka bilgilerini doldurun.')
         setExporting(false)
@@ -171,7 +169,6 @@ export default function PaymentsPage() {
     }
   }
 
-  // Sadece user kontrolü - data fetching React Query'de
   useEffect(() => {
     const token = localStorage.getItem('token')
     const userData = localStorage.getItem('user')
@@ -188,7 +185,6 @@ export default function PaymentsPage() {
     }
   }, [router])
 
-  // Get unique projects from payments - artık doğrudan payment.project kullanılıyor
   const projects = Array.from(
     new Set(
       payments
@@ -199,9 +195,9 @@ export default function PaymentsPage() {
 
   const filteredPayments = payments.filter(payment => {
     const recipientName = payment.user?.full_name || payment.personnel?.full_name || ''
-    const matchesSearch = recipientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         payment.instruction_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         payment.notes?.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch = turkishIncludes(recipientName, searchTerm) ||
+                         turkishIncludes(payment.instruction_number, searchTerm) ||
+                         turkishIncludes(payment.notes || '', searchTerm)
     const matchesStatus = !statusFilter || payment.status === statusFilter
     const matchesProject = !projectFilter || payment.project?.id === projectFilter
     return matchesSearch && matchesStatus && matchesProject
@@ -211,19 +207,19 @@ export default function PaymentsPage() {
     switch (status) {
       case 'pending':
         return {
-          color: 'bg-yellow-100 text-yellow-800',
+          color: 'bg-gold/20 text-gold',
           icon: Clock,
           text: 'Bekliyor'
         }
       case 'completed':
         return {
-          color: 'bg-teal-100 text-teal-800',
+          color: 'bg-navy/10 text-navy',
           icon: CheckCircle,
           text: 'Tamamlandı'
         }
       case 'rejected':
         return {
-          color: 'bg-red-100 text-red-800',
+          color: 'bg-slate-200 text-slate-600',
           icon: XCircle,
           text: 'İptal Edildi'
         }
@@ -242,8 +238,9 @@ export default function PaymentsPage() {
   }, {} as Record<string, number>)
 
   const totalAmount = filteredPayments.reduce((sum, payment) => sum + payment.total_amount, 0)
+  const completedAmount = payments.filter(p => p.status === 'completed').reduce((sum, p) => sum + p.total_amount, 0)
+  const pendingAmount = payments.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.total_amount, 0)
 
-  // Group payments by project - artık doğrudan payment.project kullanılıyor
   const paymentsByProject = filteredPayments.reduce((acc, payment) => {
     const project = payment.project
     const projectKey = project?.id || 'no-project'
@@ -273,40 +270,25 @@ export default function PaymentsPage() {
     return (
       <DashboardLayout user={user || { id: '', full_name: 'Yükleniyor...', email: '', role: 'manager' }}>
         <div className="space-y-6">
-          {/* Header Skeleton */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <Skeleton className="h-8 w-48 mb-2" />
-              <Skeleton className="h-5 w-64" />
+              <Skeleton className="h-10 w-64 mb-2" />
+              <Skeleton className="h-5 w-80" />
             </div>
-            <Skeleton className="h-10 w-48" />
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-11 w-32" />
+              <Skeleton className="h-11 w-44" />
+            </div>
           </div>
-
-          {/* Stat Cards Skeleton - 5 cards */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-lg shadow-sm p-4 border">
-                <div className="flex items-center">
-                  <Skeleton className="h-6 w-6 rounded" />
-                  <div className="ml-3 flex-1">
-                    <Skeleton className="h-3 w-16 mb-1" />
-                    <Skeleton className="h-5 w-12" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Filters Skeleton */}
-          <div className="bg-white rounded-lg shadow-sm border p-4">
+          <StatCardSkeleton count={4} />
+          <div className="bg-white rounded-xl shadow-sm border p-4">
             <div className="flex flex-col sm:flex-row gap-4">
-              <Skeleton className="h-10 flex-1" />
-              <Skeleton className="h-10 w-48" />
+              <Skeleton className="h-11 flex-1" />
+              <Skeleton className="h-11 w-48" />
+              <Skeleton className="h-11 w-48" />
             </div>
           </div>
-
-          {/* Table Skeleton */}
-          <TableSkeleton rows={8} columns={6} />
+          <AccordionGroupSkeleton count={3} />
         </div>
       </DashboardLayout>
     )
@@ -314,135 +296,189 @@ export default function PaymentsPage() {
 
   return (
     <DashboardLayout user={user}>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h1 className="text-xl font-bold text-slate-900">Ödeme Talimatları</h1>
-              <p className="text-sm text-slate-600">
-                {user.role === 'manager'
-                  ? 'Ödeme talimatlarınızı görüntüleyin'
-                  : 'Ödeme talimatlarını görüntüleyin ve yönetin'
-                }
-              </p>
-            </div>
+      <div className="space-y-8">
+        {/* Page Header */}
+        <div className="flex flex-wrap items-end justify-between gap-6">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-navy text-4xl font-black tracking-tight">Ödeme Talimatları</h1>
+            <p className="text-slate-500 text-base">
+              {user.role === 'manager'
+                ? 'Ödeme talimatlarınızı görüntüleyin'
+                : 'Ödeme talimatlarını görüntüleyin ve yönetin'
+              }
+            </p>
+          </div>
 
-            <div className="flex items-center gap-2">
+          {(user.role === 'admin' || user.role === 'manager') && (
+            <div className="flex items-center gap-3">
               <button
                 onClick={handleExportExcel}
                 disabled={exporting}
-                className="inline-flex items-center px-3 py-2 border border-slate-300 text-sm font-semibold rounded text-slate-700 bg-white hover:bg-slate-50 transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-5 h-11 border-2 border-slate-200 rounded-lg text-navy font-bold text-sm hover:bg-slate-50 transition-all disabled:opacity-50"
               >
-                {exporting ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-slate-600 border-t-transparent mr-2" />
-                ) : (
-                  <Download className="h-4 w-4 mr-2" />
-                )}
-                {exporting ? 'İndiriliyor...' : 'Dışarı Aktar'}
+                <Download className="w-5 h-5" />
+                {exporting ? 'İndiriliyor...' : 'Dışa Aktar'}
               </button>
-              {(user.role === 'admin' || user.role === 'manager') && (
-                <Link
-                  href="/dashboard/payments/new"
-                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 transition-colors"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Yeni Ödeme Talimatı
-                </Link>
-              )}
+
+              <Link
+                href="/dashboard/payments/new"
+                className="flex items-center gap-2 px-5 h-11 bg-navy text-white rounded-lg font-bold text-sm hover:bg-navy/90 transition-all shadow-lg shadow-navy/20"
+              >
+                <Plus className="w-5 h-5" />
+                Yeni Ödeme Talimatı
+              </Link>
             </div>
-          </div>
+          )}
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-3 border border-slate-200">
-            <p className="text-xs text-slate-600 uppercase mb-1">Bekliyor</p>
-            <p className="text-lg font-bold text-yellow-600">{statusStats.pending || 0}</p>
+        {/* KPI Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Toplam Tutar */}
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 relative overflow-hidden">
+            <div className="h-0.5 w-full bg-gradient-to-r from-navy to-gold absolute top-0 left-0" />
+            <div className="flex justify-between items-start mb-4">
+              <p className="text-slate-500 text-sm font-bold uppercase tracking-wider">Toplam Tutar</p>
+              <div className="w-10 h-10 rounded-xl bg-navy/10 flex items-center justify-center">
+                <Wallet className="w-5 h-5 text-navy" />
+              </div>
+            </div>
+            <p className="text-3xl font-black text-navy">
+              ₺{totalAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+            </p>
+            <p className="mt-2 text-xs text-slate-400 font-medium">
+              {filteredPayments.length} talimat
+            </p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-3 border border-slate-200">
-            <p className="text-xs text-slate-600 uppercase mb-1">Tamamlandı</p>
-            <p className="text-lg font-bold text-teal-600">{statusStats.completed || 0}</p>
+          {/* Bekleyen */}
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 relative overflow-hidden">
+            <div className="h-0.5 w-full bg-gradient-to-r from-navy to-gold absolute top-0 left-0" />
+            <div className="flex justify-between items-start mb-4">
+              <p className="text-slate-500 text-sm font-bold uppercase tracking-wider">Bekleyen</p>
+              <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center">
+                <Clock className="w-5 h-5 text-gold" />
+              </div>
+            </div>
+            <p className="text-3xl font-black text-gold">
+              {statusStats.pending || 0}
+            </p>
+            <p className="mt-2 text-xs text-slate-400 font-medium">
+              ₺{pendingAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+            </p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-3 border border-slate-200">
-            <p className="text-xs text-slate-600 uppercase mb-1">İptal Edildi</p>
-            <p className="text-lg font-bold text-red-600">{statusStats.rejected || 0}</p>
+          {/* Tamamlanan */}
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 relative overflow-hidden">
+            <div className="h-0.5 w-full bg-gradient-to-r from-navy to-gold absolute top-0 left-0" />
+            <div className="flex justify-between items-start mb-4">
+              <p className="text-slate-500 text-sm font-bold uppercase tracking-wider">Tamamlanan</p>
+              <div className="w-10 h-10 rounded-xl bg-navy/10 flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 text-navy" />
+              </div>
+            </div>
+            <p className="text-3xl font-black text-navy">
+              {statusStats.completed || 0}
+            </p>
+            <p className="mt-2 text-xs text-slate-400 font-medium">
+              ₺{completedAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+            </p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-3 border border-slate-200">
-            <p className="text-xs text-slate-600 uppercase mb-1">Toplam Tutar</p>
-            <p className="text-lg font-bold text-slate-900">
-              ₺{totalAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {/* İptal Edilen */}
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 relative overflow-hidden">
+            <div className="h-0.5 w-full bg-gradient-to-r from-navy to-gold absolute top-0 left-0" />
+            <div className="flex justify-between items-start mb-4">
+              <p className="text-slate-500 text-sm font-bold uppercase tracking-wider">İptal Edilen</p>
+              <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
+                <XCircle className="w-5 h-5 text-slate-500" />
+              </div>
+            </div>
+            <p className="text-3xl font-black text-slate-500">
+              {statusStats.rejected || 0}
+            </p>
+            <p className="mt-2 text-xs text-slate-400 font-medium">
+              talimat
             </p>
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
-              <input
-                type="text"
-                placeholder="Kişi adı, talimat no veya not ara..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-600 focus:border-teal-600 text-slate-900 placeholder-slate-400"
-              />
+        {/* Filter Section */}
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+          <div className="flex flex-wrap items-center gap-4">
+            {/* Search */}
+            <div className="flex-1 min-w-[280px]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Kişi adı, talimat no veya not ara..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-11 pr-4 h-11 bg-slate-50 border-none rounded-lg text-sm focus:ring-2 focus:ring-navy/20 placeholder:text-slate-400"
+                />
+              </div>
             </div>
 
+            {/* Project Filter */}
             <div className="relative">
+              <FolderOpen className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
               <select
                 value={projectFilter}
                 onChange={(e) => setProjectFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-600 focus:border-teal-600 text-slate-900 appearance-none cursor-pointer"
+                className="pl-10 pr-8 h-11 bg-slate-50 border-none rounded-lg text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-navy/20 appearance-none cursor-pointer min-w-[180px]"
               >
                 <option value="">Tüm Projeler</option>
                 {projects.map((project) => (
                   <option key={project.id} value={project.id}>
-                    {project.code} - {project.name}
+                    {project.code}
                   </option>
                 ))}
               </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
             </div>
 
+            {/* Status Filter */}
             <div className="relative">
+              <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-600 focus:border-teal-600 text-slate-900 appearance-none cursor-pointer"
+                className="pl-10 pr-8 h-11 bg-slate-50 border-none rounded-lg text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-navy/20 appearance-none cursor-pointer min-w-[160px]"
               >
                 <option value="">Tüm Durumlar</option>
                 <option value="pending">Bekliyor</option>
                 <option value="completed">Tamamlandı</option>
                 <option value="rejected">İptal Edildi</option>
               </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
             </div>
 
+            {/* Date Range */}
             <DateRangePicker
               value={dateRange}
               onChange={setDateRange}
             />
 
-            <div className="col-span-full text-sm text-slate-700">
-              {filteredPayments.length} talimat görüntüleniyor
+            <div className="h-8 w-px bg-slate-200 mx-1 hidden md:block" />
+
+            {/* Count Badge */}
+            <div className="bg-navy/10 text-navy px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider">
+              {filteredPayments.length} Talimat Görüntüleniyor
             </div>
           </div>
         </div>
 
-        {/* Payments by Project (Accordion) */}
+        {/* Project Accordion List */}
         <div className="space-y-4">
           {projectGroups.length === 0 ? (
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-12 text-center">
-              <div className="h-16 w-16 bg-slate-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <FileText className="h-8 w-8 text-slate-400" />
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-16 text-center">
+              <div className="w-20 h-20 bg-gradient-to-br from-navy to-gold rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <FileText className="w-10 h-10 text-white" />
               </div>
-              <h3 className="text-base font-bold text-slate-900 mb-2">
+              <h3 className="text-xl font-black text-navy mb-2">
                 {searchTerm || statusFilter || projectFilter ? 'Ödeme talimatı bulunamadı' : 'Henüz ödeme talimatı yok'}
               </h3>
-              <p className="text-sm text-slate-600 mb-4">
+              <p className="text-slate-500 mb-6">
                 {searchTerm || statusFilter || projectFilter
                   ? 'Arama kriterlerinizi değiştirmeyi deneyin'
                   : 'İlk ödeme talimatını oluşturmak için butona tıklayın'
@@ -451,10 +487,10 @@ export default function PaymentsPage() {
               {(user.role === 'admin' || user.role === 'manager') && !searchTerm && !statusFilter && !projectFilter && (
                 <Link
                   href="/dashboard/payments/new"
-                  className="inline-flex items-center px-3 py-2 text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 transition-colors"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gold text-white font-bold rounded-lg hover:bg-gold/90 transition-all shadow-lg shadow-gold/20"
                 >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Yeni Ödeme Talimatı
+                  <Plus className="w-5 h-5" />
+                  İlk Talimatı Oluştur
                 </Link>
               )}
             </div>
@@ -463,150 +499,159 @@ export default function PaymentsPage() {
               const isExpanded = expandedProjects[group.project.id]
 
               return (
-                <div key={group.project.id} className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-                  {/* Project Header (Accordion Toggle) */}
+                <div
+                  key={group.project.id}
+                  className={`bg-white border rounded-xl overflow-hidden transition-all ${
+                    isExpanded
+                      ? 'border-2 border-navy shadow-xl shadow-navy/5'
+                      : 'border-slate-200 hover:border-navy/30 cursor-pointer'
+                  }`}
+                >
+                  {/* Project Header */}
                   <button
                     onClick={() => toggleProject(group.project.id)}
-                    className="w-full px-4 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                    className={`w-full flex items-center justify-between p-5 transition-colors ${
+                      isExpanded ? 'bg-navy/5' : 'hover:bg-slate-50'
+                    }`}
                   >
-                    <div className="flex items-center gap-3 flex-1">
-                      <div className="flex items-center gap-2">
-                        {isExpanded ? (
-                          <ChevronDown className="h-5 w-5 text-slate-600" />
-                        ) : (
-                          <ChevronRight className="h-5 w-5 text-slate-600" />
-                        )}
-                        <div className="h-8 w-8 bg-slate-700 rounded-lg flex items-center justify-center">
-                          <Building2 className="h-4 w-4 text-white" />
-                        </div>
+                    <div className="flex items-center gap-5">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
+                        isExpanded
+                          ? 'bg-navy text-white'
+                          : 'bg-slate-100 text-navy'
+                      }`}>
+                        <Building2 className="w-6 h-6" />
                       </div>
-
                       <div className="text-left">
-                        <h3 className="text-base font-bold text-slate-900">{group.project.name}</h3>
-                        <p className="text-sm text-slate-600">{group.project.code}</p>
+                        <div className="flex items-center gap-2">
+                          <h3 className={`font-bold ${isExpanded ? 'text-navy' : 'text-slate-900'}`}>
+                            {group.project.name}
+                          </h3>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase bg-slate-100 text-slate-500">
+                            {group.project.code}
+                          </span>
+                        </div>
+                        <p className={`text-sm font-medium tracking-tight ${isExpanded ? 'text-navy/70' : 'text-slate-500'}`}>
+                          {group.payments.length} Ödeme Talimatı
+                        </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                      <div className="text-right bg-white rounded-lg px-3 py-2 border border-slate-200">
-                        <p className="text-xs text-slate-600 uppercase">Talimat Sayısı</p>
-                        <p className="text-base font-bold text-slate-900">{group.payments.length}</p>
+                    <div className="flex items-center gap-8 md:gap-12">
+                      <div className="text-right hidden sm:block">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Talimat Sayısı</p>
+                        <p className={`font-black ${isExpanded ? 'text-navy' : 'text-slate-900'}`}>
+                          {group.payments.length}
+                        </p>
                       </div>
-                      <div className="text-right bg-white rounded-lg px-3 py-2 border border-slate-200">
-                        <p className="text-xs text-slate-600 uppercase">Toplam Tutar</p>
-                        <p className="text-base font-bold text-slate-900">
+                      <div className="text-right">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Toplam Tutar</p>
+                        <p className="font-black text-navy">
                           ₺{group.totalAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                         </p>
+                      </div>
+                      <div className="text-slate-300">
+                        {isExpanded ? (
+                          <ChevronDown className="w-6 h-6" />
+                        ) : (
+                          <ChevronRight className="w-6 h-6" />
+                        )}
                       </div>
                     </div>
                   </button>
 
-                  {/* Project Payments (Collapsible) */}
+                  {/* Expanded Table */}
                   {isExpanded && (
-                    <div className="border-t border-slate-200">
+                    <div className="border-t border-slate-100">
                       <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-slate-200">
-                          <thead className="bg-slate-50">
+                        <table className="w-full text-left text-sm">
+                          <thead className="bg-slate-50 text-[11px] font-black text-slate-500 uppercase tracking-widest">
                             <tr>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
-                                Talimat No
-                              </th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
-                                Alıcı
-                              </th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
-                                Tutar
-                              </th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
-                                Durum
-                              </th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
-                                Tarih
-                              </th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-900 uppercase">
-                                Notlar
-                              </th>
-                              <th className="px-4 py-3 text-right text-xs font-semibold text-slate-900 uppercase">
-                                İşlemler
-                              </th>
+                              <th className="px-6 py-4">Talimat No</th>
+                              <th className="px-6 py-4">Alıcı</th>
+                              <th className="px-6 py-4">Tutar</th>
+                              <th className="px-6 py-4">Durum</th>
+                              <th className="px-6 py-4">Tarih</th>
+                              <th className="px-6 py-4">Notlar</th>
+                              <th className="px-6 py-4 text-center">İşlem</th>
                             </tr>
                           </thead>
-                          <tbody className="bg-white divide-y divide-slate-200">
-                            {group.payments.map((payment) => {
+                          <tbody className="divide-y divide-slate-100">
+                            {group.payments.map((payment, index) => {
                               const statusInfo = getStatusInfo(payment.status)
                               const StatusIcon = statusInfo.icon
 
                               return (
-                                <tr key={payment.id} className="hover:bg-slate-50 transition-colors">
-                                  <td className="px-4 py-3 whitespace-nowrap">
-                                    <div className="text-sm font-bold text-teal-600">
+                                <tr key={payment.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'} hover:bg-slate-100/50 transition-colors`}>
+                                  <td className="px-6 py-4">
+                                    <span className="font-bold text-navy">
                                       {payment.instruction_number}
-                                    </div>
+                                    </span>
                                   </td>
-                                  <td className="px-4 py-3 whitespace-nowrap">
+                                  <td className="px-6 py-4">
                                     <div>
-                                      <div className="text-sm font-bold text-slate-900">
+                                      <p className="font-bold text-slate-900">
                                         {payment.user?.full_name || payment.personnel?.full_name || '-'}
-                                      </div>
-                                      <div className="text-xs font-medium text-slate-500">
+                                      </p>
+                                      <p className="text-xs text-slate-500">
                                         {payment.user?.email || payment.personnel?.email || '-'}
-                                      </div>
+                                      </p>
                                     </div>
                                   </td>
-                                  <td className="px-4 py-3 whitespace-nowrap">
-                                    <div className="text-sm font-bold text-slate-900">
-                                      ₺{payment.total_amount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </div>
-                                    <div className="text-xs font-medium text-slate-500">
+                                  <td className="px-6 py-4">
+                                    <p className="font-bold text-slate-900">
+                                      ₺{payment.total_amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                                    </p>
+                                    <p className="text-xs text-slate-500">
                                       {payment.items.length} kalem
-                                    </div>
+                                    </p>
                                   </td>
-                                  <td className="px-4 py-3 whitespace-nowrap">
-                                    <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold shadow-sm ${statusInfo.color}`}>
+                                  <td className="px-6 py-4">
+                                    <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold ${statusInfo.color}`}>
                                       <StatusIcon className="h-3 w-3 mr-1" />
                                       {statusInfo.text}
                                     </span>
                                   </td>
-                                  <td className="px-4 py-3 whitespace-nowrap">
-                                    <div className="text-sm font-medium text-slate-900">
+                                  <td className="px-6 py-4">
+                                    <p className="font-medium text-slate-900">
                                       {new Date(payment.created_at).toLocaleDateString('tr-TR')}
-                                    </div>
+                                    </p>
                                     {payment.approved_at && (
-                                      <div className="text-xs font-medium text-emerald-600">
+                                      <p className="text-xs text-navy font-medium">
                                         Onay: {new Date(payment.approved_at).toLocaleDateString('tr-TR')}
-                                      </div>
+                                      </p>
                                     )}
                                   </td>
-                                  <td className="px-4 py-3">
-                                    <div className="text-sm font-medium text-slate-700 max-w-xs truncate">
+                                  <td className="px-6 py-4">
+                                    <p className="text-slate-700 max-w-[200px] truncate">
                                       {payment.notes || '-'}
-                                    </div>
+                                    </p>
                                   </td>
-                                  <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
-                                    <div className="flex justify-end space-x-2">
+                                  <td className="px-6 py-4">
+                                    <div className="flex justify-center gap-1">
                                       <Link
                                         href={`/dashboard/payments/${payment.id}` as any}
-                                        className="p-2 text-slate-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all duration-200 hover:scale-110"
+                                        className="p-2 text-slate-500 hover:text-navy hover:bg-navy/10 rounded-lg transition-all"
                                         title="Görüntüle"
                                       >
-                                        <Eye className="h-5 w-5" />
+                                        <Eye className="h-4 w-4" />
                                       </Link>
 
                                       {(user.role === 'admin' || user.role === 'manager') && (
                                         <>
                                           <Link
                                             href={`/dashboard/payments/${payment.id}/edit` as any}
-                                            className="p-2 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all duration-200 hover:scale-110"
+                                            className="p-2 text-slate-500 hover:text-navy hover:bg-navy/10 rounded-lg transition-all"
                                             title="Düzenle"
                                           >
-                                            <Edit className="h-5 w-5" />
+                                            <Edit className="h-4 w-4" />
                                           </Link>
 
                                           <button
-                                            className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 hover:scale-110"
+                                            className="p-2 text-slate-500 hover:text-gold hover:bg-gold/10 rounded-lg transition-all"
                                             title="Sil"
                                           >
-                                            <Trash2 className="h-5 w-5" />
+                                            <Trash2 className="h-4 w-4" />
                                           </button>
                                         </>
                                       )}

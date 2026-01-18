@@ -195,24 +195,17 @@ export default function EditUserPage() {
     switch (role) {
       case 'admin':
         return {
-          color: 'bg-red-100 text-red-800',
+          color: 'bg-navy/10 text-navy',
           icon: Shield,
           text: 'Yönetici',
           description: 'Tam sistem erişimi'
         }
       case 'manager':
         return {
-          color: 'bg-blue-100 text-blue-800',
+          color: 'bg-gold/20 text-gold',
           icon: Building2,
           text: 'Mali İşler',
           description: 'Mali işlemler ve raporlar'
-        }
-      case 'manager':
-        return {
-          color: 'bg-green-100 text-green-800',
-          icon: GraduationCap,
-          text: 'Akademisyen',
-          description: 'Proje ve ödeme görüntüleme'
         }
       default:
         return {
@@ -228,7 +221,7 @@ export default function EditUserPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-navy mx-auto"></div>
           <p className="mt-2 text-gray-600">Yükleniyor...</p>
         </div>
       </div>
@@ -244,7 +237,7 @@ export default function EditUserPage() {
           <p className="text-gray-600 mb-4">İstenen kullanıcı bulunamadı.</p>
           <Link
             href="/dashboard/users"
-            className="text-blue-600 hover:text-blue-800"
+            className="text-navy hover:text-navy/80"
           >
             Kullanıcılar listesine dön
           </Link>
@@ -267,7 +260,7 @@ export default function EditUserPage() {
             </Link>
             <div>
               <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-                <Edit className="h-7 w-7 mr-3 text-blue-600" />
+                <Edit className="h-7 w-7 mr-3 text-navy" />
                 Kullanıcı Düzenle
               </h1>
               <p className="text-gray-600">{userData.full_name}</p>
@@ -277,10 +270,10 @@ export default function EditUserPage() {
 
         {/* Success Message */}
         {successMessage && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="bg-navy/5 border border-navy/20 rounded-lg p-4">
             <div className="flex items-center">
-              <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
-              <span className="text-green-800">{successMessage}</span>
+              <CheckCircle className="h-5 w-5 text-navy mr-2" />
+              <span className="text-navy">{successMessage}</span>
             </div>
           </div>
         )}
@@ -314,7 +307,7 @@ export default function EditUserPage() {
                   type="text"
                   value={formData.full_name}
                   onChange={(e) => handleInputChange('full_name', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 ${
                     errors.full_name ? 'border-red-300' : 'border-gray-300'
                   }`}
                   placeholder="Kullanıcının ad ve soyadını girin"
@@ -351,7 +344,7 @@ export default function EditUserPage() {
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => handleInputChange('phone', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 ${
                     errors.phone ? 'border-red-300' : 'border-gray-300'
                   }`}
                   placeholder="+90 555 123 4567"
@@ -371,7 +364,7 @@ export default function EditUserPage() {
                   type="text"
                   value={formData.iban}
                   onChange={(e) => handleInputChange('iban', e.target.value.toUpperCase())}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 ${
                     errors.iban ? 'border-red-300' : 'border-gray-300'
                   }`}
                   placeholder="TR33 0006 1005 1978 6457 8413 26"
@@ -399,7 +392,7 @@ export default function EditUserPage() {
                       key={role}
                       className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
                         isSelected
-                          ? 'border-blue-500 bg-blue-50'
+                          ? 'border-navy bg-navy/5'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                       onClick={() => handleInputChange('role', role)}
@@ -413,7 +406,7 @@ export default function EditUserPage() {
                           <div className="text-sm text-gray-600">{roleInfo.description}</div>
                         </div>
                         <div className={`w-4 h-4 rounded-full border-2 ${
-                          isSelected ? 'border-blue-500 bg-blue-500' : 'border-gray-300'
+                          isSelected ? 'border-navy bg-navy' : 'border-gray-300'
                         }`}>
                           {isSelected && (
                             <div className="w-full h-full rounded-full bg-white scale-50"></div>
@@ -455,7 +448,7 @@ export default function EditUserPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-navy hover:bg-navy/90 disabled:opacity-50"
               >
                 {saving ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />

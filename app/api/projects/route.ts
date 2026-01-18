@@ -1,7 +1,11 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createProjectSchema, projectQuerySchema } from '@/lib/schemas/validation'
 import { apiResponse, validateRequest, validateQuery, withAuth } from '@/lib/middleware/auth'
 import { createAutoExpenses } from '@/lib/utils/expense-helpers'
+
+// Force dynamic to prevent Next.js caching
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 // GET /api/projects - List projects with filtering
 export async function GET(request: NextRequest) {
@@ -103,8 +107,48 @@ export async function GET(request: NextRequest) {
         return apiResponse.error('Failed to fetch projects', error.message, 500)
       }
 
+      // Fetch ALL income totals (no filter - avoid IN clause limit issues)
+      const projectIds = new Set((projects || []).map((p: any) => p.id))
+      let incomeTotals: Record<string, number> = {}
+
+      // Fetch all incomes with explicit high limit (Supabase default is 1000)
+      const { data: allIncomes, error: incomesError } = await ctx.supabase
+        .from('incomes')
+        .select('project_id, gross_amount')
+        .limit(100000)
+
+      if (incomesError) {
+        console.error('Income fetch error:', incomesError)
+      }
+
+      // Calculate totals only for projects in our result set
+      incomeTotals = (allIncomes || []).reduce((acc: Record<string, number>, inc: any) => {
+        if (projectIds.has(inc.project_id)) {
+          acc[inc.project_id] = (acc[inc.project_id] || 0) + (inc.gross_amount || 0)
+        }
+        return acc
+      }, {})
+
+      // Add calculated total_received to each project
+      const projectsWithTotals = (projects || []).map((project: any) => ({
+        ...project,
+        total_received: incomeTotals[project.id] || 0
+      }))
+
+      // Debug log - general stats
+      const projectsWithIncome = projectsWithTotals.filter((p: any) => p.total_received > 0).length
+      console.log('Projects API Debug:', {
+        totalProjects: projectsWithTotals.length,
+        totalIncomeRecords: allIncomes?.length || 0,
+        projectsWithIncome,
+        incomesError: incomesError?.message || 'none',
+        sampleIncome: allIncomes?.[0] || null,
+        sampleProject: projectsWithTotals[0]?.code || null,
+        sampleTotal: projectsWithTotals[0]?.total_received || 0
+      })
+
       return apiResponse.success({
-        projects,
+        projects: projectsWithTotals,
         pagination: {
           page,
           limit,

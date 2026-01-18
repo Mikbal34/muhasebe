@@ -229,7 +229,7 @@ export function ReportFilterModal({
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="bg-teal-600 px-6 py-4">
+          <div className="bg-navy px-6 py-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center">
                 <FileText className="h-6 w-6 text-white mr-3" />
@@ -276,7 +276,7 @@ export function ReportFilterModal({
                           type="date"
                           value={dateRange.start_date}
                           onChange={(e) => setDateRange(prev => ({ ...prev, start_date: e.target.value }))}
-                          className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
+                          className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 text-slate-900"
                         />
                       </div>
                       <div>
@@ -287,7 +287,7 @@ export function ReportFilterModal({
                           type="date"
                           value={dateRange.end_date}
                           onChange={(e) => setDateRange(prev => ({ ...prev, end_date: e.target.value }))}
-                          className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
+                          className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 text-slate-900"
                         />
                       </div>
                     </>
@@ -302,7 +302,7 @@ export function ReportFilterModal({
                       <select
                         value={filters.project_id || ''}
                         onChange={(e) => setFilters(prev => ({ ...prev, project_id: e.target.value || undefined }))}
-                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
+                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 text-slate-900"
                       >
                         <option value="">Tum Projeler</option>
                         {projects.map(p => (
@@ -317,7 +317,7 @@ export function ReportFilterModal({
                     <div className="sm:col-span-2" ref={personDropdownRef}>
                       <label className="block text-xs font-medium text-slate-600 mb-1">
                         Personel Secimi {(filters.person_ids?.length || 0) > 0 && (
-                          <span className="text-teal-600">({filters.person_ids?.length} secili)</span>
+                          <span className="text-navy">({filters.person_ids?.length} secili)</span>
                         )}
                       </label>
 
@@ -331,13 +331,13 @@ export function ReportFilterModal({
                             onChange={(e) => setPersonSearch(e.target.value)}
                             onFocus={() => setPersonDropdownOpen(true)}
                             placeholder="Personel ara..."
-                            className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
+                            className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 text-slate-900"
                           />
                           {personDropdownOpen && (
                             <button
                               type="button"
                               onClick={() => setPersonDropdownOpen(false)}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-teal-600 hover:text-teal-800 font-medium"
+                              className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-navy hover:text-navy font-medium"
                             >
                               Kapat
                             </button>
@@ -349,13 +349,13 @@ export function ReportFilterModal({
                           <div className="mt-1 bg-white border border-slate-300 rounded-md shadow-lg max-h-52 overflow-y-auto">
                             {/* Secili kisiler ust tarafta */}
                             {(filters.person_ids?.length || 0) > 0 && (
-                              <div className="sticky top-0 bg-teal-50 border-b border-teal-200 px-3 py-2">
+                              <div className="sticky top-0 bg-navy/5 border-b border-navy/20 px-3 py-2">
                                 <div className="flex items-center justify-between mb-1">
-                                  <span className="text-xs font-medium text-teal-700">Secili Personeller</span>
+                                  <span className="text-xs font-medium text-navy">Secili Personeller</span>
                                   <button
                                     type="button"
                                     onClick={() => setFilters(prev => ({ ...prev, person_ids: [], person_id: undefined }))}
-                                    className="text-xs text-teal-600 hover:text-teal-800"
+                                    className="text-xs text-navy hover:text-navy"
                                   >
                                     Tumunu Kaldir
                                   </button>
@@ -364,7 +364,7 @@ export function ReportFilterModal({
                                   {filters.person_ids?.map(id => {
                                     const person = people.find(p => p.id === id)
                                     return person ? (
-                                      <span key={id} className="inline-flex items-center px-2 py-0.5 text-xs bg-white text-teal-800 rounded border border-teal-300">
+                                      <span key={id} className="inline-flex items-center px-2 py-0.5 text-xs bg-white text-navy rounded border border-navy/30">
                                         {person.full_name}
                                         <button
                                           type="button"
@@ -373,7 +373,7 @@ export function ReportFilterModal({
                                             const newIds = (filters.person_ids || []).filter(pid => pid !== id)
                                             setFilters(prev => ({ ...prev, person_ids: newIds, person_id: newIds[0] }))
                                           }}
-                                          className="ml-1 hover:text-teal-900"
+                                          className="ml-1 hover:text-navy"
                                         >
                                           <X className="h-3 w-3" />
                                         </button>
@@ -401,10 +401,10 @@ export function ReportFilterModal({
                                           : [...(filters.person_ids || []), p.id]
                                         setFilters(prev => ({ ...prev, person_ids: newIds, person_id: newIds[0] }))
                                       }}
-                                      className={`w-full flex items-center justify-between px-3 py-2.5 text-sm text-left hover:bg-slate-50 border-b border-slate-100 last:border-0 ${isSelected ? 'bg-teal-50' : ''}`}
+                                      className={`w-full flex items-center justify-between px-3 py-2.5 text-sm text-left hover:bg-slate-50 border-b border-slate-100 last:border-0 ${isSelected ? 'bg-navy/5' : ''}`}
                                     >
-                                      <span className={isSelected ? 'text-teal-700 font-medium' : 'text-slate-900'}>{p.full_name}</span>
-                                      {isSelected && <Check className="h-4 w-4 text-teal-600 flex-shrink-0" />}
+                                      <span className={isSelected ? 'text-navy font-medium' : 'text-slate-900'}>{p.full_name}</span>
+                                      {isSelected && <Check className="h-4 w-4 text-navy flex-shrink-0" />}
                                     </button>
                                   )
                                 })
@@ -422,7 +422,7 @@ export function ReportFilterModal({
                           {filters.person_ids?.slice(0, 5).map(id => {
                             const person = people.find(p => p.id === id)
                             return person ? (
-                              <span key={id} className="inline-flex items-center px-2 py-1 text-xs bg-teal-100 text-teal-800 rounded-full">
+                              <span key={id} className="inline-flex items-center px-2 py-1 text-xs bg-navy/10 text-navy rounded-full">
                                 {person.full_name}
                                 <button
                                   type="button"
@@ -430,7 +430,7 @@ export function ReportFilterModal({
                                     const newIds = (filters.person_ids || []).filter(pid => pid !== id)
                                     setFilters(prev => ({ ...prev, person_ids: newIds, person_id: newIds[0] }))
                                   }}
-                                  className="ml-1 hover:text-teal-900"
+                                  className="ml-1 hover:text-navy"
                                 >
                                   <X className="h-3 w-3" />
                                 </button>
@@ -457,7 +457,7 @@ export function ReportFilterModal({
                       <select
                         value={filters.is_fsmh}
                         onChange={(e) => setFilters(prev => ({ ...prev, is_fsmh: e.target.value as any }))}
-                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
+                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 text-slate-900"
                       >
                         <option value="all">Tumunu Goster</option>
                         <option value="yes">Sadece FSMH</option>
@@ -475,7 +475,7 @@ export function ReportFilterModal({
                       <select
                         value={filters.is_tto}
                         onChange={(e) => setFilters(prev => ({ ...prev, is_tto: e.target.value as any }))}
-                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
+                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 text-slate-900"
                       >
                         <option value="all">Tumunu Goster</option>
                         <option value="yes">Sadece TTO</option>
@@ -493,7 +493,7 @@ export function ReportFilterModal({
                       <select
                         value={filters.income_type}
                         onChange={(e) => setFilters(prev => ({ ...prev, income_type: e.target.value as any }))}
-                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
+                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 text-slate-900"
                       >
                         <option value="all">Tumunu Goster</option>
                         <option value="kamu">Kamu</option>
@@ -511,7 +511,7 @@ export function ReportFilterModal({
                       <select
                         value={filters.expense_type}
                         onChange={(e) => setFilters(prev => ({ ...prev, expense_type: e.target.value as any }))}
-                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
+                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 text-slate-900"
                       >
                         <option value="all">Tumunu Goster</option>
                         <option value="genel">Genel Gider</option>
@@ -529,7 +529,7 @@ export function ReportFilterModal({
                       <select
                         value={filters.collection_status}
                         onChange={(e) => setFilters(prev => ({ ...prev, collection_status: e.target.value as any }))}
-                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
+                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 text-slate-900"
                       >
                         <option value="all">Tumunu Goster</option>
                         <option value="collected">Tahsil Edildi</option>
@@ -548,7 +548,7 @@ export function ReportFilterModal({
                       <select
                         value={filters.payment_status}
                         onChange={(e) => setFilters(prev => ({ ...prev, payment_status: e.target.value as any }))}
-                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
+                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 text-slate-900"
                       >
                         <option value="all">Tumunu Goster</option>
                         <option value="pending">Bekliyor</option>
@@ -567,7 +567,7 @@ export function ReportFilterModal({
                       <select
                         value={filters.project_status}
                         onChange={(e) => setFilters(prev => ({ ...prev, project_status: e.target.value as any }))}
-                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
+                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 text-slate-900"
                       >
                         <option value="all">Tumunu Goster</option>
                         <option value="active">Aktif</option>
@@ -589,7 +589,7 @@ export function ReportFilterModal({
                           value={filters.amount_min || ''}
                           onChange={(e) => setFilters(prev => ({ ...prev, amount_min: e.target.value ? Number(e.target.value) : undefined }))}
                           placeholder="0"
-                          className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
+                          className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 text-slate-900"
                         />
                       </div>
                       <div>
@@ -601,7 +601,7 @@ export function ReportFilterModal({
                           value={filters.amount_max || ''}
                           onChange={(e) => setFilters(prev => ({ ...prev, amount_max: e.target.value ? Number(e.target.value) : undefined }))}
                           placeholder="Limit yok"
-                          className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
+                          className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 text-slate-900"
                         />
                       </div>
                     </>
@@ -618,7 +618,7 @@ export function ReportFilterModal({
                 type="button"
                 onClick={onClose}
                 disabled={loading}
-                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-navy/30 disabled:opacity-50"
               >
                 Iptal
               </button>
@@ -626,7 +626,7 @@ export function ReportFilterModal({
                 type="button"
                 onClick={handleGenerate}
                 disabled={loading}
-                className="px-6 py-2 text-sm font-medium text-white bg-teal-600 rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 flex items-center"
+                className="px-6 py-2 text-sm font-medium text-white bg-navy rounded-md hover:bg-navy/90 focus:outline-none focus:ring-2 focus:ring-navy/30 disabled:opacity-50 flex items-center"
               >
                 {loading && (
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />

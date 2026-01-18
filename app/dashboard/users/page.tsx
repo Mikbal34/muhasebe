@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { StatCardSkeleton, TableSkeleton, Skeleton } from '@/components/ui/skeleton'
 import { useUsers, useInvalidateUsers } from '@/hooks/use-users'
+import { turkishIncludes } from '@/lib/utils/string'
 
 interface User {
   id: string
@@ -86,8 +87,8 @@ export default function UsersPage() {
   }, [router])
 
   const filteredUsers = users.filter(userData => {
-    const matchesSearch = userData.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      userData.email.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch = turkishIncludes(userData.full_name, searchTerm) ||
+      turkishIncludes(userData.email, searchTerm)
     const matchesRole = !roleFilter || userData.role === roleFilter
     const matchesStatus = !statusFilter || (statusFilter === 'active' && userData.is_active) || (statusFilter === 'inactive' && !userData.is_active)
     return matchesSearch && matchesRole && matchesStatus
@@ -97,19 +98,19 @@ export default function UsersPage() {
     switch (role) {
       case 'admin':
         return {
-          color: 'bg-red-100 text-red-800',
+          color: 'bg-navy/10 text-navy',
           icon: Shield,
           text: 'Yönetici'
         }
       case 'manager':
         return {
-          color: 'bg-blue-100 text-blue-800',
+          color: 'bg-gold/20 text-gold',
           icon: User,
           text: 'Yönetici'
         }
       default:
         return {
-          color: 'bg-gray-100 text-gray-800',
+          color: 'bg-slate-100 text-slate-800',
           icon: User,
           text: role
         }
@@ -203,7 +204,7 @@ export default function UsersPage() {
 
             <Link
               href="/dashboard/users/new"
-              className="inline-flex items-center px-3 py-2 text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 transition-colors"
+              className="inline-flex items-center px-4 py-2.5 text-sm font-bold rounded-lg text-white bg-navy hover:bg-navy/90 transition-colors shadow-lg shadow-navy/20"
             >
               <Plus className="h-4 w-4 mr-2" />
               Yeni Kullanıcı
@@ -245,7 +246,7 @@ export default function UsersPage() {
                 placeholder="Ad, soyad veya e-posta ara..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30"
               />
             </div>
 
@@ -254,7 +255,7 @@ export default function UsersPage() {
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30"
               >
                 <option value="">Tüm Roller</option>
                 <option value="admin">Yönetici (Admin)</option>
@@ -267,7 +268,7 @@ export default function UsersPage() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30"
               >
                 <option value="">Tüm Durumlar</option>
                 <option value="active">Aktif</option>
@@ -356,11 +357,11 @@ export default function UsersPage() {
                       <td className="px-4 py-3 whitespace-nowrap">
                         {userData.balance ? (
                           <div>
-                            <div className="text-sm font-medium text-green-600">
+                            <div className="text-sm font-medium text-navy">
                               ₺{userData.balance.available_amount.toLocaleString('tr-TR')}
                             </div>
                             {userData.balance.debt_amount > 0 && (
-                              <div className="text-xs text-red-600">
+                              <div className="text-xs text-gold">
                                 Borç: ₺{userData.balance.debt_amount.toLocaleString('tr-TR')}
                               </div>
                             )}
@@ -372,26 +373,26 @@ export default function UsersPage() {
                       <td className="px-4 py-3 whitespace-nowrap">
                         {userData.iban ? (
                           <div className="flex items-center">
-                            <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
+                            <CheckCircle className="h-4 w-4 text-navy mr-1" />
                             <span className="text-sm text-gray-900">
                               {userData.iban.slice(0, 8)}...
                             </span>
                           </div>
                         ) : (
                           <div className="flex items-center">
-                            <XCircle className="h-4 w-4 text-red-500 mr-1" />
-                            <span className="text-sm text-red-600">Eksik</span>
+                            <XCircle className="h-4 w-4 text-gold mr-1" />
+                            <span className="text-sm text-gold">Eksik</span>
                           </div>
                         )}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         {userData.is_active ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-navy/10 text-navy">
                             <CheckCircle className="h-3 w-3 mr-1" />
                             Aktif
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
                             <XCircle className="h-3 w-3 mr-1" />
                             Pasif
                           </span>
@@ -401,21 +402,21 @@ export default function UsersPage() {
                         <div className="flex justify-end space-x-2">
                           <Link
                             href={`/dashboard/users/${userData.id}` as any}
-                            className="p-1 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
+                            className="p-1.5 text-slate-500 hover:text-navy hover:bg-navy/10 rounded-lg transition-all"
                             title="Görüntüle"
                           >
                             <Eye className="h-4 w-4" />
                           </Link>
                           <Link
                             href={`/dashboard/users/${userData.id}/edit` as any}
-                            className="p-1 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded"
+                            className="p-1.5 text-slate-500 hover:text-navy hover:bg-navy/10 rounded-lg transition-all"
                             title="Düzenle"
                           >
                             <Edit className="h-4 w-4" />
                           </Link>
                           <button
                             onClick={() => handleDeleteUser(userData.id, userData.full_name)}
-                            className="p-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
+                            className="p-1.5 text-slate-500 hover:text-gold hover:bg-gold/10 rounded-lg transition-all"
                             title="Sil"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -446,7 +447,7 @@ export default function UsersPage() {
               {!searchTerm && !roleFilter && !statusFilter && (
                 <Link
                   href="/dashboard/users/new"
-                  className="inline-flex items-center px-3 py-2 text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 transition-colors"
+                  className="inline-flex items-center px-4 py-2.5 text-sm font-bold rounded-lg text-white bg-navy hover:bg-navy/90 transition-colors shadow-lg shadow-navy/20"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Yeni Kullanıcı Ekle

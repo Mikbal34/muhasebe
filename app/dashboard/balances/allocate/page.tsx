@@ -13,7 +13,12 @@ import {
   DollarSign,
   Users,
   Crown,
-  Microscope
+  Microscope,
+  Coins,
+  Building2,
+  Wallet,
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react'
 import { MoneyInput } from '@/components/ui/money-input'
 import PersonBadge from '@/components/ui/person-badge'
@@ -49,17 +54,14 @@ interface FinancialSummary {
   total_vat: number
   net_amount: number
   total_commission: number
-  // Tahsil edilen bazlı
   total_collected: number
   collected_vat: number
   collected_net: number
   collected_commission: number
-  // Giderler
   client_expenses: number
   shared_expenses: number
   shared_expenses_rep_portion: number
   total_expense_deduction: number
-  // Dağıtılabilir
   distributable_amount: number
   total_allocated: number
   remaining_amount: number
@@ -77,7 +79,6 @@ function ManualBalanceAllocationPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  // Modal state
   const [showModal, setShowModal] = useState(false)
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null)
   const [allocationData, setAllocationData] = useState({
@@ -123,7 +124,6 @@ function ManualBalanceAllocationPageContent() {
         const fetchedProjects = data.data.projects || []
         setProjects(fetchedProjects)
 
-        // Check if there's a project_id in URL and auto-select it
         const projectIdFromUrl = searchParams.get('project_id')
         if (projectIdFromUrl && fetchedProjects.some((p: Project) => p.id === projectIdFromUrl)) {
           setSelectedProjectId(projectIdFromUrl)
@@ -223,7 +223,6 @@ function ManualBalanceAllocationPageContent() {
       if (data.success) {
         setSuccess(data.message || 'Bakiye başarıyla güncellendi')
         closeModal()
-        // Refresh data
         fetchProjectAllocationSummary(selectedProjectId)
         setTimeout(() => setSuccess(''), 3000)
       } else {
@@ -241,8 +240,8 @@ function ManualBalanceAllocationPageContent() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Yükleniyor...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-navy mx-auto"></div>
+          <p className="mt-2 text-slate-600">Yükleniyor...</p>
         </div>
       </div>
     )
@@ -252,50 +251,60 @@ function ManualBalanceAllocationPageContent() {
     <DashboardLayout user={user}>
       <div className="space-y-6">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/dashboard/incomes"
-              className="p-2 hover:bg-slate-100 rounded transition-colors text-slate-600 hover:text-slate-900"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900">Manuel Bakiye Dağıtımı</h1>
-              <p className="text-sm text-slate-600">Proje gelirlerini ekip üyelerine dağıtın</p>
-            </div>
+        <div className="flex items-center gap-4">
+          <Link
+            href="/dashboard/incomes"
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 hover:border-navy/30 transition-all shadow-sm"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Geri
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-navy flex items-center gap-2">
+              <Coins className="w-6 h-6 text-gold" />
+              Manuel Bakiye Dağıtımı
+            </h1>
+            <p className="text-sm text-slate-500">Proje gelirlerini ekip üyelerine dağıtın</p>
           </div>
         </div>
 
         {/* Success/Error Messages */}
         {success && (
-          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md">
-            {success}
+          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex items-center gap-3">
+            <CheckCircle className="w-5 h-5 text-emerald-600" />
+            <p className="text-sm font-medium text-emerald-700">{success}</p>
           </div>
         )}
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
-            {error}
+        {error && !showModal && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600" />
+            <p className="text-sm font-medium text-red-700">{error}</p>
           </div>
         )}
 
         {/* Project Selection */}
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Proje Seçin
-          </label>
-          <SearchableSelect
-            options={projects}
-            value={selectedProjectId}
-            onChange={(value) => handleProjectChange(value)}
-            placeholder="Proje seçiniz veya kod yazarak arayın..."
-          />
-        </div>
+        <section className="bg-white rounded-xl border border-slate-200 shadow-sm relative">
+          <div className="h-1 w-full bg-gradient-to-r from-navy to-gold rounded-t-xl" />
+          <div className="p-5">
+            <h2 className="text-base font-bold text-navy mb-4 flex items-center gap-2">
+              <Building2 className="w-5 h-5" />
+              Proje Seçin
+            </h2>
+            <div className="relative z-50">
+            <SearchableSelect
+              options={projects}
+              value={selectedProjectId}
+              onChange={(value) => handleProjectChange(value)}
+              placeholder="Proje seçiniz veya kod yazarak arayın..."
+            />
+            </div>
+          </div>
+        </section>
 
         {loading && (
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-navy mx-auto"></div>
             <p className="mt-2 text-slate-600">Proje bilgileri yükleniyor...</p>
           </div>
         )}
@@ -303,222 +312,257 @@ function ManualBalanceAllocationPageContent() {
         {!loading && selectedProject && financialSummary && (
           <>
             {/* Financial Summary */}
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-              <h2 className="text-base font-semibold text-slate-900 mb-4">
-                Proje Finansal Özet
-              </h2>
+            <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="h-1 w-full bg-gradient-to-r from-navy to-gold" />
+              <div className="p-5">
+                <h2 className="text-base font-bold text-navy mb-4 flex items-center gap-2">
+                  <DollarSign className="w-5 h-5" />
+                  Proje Finansal Özet
+                </h2>
 
-              {/* Tahsil Edilen Bazlı Hesaplama */}
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
-                  <p className="text-xs text-blue-600 uppercase">Tahsil Edilen</p>
-                  <p className="text-base font-semibold text-blue-700">
-                    ₺{(financialSummary.total_collected || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-                  </p>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Toplam: ₺{financialSummary.total_gross.toLocaleString('tr-TR', { minimumFractionDigits: 0 })}
-                  </p>
-                </div>
-
-                <div className="bg-red-50 p-3 rounded-lg border border-red-100">
-                  <p className="text-xs text-red-600 uppercase">KDV</p>
-                  <p className="text-base font-semibold text-red-700">
-                    -₺{(financialSummary.collected_vat || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-                  </p>
-                </div>
-
-                <div className="bg-orange-50 p-3 rounded-lg border border-orange-100">
-                  <p className="text-xs text-orange-600 uppercase">Şirket Komisyonu</p>
-                  <p className="text-base font-semibold text-orange-700">
-                    -₺{(financialSummary.collected_commission || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-                  </p>
-                </div>
-
-                {(financialSummary.total_expense_deduction || 0) > 0 && (
-                  <div className="bg-purple-50 p-3 rounded-lg border border-purple-100">
-                    <p className="text-xs text-purple-600 uppercase">Proje Giderleri</p>
-                    <p className="text-base font-semibold text-purple-700">
-                      -₺{(financialSummary.total_expense_deduction || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                  <div className="bg-navy/5 p-4 rounded-lg border border-navy/10">
+                    <p className="text-[10px] text-navy font-bold uppercase tracking-wider mb-1">Tahsil Edilen</p>
+                    <p className="text-lg font-black text-navy">
+                      ₺{(financialSummary.total_collected || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                     </p>
                     <p className="text-xs text-slate-500 mt-1">
-                      {(financialSummary.client_expenses || 0) > 0 && `Karşı taraf: ₺${financialSummary.client_expenses.toLocaleString('tr-TR')}`}
-                      {(financialSummary.client_expenses || 0) > 0 && (financialSummary.shared_expenses_rep_portion || 0) > 0 && ' + '}
-                      {(financialSummary.shared_expenses_rep_portion || 0) > 0 && `Ortak: ₺${financialSummary.shared_expenses_rep_portion.toLocaleString('tr-TR')}`}
+                      / ₺{financialSummary.total_gross.toLocaleString('tr-TR')}
                     </p>
                   </div>
-                )}
 
-                <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-100">
-                  <p className="text-xs text-indigo-600 uppercase">Dağıtılan</p>
-                  <p className="text-base font-semibold text-indigo-700">
-                    ₺{financialSummary.total_allocated.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-                  </p>
-                  <p className="text-xs text-slate-500 mt-1">
-                    %{financialSummary.distributable_amount > 0
-                      ? ((financialSummary.total_allocated / financialSummary.distributable_amount) * 100).toFixed(1)
-                      : 0}
-                  </p>
-                </div>
+                  <div className="bg-red-50 p-4 rounded-lg border border-red-100">
+                    <p className="text-[10px] text-red-600 font-bold uppercase tracking-wider mb-1">KDV</p>
+                    <p className="text-lg font-black text-red-600">
+                      -₺{(financialSummary.collected_vat || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
 
-                <div className={`p-3 rounded-lg border ${financialSummary.remaining_amount >= 0 ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
-                  <p className={`text-xs uppercase ${financialSummary.remaining_amount >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>Kalan Dağıtılacak</p>
-                  <p className={`text-base font-semibold ${financialSummary.remaining_amount >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
-                    ₺{financialSummary.remaining_amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-                  </p>
-                  <p className="text-xs text-slate-500 mt-1">
-                    %{financialSummary.distributable_amount > 0
-                      ? ((financialSummary.remaining_amount / financialSummary.distributable_amount) * 100).toFixed(1)
-                      : 0}
-                  </p>
+                  <div className="bg-gold/10 p-4 rounded-lg border border-gold/20">
+                    <p className="text-[10px] text-gold font-bold uppercase tracking-wider mb-1">TTO Komisyonu</p>
+                    <p className="text-lg font-black text-gold">
+                      -₺{(financialSummary.collected_commission || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+
+                  {(financialSummary.total_expense_deduction || 0) > 0 && (
+                    <div className="bg-purple-50 p-4 rounded-lg border border-purple-100">
+                      <p className="text-[10px] text-purple-600 font-bold uppercase tracking-wider mb-1">Proje Giderleri</p>
+                      <p className="text-lg font-black text-purple-600">
+                        -₺{(financialSummary.total_expense_deduction || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Dağıtılan</p>
+                    <p className="text-lg font-black text-slate-700">
+                      ₺{financialSummary.total_allocated.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      %{financialSummary.distributable_amount > 0
+                        ? ((financialSummary.total_allocated / financialSummary.distributable_amount) * 100).toFixed(1)
+                        : 0}
+                    </p>
+                  </div>
+
+                  <div className={`p-4 rounded-lg border ${financialSummary.remaining_amount >= 0 ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
+                    <p className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${financialSummary.remaining_amount >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                      Kalan Dağıtılacak
+                    </p>
+                    <p className={`text-lg font-black ${financialSummary.remaining_amount >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                      ₺{financialSummary.remaining_amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      %{financialSummary.distributable_amount > 0
+                        ? ((financialSummary.remaining_amount / financialSummary.distributable_amount) * 100).toFixed(1)
+                        : 0}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
+            </section>
 
             {/* Team Members */}
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-              <h2 className="text-base font-semibold text-slate-900 mb-4">
-                Proje Ekibi
-              </h2>
+            <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="h-1 w-full bg-gradient-to-r from-navy to-gold" />
+              <div className="p-5">
+                <h2 className="text-base font-bold text-navy mb-4 flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Proje Ekibi
+                </h2>
 
-              <div className="space-y-3">
-                {teamMembers.map(member => (
-                  <div
-                    key={member.id}
-                    className="flex items-center justify-between bg-slate-50 p-4 rounded-lg hover:bg-slate-100 transition-colors border border-slate-200"
-                  >
-                    <div className="flex items-center space-x-3">
-                      {member.role === 'project_leader' ? (
-                        <Crown className="h-5 w-5 text-yellow-500" />
-                      ) : (
-                        <Microscope className="h-5 w-5 text-teal-500" />
-                      )}
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-slate-900">{member.person_name}</p>
-                          <PersonBadge type={member.person_type} />
+                <div className="space-y-3">
+                  {teamMembers.map(member => (
+                    <div
+                      key={member.id}
+                      className="flex items-center justify-between bg-slate-50 p-4 rounded-lg hover:bg-slate-100 transition-colors border border-slate-200"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          member.role === 'project_leader' ? 'bg-gold/20' : 'bg-navy/10'
+                        }`}>
+                          {member.role === 'project_leader' ? (
+                            <Crown className="h-5 w-5 text-gold" />
+                          ) : (
+                            <Microscope className="h-5 w-5 text-navy" />
+                          )}
                         </div>
-                        <p className="text-sm text-slate-600">{member.person_email}</p>
-                        <p className="text-xs text-slate-500">
-                          {member.role === 'project_leader' ? 'Proje Yürütücüsü' : 'Araştırmacı'}
-                        </p>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-bold text-navy">{member.person_name}</p>
+                            <PersonBadge type={member.person_type} size="sm" />
+                          </div>
+                          <p className="text-xs text-slate-500">{member.person_email}</p>
+                          <p className="text-[10px] text-slate-400 uppercase font-bold mt-0.5">
+                            {member.role === 'project_leader' ? 'Proje Yürütücüsü' : 'Araştırmacı'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-6">
+                        <div className="text-right">
+                          <p className="text-[10px] text-slate-500 font-bold uppercase">Dağıtılan</p>
+                          <p className="text-sm font-black text-navy">
+                            ₺{member.allocated_amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                          </p>
+                        </div>
+
+                        <div className="text-right">
+                          <p className="text-[10px] text-slate-500 font-bold uppercase">Mevcut Bakiye</p>
+                          <p className="text-sm font-black text-emerald-600">
+                            ₺{member.current_balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                          </p>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => openAllocationModal(member, 'add')}
+                            className="p-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all shadow-sm"
+                            title="Bakiye Ekle"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => openAllocationModal(member, 'subtract')}
+                            className="p-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all shadow-sm"
+                            title="Bakiye Düş"
+                          >
+                            <Minus className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-
-                    <div className="flex items-center space-x-4">
-                      <div className="text-right">
-                        <p className="text-xs text-slate-600 uppercase">Dağıtılan</p>
-                        <p className="text-base font-semibold text-slate-900">
-                          ₺{member.allocated_amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-                        </p>
-                      </div>
-
-                      <div className="text-right">
-                        <p className="text-xs text-slate-600 uppercase">Mevcut Bakiye</p>
-                        <p className="text-base font-semibold text-emerald-600">
-                          ₺{member.current_balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-                        </p>
-                      </div>
-
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => openAllocationModal(member, 'add')}
-                          className="p-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors"
-                          title="Bakiye Ekle"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => openAllocationModal(member, 'subtract')}
-                          className="p-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-                          title="Bakiye Düş"
-                        >
-                          <Minus className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            </section>
           </>
         )}
 
         {/* Allocation Modal */}
         {showModal && selectedMember && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-4 max-w-md w-full mx-4 border border-slate-200 shadow-lg">
-              <h3 className="text-base font-semibold text-slate-900 mb-4 flex items-center">
-                {allocationData.operation === 'add' ? (
-                  <>
-                    <TrendingUp className="h-5 w-5 text-emerald-600 mr-2" />
-                    Bakiye Ekle
-                  </>
-                ) : (
-                  <>
-                    <TrendingDown className="h-5 w-5 text-red-600 mr-2" />
-                    Bakiye Düş
-                  </>
-                )}
-              </h3>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl max-w-md w-full mx-4 shadow-2xl overflow-hidden">
+              <div className={`h-1 w-full ${allocationData.operation === 'add' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+              <div className="p-5">
+                <h3 className="text-lg font-bold text-navy mb-4 flex items-center gap-2">
+                  {allocationData.operation === 'add' ? (
+                    <>
+                      <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                        <TrendingUp className="h-5 w-5 text-emerald-600" />
+                      </div>
+                      Bakiye Ekle
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
+                        <TrendingDown className="h-5 w-5 text-red-600" />
+                      </div>
+                      Bakiye Düş
+                    </>
+                  )}
+                </h3>
 
-              <div className="mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                <p className="text-xs text-slate-600 uppercase mb-1">Kişi</p>
-                <div className="flex items-center gap-2">
-                  <p className="font-medium text-slate-900">{selectedMember.person_name}</p>
-                  <PersonBadge type={selectedMember.person_type} />
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Tutar (₺)
-                  </label>
-                  <MoneyInput
-                    value={allocationData.amount}
-                    onChange={(value) => setAllocationData({ ...allocationData, amount: value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Not (Opsiyonel)
-                  </label>
-                  <textarea
-                    value={allocationData.notes}
-                    onChange={(e) => setAllocationData({ ...allocationData, notes: e.target.value })}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
-                    placeholder="Bakiye değişikliği hakkında not..."
-                  />
-                </div>
-
-                {error && (
-                  <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-md">
-                    {error}
+                <div className="mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                  <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Kişi</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold text-navy">{selectedMember.person_name}</p>
+                    <PersonBadge type={selectedMember.person_type} size="sm" />
                   </div>
-                )}
-              </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Mevcut Bakiye: <span className="font-bold text-emerald-600">₺{selectedMember.current_balance.toLocaleString('tr-TR')}</span>
+                  </p>
+                </div>
 
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  onClick={closeModal}
-                  className="px-3 py-2 border border-slate-300 text-sm font-semibold rounded text-slate-700 hover:bg-slate-50 transition-colors"
-                  disabled={submitting}
-                >
-                  İptal
-                </button>
-                <button
-                  onClick={handleAllocationSubmit}
-                  disabled={submitting}
-                  className={`px-3 py-2 text-sm font-semibold rounded text-white ${allocationData.operation === 'add'
-                    ? 'bg-emerald-600 hover:bg-emerald-700'
-                    : 'bg-red-600 hover:bg-red-700'
-                    } disabled:opacity-50 transition-colors`}
-                >
-                  {submitting ? 'İşleniyor...' : allocationData.operation === 'add' ? 'Ekle' : 'Düş'}
-                </button>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+                      Tutar (₺)
+                    </label>
+                    <MoneyInput
+                      value={allocationData.amount}
+                      onChange={(value) => setAllocationData({ ...allocationData, amount: value })}
+                      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-gold/30 focus:border-gold focus:bg-white transition-all outline-none text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+                      Not (Opsiyonel)
+                    </label>
+                    <textarea
+                      value={allocationData.notes}
+                      onChange={(e) => setAllocationData({ ...allocationData, notes: e.target.value })}
+                      rows={2}
+                      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-gold/30 focus:border-gold focus:bg-white transition-all outline-none text-sm resize-none"
+                      placeholder="Bakiye değişikliği hakkında not..."
+                    />
+                  </div>
+
+                  {error && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-red-600" />
+                      <p className="text-sm text-red-700">{error}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end gap-3 mt-6">
+                  <button
+                    onClick={closeModal}
+                    className="px-5 py-2.5 border border-slate-200 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 transition-all"
+                    disabled={submitting}
+                  >
+                    İptal
+                  </button>
+                  <button
+                    onClick={handleAllocationSubmit}
+                    disabled={submitting}
+                    className={`px-5 py-2.5 font-bold rounded-lg text-white transition-all shadow-lg flex items-center gap-2 ${
+                      allocationData.operation === 'add'
+                        ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
+                        : 'bg-red-600 hover:bg-red-700 shadow-red-600/20'
+                    } disabled:opacity-50`}
+                  >
+                    {submitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                        İşleniyor...
+                      </>
+                    ) : allocationData.operation === 'add' ? (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        Ekle
+                      </>
+                    ) : (
+                      <>
+                        <Minus className="w-4 h-4" />
+                        Düş
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -533,8 +577,8 @@ export default function ManualBalanceAllocationPage() {
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Yükleniyor...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-navy mx-auto"></div>
+          <p className="mt-2 text-slate-600">Yükleniyor...</p>
         </div>
       </div>
     }>

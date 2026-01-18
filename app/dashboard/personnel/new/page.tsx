@@ -143,7 +143,7 @@ export default function NewPersonnelPage() {
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-navy"></div>
       </div>
     )
   }
@@ -184,7 +184,7 @@ export default function NewPersonnelPage() {
                 value={formData.full_name}
                 onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-                  errors.full_name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-teal-500'
+                  errors.full_name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-navy/30'
                 }`}
                 placeholder="Ahmet Yılmaz"
               />
@@ -202,7 +202,7 @@ export default function NewPersonnelPage() {
                 value={formData.tc_no}
                 onChange={(e) => setFormData({ ...formData, tc_no: e.target.value.replace(/\D/g, '').slice(0, 11) })}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-                  errors.tc_no ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-teal-500'
+                  errors.tc_no ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-navy/30'
                 }`}
                 placeholder="12345678901"
                 maxLength={11}
@@ -222,7 +222,7 @@ export default function NewPersonnelPage() {
                   id="title"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30"
                 >
                   <option value="">Seçiniz</option>
                   <option value="Prof. Dr.">Prof. Dr.</option>
@@ -245,7 +245,7 @@ export default function NewPersonnelPage() {
                   id="gender"
                   value={formData.gender}
                   onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30"
                 >
                   <option value="">Seçiniz</option>
                   <option value="ERKEK">Erkek</option>
@@ -264,7 +264,7 @@ export default function NewPersonnelPage() {
                 id="start_date"
                 value={formData.start_date}
                 onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30"
               />
             </div>
           </div>
@@ -284,7 +284,7 @@ export default function NewPersonnelPage() {
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-                  errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-teal-500'
+                  errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-navy/30'
                 }`}
                 placeholder="ahmet@example.com"
               />
@@ -301,7 +301,7 @@ export default function NewPersonnelPage() {
                 id="phone"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30"
                 placeholder="0532 123 45 67"
               />
             </div>
@@ -325,7 +325,7 @@ export default function NewPersonnelPage() {
                   setFormData({ ...formData, iban: value })
                 }}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-                  errors.iban ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-teal-500'
+                  errors.iban ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-navy/30'
                 }`}
                 placeholder="TR00 0000 0000 0000 0000 0000 00"
                 maxLength={26}
@@ -349,7 +349,7 @@ export default function NewPersonnelPage() {
                 id="university"
                 value={formData.university}
                 onChange={(e) => setFormData({ ...formData, university: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30"
                 placeholder="Yıldız Teknik Üniversitesi"
               />
             </div>
@@ -366,7 +366,7 @@ export default function NewPersonnelPage() {
                   id="faculty"
                   value={formData.faculty}
                   onChange={(e) => setFormData({ ...formData, faculty: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30"
                   placeholder="Mühendislik Fakültesi"
                 />
               </div>
@@ -381,7 +381,7 @@ export default function NewPersonnelPage() {
                   id="department"
                   value={formData.department}
                   onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30"
                   placeholder="Bilgisayar Mühendisliği"
                 />
               </div>
@@ -402,7 +402,7 @@ export default function NewPersonnelPage() {
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30"
                 placeholder="Personel hakkında not..."
               />
             </div>
@@ -414,7 +414,7 @@ export default function NewPersonnelPage() {
                 id="is_active"
                 checked={formData.is_active}
                 onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
+                className="h-4 w-4 text-navy focus:ring-navy/30 border-gray-300 rounded"
               />
               <label htmlFor="is_active" className="ml-2 block text-sm text-gray-700">
                 Aktif personel
@@ -433,7 +433,7 @@ export default function NewPersonnelPage() {
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex items-center px-3 py-2 text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="inline-flex items-center px-3 py-2 text-sm font-semibold rounded text-white bg-navy hover:bg-navy/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? (
                 <>

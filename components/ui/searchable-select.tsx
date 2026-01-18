@@ -114,10 +114,10 @@ export function SearchableSelect({
       <div
         onClick={() => !disabled && setIsOpen(!isOpen)}
         className={`
-          w-full px-3 py-2 border rounded-md cursor-pointer flex items-center justify-between
-          ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white hover:border-teal-400'}
-          ${error ? 'border-red-500' : 'border-slate-300'}
-          ${isOpen ? 'ring-2 ring-teal-500 border-teal-500' : ''}
+          w-full px-3 py-2 border-2 rounded-lg cursor-pointer flex items-center justify-between
+          ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white hover:border-navy/50'}
+          ${error ? 'border-red-500' : 'border-slate-200'}
+          ${isOpen ? 'ring-2 ring-navy/20 border-navy' : ''}
           text-sm
         `}
       >
@@ -149,7 +149,7 @@ export function SearchableSelect({
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-lg max-h-72 overflow-hidden">
+        <div className="absolute z-[100] w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-72 overflow-hidden">
           {/* Search input */}
           <div className="p-2 border-b border-slate-100">
             <input
@@ -158,7 +158,7 @@ export function SearchableSelect({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={searchPlaceholder}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy"
             />
           </div>
 
@@ -174,8 +174,8 @@ export function SearchableSelect({
                   key={option.id}
                   onClick={() => handleSelect(option)}
                   className={`
-                    px-3 py-2 cursor-pointer text-sm
-                    ${option.id === value ? 'bg-teal-50 text-teal-700' : 'hover:bg-gray-50'}
+                    px-3 py-2.5 cursor-pointer text-sm
+                    ${option.id === value ? 'bg-navy/10 text-navy font-semibold' : 'hover:bg-slate-50'}
                   `}
                 >
                   {getLabelFn(option)}

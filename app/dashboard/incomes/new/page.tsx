@@ -15,7 +15,10 @@ import {
   AlertTriangle,
   CheckCircle2,
   Info,
-  TrendingUp
+  TrendingUp,
+  Calculator,
+  Save,
+  Tags
 } from 'lucide-react'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import { useIncomeNotifications } from '@/contexts/notification-context'
@@ -112,7 +115,6 @@ export default function NewIncomePage() {
       const data = await response.json()
 
       if (data.success) {
-        // Sadece aktif projeleri göster
         const activeProjects = (data.data.projects || []).filter((p: Project) => p.status === 'active')
         setProjects(activeProjects)
       }
@@ -129,22 +131,16 @@ export default function NewIncomePage() {
     const hasWithholdingTax = selectedProject?.has_withholding_tax || false
     const withholdingTaxRate = selectedProject?.withholding_tax_rate || 0
 
-    // Tam KDV hesaplama: brütGelir × kdvOranı ÷ (100 + kdvOranı)
-    // Türk KDV sistemi: Brüt tutar KDV dahildir, iç yüzde hesabı yapılır
     const fullVatAmount = (grossAmount * vatRate) / (100 + vatRate)
 
-    // Tevkifat hesaplama (varsa)
     let withholdingTaxAmount = 0
     let paidVatAmount = fullVatAmount
 
     if (hasWithholdingTax && withholdingTaxRate > 0) {
-      // Tevkifat = Tam KDV × Tevkifat Oranı / 100
       withholdingTaxAmount = (fullVatAmount * withholdingTaxRate) / 100
-      // Ödenen KDV = Tam KDV - Tevkifat
       paidVatAmount = fullVatAmount - withholdingTaxAmount
     }
 
-    // Net = Brüt - Ödenen KDV
     const netAmount = grossAmount - paidVatAmount
     const companyAmount = (netAmount * companyRate) / 100
     const distributableAmount = netAmount - companyAmount
@@ -163,7 +159,6 @@ export default function NewIncomePage() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
 
-    // Proje seçimi validasyonu
     if (!formData.project_id) {
       newErrors.project_id = 'Proje seçimi gereklidir'
     } else {
@@ -173,7 +168,6 @@ export default function NewIncomePage() {
       }
     }
 
-    // Brüt tutar validasyonu
     if (!formData.gross_amount) {
       newErrors.gross_amount = 'Brüt tutar gereklidir'
     } else {
@@ -184,12 +178,9 @@ export default function NewIncomePage() {
         newErrors.gross_amount = 'Brüt tutar sıfırdan büyük olmalıdır'
       } else if (amount > 10000000) {
         newErrors.gross_amount = 'Brüt tutar 10,000,000 TL\'den fazla olamaz'
-      } else if (!/^\d+(\.\d{1,2})?$/.test(formData.gross_amount)) {
-        newErrors.gross_amount = 'En fazla 2 ondalık basamak girebilirsiniz'
       }
     }
 
-    // Tarih validasyonu
     if (!formData.income_date) {
       newErrors.income_date = 'Gelir tarihi gereklidir'
     } else {
@@ -205,7 +196,6 @@ export default function NewIncomePage() {
       }
     }
 
-    // KDV oranı validasyonu
     const vatRate = parseFloat(formData.vat_rate)
     if (isNaN(vatRate)) {
       newErrors.vat_rate = 'Geçerli bir KDV oranı giriniz'
@@ -213,16 +203,12 @@ export default function NewIncomePage() {
       newErrors.vat_rate = 'KDV oranı negatif olamaz'
     } else if (vatRate > 100) {
       newErrors.vat_rate = 'KDV oranı %100\'den fazla olamaz'
-    } else if (!/^\d+(\.\d{1,2})?$/.test(formData.vat_rate)) {
-      newErrors.vat_rate = 'En fazla 2 ondalık basamak girebilirsiniz'
     }
 
-    // Açıklama validasyonu (opsiyonel ama varsa kontrol et)
     if (formData.description && formData.description.length > 500) {
       newErrors.description = 'Açıklama 500 karakterden uzun olamaz'
     }
 
-    // Proje bütçesi kontrolü
     if (formData.project_id && formData.gross_amount) {
       const selectedProject = projects.find(p => p.id === formData.project_id)
       const amount = parseFloat(formData.gross_amount)
@@ -257,8 +243,6 @@ export default function NewIncomePage() {
         is_tto_income: formData.is_tto_income
       }
 
-      console.log('🚀 SENDING REQUEST:', requestPayload)
-
       const response = await fetch('/api/incomes', {
         method: 'POST',
         headers: {
@@ -270,33 +254,24 @@ export default function NewIncomePage() {
 
       const data = await response.json()
 
-      console.log('🔴 API RESPONSE:', data)
-
       if (data.success) {
-        // Cache'leri invalidate et
         invalidateIncomes()
         invalidateDashboard()
 
-        // Başarılı durumda bildirimi ekle
         const selectedProject = projects.find(p => p.id === formData.project_id)
         if (selectedProject) {
           notifyIncomeCreated(selectedProject.name, parseFloat(formData.gross_amount))
         }
 
-        // Refresh notifications to show server-side notifications
         triggerNotificationRefresh()
-
         router.push('/dashboard/incomes')
       } else {
-        // API'den gelen spesifik hata mesajını göster
         const errorMessage = data.error || 'Gelir kaydı oluşturulamadı'
 
-        // HTTP status koduna göre daha detaylı hata mesajları
         if (response.status === 400) {
           setErrors({ submit: `Geçersiz veri: ${errorMessage}` })
         } else if (response.status === 401) {
           setErrors({ submit: 'Oturum süreniz dolmuş. Lütfen tekrar giriş yapın.' })
-          // Token geçersizse login sayfasına yönlendir
           setTimeout(() => {
             localStorage.removeItem('token')
             localStorage.removeItem('user')
@@ -315,7 +290,6 @@ export default function NewIncomePage() {
     } catch (err) {
       console.error('Income creation error:', err)
 
-      // Network hatası kontrolü
       if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
         setErrors({ submit: 'Bağlantı hatası. İnternet bağlantınızı kontrol edin.' })
       } else if (err instanceof SyntaxError) {
@@ -332,7 +306,7 @@ export default function NewIncomePage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-navy mx-auto"></div>
           <p className="mt-2 text-slate-600">Yükleniyor...</p>
         </div>
       </div>
@@ -345,447 +319,475 @@ export default function NewIncomePage() {
     <DashboardLayout user={user}>
       <div className="space-y-6">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/dashboard/incomes"
-              className="p-2 hover:bg-slate-100 rounded transition-colors text-slate-600 hover:text-slate-900"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900">Yeni Gelir</h1>
-              <p className="text-sm text-slate-600">Yeni bir gelir kaydı oluşturun</p>
-            </div>
+        <div className="flex items-center gap-4">
+          <Link
+            href="/dashboard/incomes"
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 hover:border-navy/30 transition-all shadow-sm"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Geri
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-navy flex items-center gap-2">
+              <Wallet className="w-6 h-6 text-gold" />
+              Yeni Gelir
+            </h1>
+            <p className="text-sm text-slate-500">Yeni bir gelir kaydı oluşturun</p>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic Information */}
-          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-            <h2 className="text-base font-semibold text-slate-900 mb-4 flex items-center">
-              <Wallet className="h-4 w-4 mr-2 text-slate-700" />
-              Gelir Bilgileri
-            </h2>
+        <form onSubmit={handleSubmit}>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column - Main Form */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Gelir Bilgileri */}
+              <section className="bg-white rounded-xl border border-slate-200 shadow-sm relative">
+                <div className="h-1 w-full bg-gradient-to-r from-navy to-gold rounded-t-xl" />
+                <div className="p-5">
+                  <h2 className="text-base font-bold text-navy mb-4 flex items-center gap-2">
+                    <DollarSign className="w-5 h-5" />
+                    Gelir Bilgileri
+                  </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Proje *
-                </label>
-                <SearchableSelect
-                  options={projects}
-                  value={formData.project_id}
-                  onChange={(value, option) => {
-                    setFormData({
-                      ...formData,
-                      project_id: value,
-                      vat_rate: option?.vat_rate?.toString() || '18'
-                    })
-                  }}
-                  placeholder="Proje seçiniz veya kod yazarak arayın..."
-                  error={!!errors.project_id}
-                />
-                {errors.project_id && <p className="mt-1 text-xs text-red-600">{errors.project_id}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Brüt Tutar (₺) *
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.gross_amount}
-                  onChange={(e) => setFormData({ ...formData, gross_amount: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm"
-                  placeholder="100000"
-                />
-                {errors.gross_amount && <p className="mt-1 text-xs text-red-600">{errors.gross_amount}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  KDV Oranı (%)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  value={formData.vat_rate}
-                  onChange={(e) => setFormData({ ...formData, vat_rate: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm"
-                />
-                {errors.vat_rate && <p className="mt-1 text-xs text-red-600">{errors.vat_rate}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Gelir Tarihi *
-                </label>
-                <input
-                  type="date"
-                  value={formData.income_date}
-                  onChange={(e) => setFormData({ ...formData, income_date: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm"
-                />
-                {errors.income_date && <p className="mt-1 text-xs text-red-600">{errors.income_date}</p>}
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Açıklama
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm"
-                  placeholder="Gelir ile ilgili açıklama..."
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Project Details */}
-          {selectedProject && (
-            <div className="bg-slate-50 rounded-lg border border-slate-200 p-4">
-              <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center">
-                <Building2 className="h-4 w-4 mr-2 text-slate-700" />
-                Seçilen Proje Detayları
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                <div>
-                  <p className="text-slate-600 font-medium text-xs">Proje Kodu</p>
-                  <p className="text-slate-900">{selectedProject.code}</p>
-                </div>
-                <div>
-                  <p className="text-slate-600 font-medium text-xs">Bütçe</p>
-                  <p className="text-slate-900">₺{selectedProject.budget.toLocaleString('tr-TR')}</p>
-                </div>
-                <div>
-                  <p className="text-slate-600 font-medium text-xs">Şirket Komisyonu</p>
-                  <p className="text-slate-900">%{selectedProject.company_rate}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Commission Status Card */}
-          {selectedProject && (() => {
-            const currentRemainingBudget = selectedProject.remaining_budget ?? selectedProject.budget
-            const grossAmount = parseFloat(formData.gross_amount) || 0
-            const newRemainingBudget = currentRemainingBudget - grossAmount
-            const totalCommissionDue = selectedProject.total_commission_due ?? 0
-            const totalCommissionCollected = selectedProject.total_commission_collected ?? 0
-            const remainingCommission = totalCommissionDue - totalCommissionCollected
-            const canSelectNonTTO = newRemainingBudget >= remainingCommission
-            const commissionProgress = totalCommissionDue > 0 ? (totalCommissionCollected / totalCommissionDue) * 100 : 0
-
-            return (
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-                <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center">
-                  <TrendingUp className="h-4 w-4 mr-2 text-slate-700" />
-                  Komisyon Durumu
-                </h3>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                    <p className="text-xs text-slate-600 font-medium mb-1">Toplam Komisyon Alacağı</p>
-                    <p className="text-sm font-bold text-slate-900">₺{totalCommissionDue.toLocaleString('tr-TR')}</p>
-                  </div>
-                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                    <p className="text-xs text-slate-600 font-medium mb-1">Alınmış Komisyon</p>
-                    <p className="text-sm font-bold text-emerald-600">₺{totalCommissionCollected.toLocaleString('tr-TR')}</p>
-                  </div>
-                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                    <p className="text-xs text-slate-600 font-medium mb-1">Kalan Komisyon</p>
-                    <p className="text-sm font-bold text-orange-600">₺{remainingCommission.toLocaleString('tr-TR')}</p>
-                  </div>
-                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                    <p className="text-xs text-slate-600 font-medium mb-1">Kalan Bütçe (Bu gelir sonrası)</p>
-                    <p className={`text-sm font-bold ${newRemainingBudget < 0 ? 'text-red-600' : 'text-slate-900'}`}>
-                      ₺{newRemainingBudget.toLocaleString('tr-TR')}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Commission Progress Bar */}
-                <div className="mb-4">
-                  <div className="flex justify-between text-xs text-slate-600 mb-1">
-                    <span>Komisyon Tahsilat İlerlemesi</span>
-                    <span>%{commissionProgress.toFixed(1)}</span>
-                  </div>
-                  <div className="w-full bg-slate-200 rounded-full h-2">
-                    <div
-                      className="bg-teal-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${Math.min(commissionProgress, 100)}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* TTO Selection Warning */}
-                {!canSelectNonTTO && grossAmount > 0 && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-md p-3 flex items-start gap-2">
-                    <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                    <div className="text-xs text-amber-800">
-                      <p className="font-semibold">TTO Dışı Gelir Seçilemez</p>
-                      <p className="mt-0.5">
-                        Bu gelir sonrası kalan bütçe (₺{newRemainingBudget.toLocaleString('tr-TR')}) kalan komisyon alacağını
-                        (₺{remainingCommission.toLocaleString('tr-TR')}) karşılayamıyor. Komisyon hiçbir zaman ödenmemiş bırakılamaz.
-                      </p>
+                  <div className="space-y-4">
+                    <div className="relative z-50">
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+                        Proje *
+                      </label>
+                      <SearchableSelect
+                        options={projects}
+                        value={formData.project_id}
+                        onChange={(value, option) => {
+                          setFormData({
+                            ...formData,
+                            project_id: value,
+                            vat_rate: option?.vat_rate?.toString() || '18'
+                          })
+                        }}
+                        placeholder="Proje seçiniz veya kod yazarak arayın..."
+                        error={!!errors.project_id}
+                      />
+                      {errors.project_id && <p className="mt-1 text-xs text-red-600">{errors.project_id}</p>}
                     </div>
-                  </div>
-                )}
 
-                {canSelectNonTTO && grossAmount > 0 && remainingCommission > 0 && (
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-md p-3 flex items-start gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                    <div className="text-xs text-emerald-800">
-                      <p className="font-semibold">TTO Dışı Gelir Seçilebilir</p>
-                      <p className="mt-0.5">
-                        Bu gelir sonrası kalan bütçe komisyon alacağını karşılamaya yetecek.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )
-          })()}
-
-          {/* Income Type Selection */}
-          {selectedProject && (
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-              <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center">
-                <Info className="h-4 w-4 mr-2 text-slate-700" />
-                Gelir Tipi Seçenekleri
-              </h3>
-
-              <div className="space-y-4">
-                {/* FSMH Geliri */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">FSMH Geliri mi?</label>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, is_fsmh_income: true })}
-                      className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                        formData.is_fsmh_income
-                          ? 'bg-teal-600 text-white'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                      }`}
-                    >
-                      Evet, FSMH
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, is_fsmh_income: false })}
-                      className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                        !formData.is_fsmh_income
-                          ? 'bg-teal-600 text-white'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                      }`}
-                    >
-                      Hayır
-                    </button>
-                  </div>
-                </div>
-
-                {/* Gelir Tipi (Özel/Kamu) */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Gelir Tipi</label>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, income_type: 'ozel' })}
-                      className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                        formData.income_type === 'ozel'
-                          ? 'bg-teal-600 text-white'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                      }`}
-                    >
-                      Özel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, income_type: 'kamu' })}
-                      className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                        formData.income_type === 'kamu'
-                          ? 'bg-teal-600 text-white'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                      }`}
-                    >
-                      Kamu
-                    </button>
-                  </div>
-                </div>
-
-                {/* TTO Geliri */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    TTO Geliri mi?
-                    <span className="ml-1 text-xs text-slate-500">(Komisyon kesintisi)</span>
-                  </label>
-                  {(() => {
-                    const currentRemainingBudget = selectedProject.remaining_budget ?? selectedProject.budget
-                    const grossAmount = parseFloat(formData.gross_amount) || 0
-                    const newRemainingBudget = currentRemainingBudget - grossAmount
-                    const totalCommissionDue = selectedProject.total_commission_due ?? 0
-                    const totalCommissionCollected = selectedProject.total_commission_collected ?? 0
-                    const remainingCommission = totalCommissionDue - totalCommissionCollected
-                    const canSelectNonTTO = newRemainingBudget >= remainingCommission
-
-                    return (
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setFormData({ ...formData, is_tto_income: true })}
-                          className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                            formData.is_tto_income
-                              ? 'bg-teal-600 text-white'
-                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                          }`}
-                        >
-                          Evet, TTO (Komisyon kesilir)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (canSelectNonTTO) {
-                              setFormData({ ...formData, is_tto_income: false })
-                            }
-                          }}
-                          disabled={!canSelectNonTTO}
-                          className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                            !formData.is_tto_income
-                              ? 'bg-teal-600 text-white'
-                              : canSelectNonTTO
-                                ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                                : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                          }`}
-                          title={!canSelectNonTTO ? 'Kalan bütçe komisyon alacağını karşılayamıyor' : ''}
-                        >
-                          Hayır, TTO Değil
-                          {!canSelectNonTTO && <span className="ml-1 text-xs">(Engelli)</span>}
-                        </button>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+                          Brüt Tutar (₺) *
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={formData.gross_amount}
+                          onChange={(e) => setFormData({ ...formData, gross_amount: e.target.value })}
+                          className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-gold/30 focus:border-gold focus:bg-white transition-all outline-none text-sm"
+                          placeholder="100000"
+                        />
+                        {errors.gross_amount && <p className="mt-1 text-xs text-red-600">{errors.gross_amount}</p>}
                       </div>
-                    )
-                  })()}
-                </div>
-              </div>
-            </div>
-          )}
 
-          {/* Calculation Preview */}
-          {formData.gross_amount && parseFloat(formData.gross_amount) > 0 && (
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-              <h2 className="text-base font-semibold text-slate-900 mb-3 flex items-center">
-                <DollarSign className="h-4 w-4 mr-2 text-slate-700" />
-                Hesaplama Önizlemesi
-                {selectedProject?.has_withholding_tax && (
-                  <span className="ml-2 px-2 py-0.5 bg-orange-100 text-orange-700 text-xs font-medium rounded">
-                    Tevkifatlı Proje
-                  </span>
-                )}
-              </h2>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+                          KDV Oranı (%)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          value={formData.vat_rate}
+                          onChange={(e) => setFormData({ ...formData, vat_rate: e.target.value })}
+                          className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-gold/30 focus:border-gold focus:bg-white transition-all outline-none text-sm"
+                        />
+                        {errors.vat_rate && <p className="mt-1 text-xs text-red-600">{errors.vat_rate}</p>}
+                      </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                  <p className="text-xs text-slate-600 font-medium mb-1">Brüt Tutar</p>
-                  <p className="text-sm font-bold text-slate-900">
-                    ₺{calculatedAmounts.gross_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
-                  </p>
-                </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+                          Gelir Tarihi *
+                        </label>
+                        <input
+                          type="date"
+                          value={formData.income_date}
+                          onChange={(e) => setFormData({ ...formData, income_date: e.target.value })}
+                          className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-gold/30 focus:border-gold focus:bg-white transition-all outline-none text-sm"
+                        />
+                        {errors.income_date && <p className="mt-1 text-xs text-red-600">{errors.income_date}</p>}
+                      </div>
+                    </div>
 
-                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                  <p className="text-xs text-slate-600 font-medium mb-1">Tam KDV (%{formData.vat_rate})</p>
-                  <p className="text-sm font-bold text-slate-600">
-                    ₺{calculatedAmounts.full_vat_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
-                  </p>
-                </div>
-
-                {selectedProject?.has_withholding_tax && calculatedAmounts.withholding_tax_amount > 0 && (
-                  <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
-                    <p className="text-xs text-orange-700 font-medium mb-1">
-                      Tevkifat (%{selectedProject.withholding_tax_rate})
-                    </p>
-                    <p className="text-sm font-bold text-orange-600">
-                      -₺{calculatedAmounts.withholding_tax_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
-                    </p>
-                    <p className="text-xs text-orange-600 mt-0.5">Karşı taraf öder</p>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+                        Açıklama
+                      </label>
+                      <textarea
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        rows={2}
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-gold/30 focus:border-gold focus:bg-white transition-all outline-none text-sm resize-none"
+                        placeholder="Gelir ile ilgili açıklama..."
+                      />
+                    </div>
                   </div>
-                )}
-
-                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                  <p className="text-xs text-slate-600 font-medium mb-1">
-                    {selectedProject?.has_withholding_tax ? 'Ödenen KDV' : 'KDV'}
-                  </p>
-                  <p className="text-sm font-bold text-red-600">
-                    -₺{calculatedAmounts.paid_vat_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
-                  </p>
                 </div>
+              </section>
 
-                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                  <p className="text-xs text-slate-600 font-medium mb-1">Net Tutar</p>
-                  <p className="text-sm font-bold text-slate-900">
-                    ₺{calculatedAmounts.net_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
-                  </p>
-                </div>
+              {/* Gelir Tipi Seçenekleri */}
+              {selectedProject && (
+                <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="h-1 w-full bg-gradient-to-r from-navy to-gold" />
+                  <div className="p-5">
+                    <h2 className="text-base font-bold text-navy mb-4 flex items-center gap-2">
+                      <Tags className="w-5 h-5" />
+                      Gelir Tipi Seçenekleri
+                    </h2>
 
-                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                  <p className="text-xs text-slate-600 font-medium mb-1">
-                    Şirket (%{selectedProject?.company_rate || 0})
-                  </p>
-                  <p className="text-sm font-bold text-orange-600">
-                    -₺{calculatedAmounts.company_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
-                  </p>
-                </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* FSMH */}
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
+                          FSMH Geliri mi?
+                        </label>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, is_fsmh_income: true })}
+                            className={`flex-1 px-3 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                              formData.is_fsmh_income
+                                ? 'bg-navy text-white shadow-lg shadow-navy/20'
+                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                            }`}
+                          >
+                            Evet
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, is_fsmh_income: false })}
+                            className={`flex-1 px-3 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                              !formData.is_fsmh_income
+                                ? 'bg-navy text-white shadow-lg shadow-navy/20'
+                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                            }`}
+                          >
+                            Hayır
+                          </button>
+                        </div>
+                      </div>
 
-                <div className="bg-emerald-50 p-3 rounded-lg border border-emerald-200">
-                  <p className="text-xs text-emerald-700 font-medium mb-1">Dağıtılabilir</p>
-                  <p className="text-sm font-bold text-emerald-600">
-                    ₺{calculatedAmounts.distributable_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
-                  </p>
-                </div>
+                      {/* Özel/Kamu */}
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
+                          Gelir Tipi
+                        </label>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, income_type: 'ozel' })}
+                            className={`flex-1 px-3 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                              formData.income_type === 'ozel'
+                                ? 'bg-navy text-white shadow-lg shadow-navy/20'
+                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                            }`}
+                          >
+                            Özel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, income_type: 'kamu' })}
+                            className={`flex-1 px-3 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                              formData.income_type === 'kamu'
+                                ? 'bg-navy text-white shadow-lg shadow-navy/20'
+                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                            }`}
+                          >
+                            Kamu
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* TTO */}
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
+                          TTO Geliri mi?
+                        </label>
+                        {(() => {
+                          const currentRemainingBudget = selectedProject.remaining_budget ?? selectedProject.budget
+                          const grossAmount = parseFloat(formData.gross_amount) || 0
+                          const newRemainingBudget = currentRemainingBudget - grossAmount
+                          const totalCommissionDue = selectedProject.total_commission_due ?? 0
+                          const totalCommissionCollected = selectedProject.total_commission_collected ?? 0
+                          const remainingCommission = totalCommissionDue - totalCommissionCollected
+                          const canSelectNonTTO = newRemainingBudget >= remainingCommission
+
+                          return (
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setFormData({ ...formData, is_tto_income: true })}
+                                className={`flex-1 px-3 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                                  formData.is_tto_income
+                                    ? 'bg-navy text-white shadow-lg shadow-navy/20'
+                                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                }`}
+                              >
+                                TTO
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (canSelectNonTTO) {
+                                    setFormData({ ...formData, is_tto_income: false })
+                                  }
+                                }}
+                                disabled={!canSelectNonTTO}
+                                className={`flex-1 px-3 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                                  !formData.is_tto_income
+                                    ? 'bg-gold text-white shadow-lg shadow-gold/20'
+                                    : canSelectNonTTO
+                                      ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                      : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                }`}
+                              >
+                                TTO Dışı
+                              </button>
+                            </div>
+                          )
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* Hesaplama Önizlemesi */}
+              {formData.gross_amount && parseFloat(formData.gross_amount) > 0 && (
+                <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="h-1 w-full bg-gradient-to-r from-navy to-gold" />
+                  <div className="p-5">
+                    <h2 className="text-base font-bold text-navy mb-4 flex items-center gap-2">
+                      <Calculator className="w-5 h-5" />
+                      Hesaplama Önizlemesi
+                      {selectedProject?.has_withholding_tax && (
+                        <span className="ml-2 px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-bold rounded">
+                          Tevkifatlı Proje
+                        </span>
+                      )}
+                    </h2>
+
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                      <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Brüt Tutar</p>
+                        <p className="text-sm font-black text-navy">
+                          ₺{calculatedAmounts.gross_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+
+                      <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">KDV (%{formData.vat_rate})</p>
+                        <p className="text-sm font-black text-slate-600">
+                          ₺{calculatedAmounts.full_vat_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+
+                      {selectedProject?.has_withholding_tax && calculatedAmounts.withholding_tax_amount > 0 && (
+                        <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
+                          <p className="text-[10px] text-amber-700 font-bold uppercase mb-1">
+                            Tevkifat (%{selectedProject.withholding_tax_rate})
+                          </p>
+                          <p className="text-sm font-black text-amber-600">
+                            -₺{calculatedAmounts.withholding_tax_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="bg-red-50 p-3 rounded-lg border border-red-200">
+                        <p className="text-[10px] text-red-600 font-bold uppercase mb-1">Ödenen KDV</p>
+                        <p className="text-sm font-black text-red-600">
+                          -₺{calculatedAmounts.paid_vat_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+
+                      <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Net Tutar</p>
+                        <p className="text-sm font-black text-navy">
+                          ₺{calculatedAmounts.net_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+
+                      <div className="bg-gold/10 p-3 rounded-lg border border-gold/30">
+                        <p className="text-[10px] text-gold font-bold uppercase mb-1">TTO (%{selectedProject?.company_rate || 0})</p>
+                        <p className="text-sm font-black text-gold">
+                          -₺{calculatedAmounts.company_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+
+                      <div className="bg-emerald-50 p-3 rounded-lg border border-emerald-200 md:col-span-2 lg:col-span-1">
+                        <p className="text-[10px] text-emerald-600 font-bold uppercase mb-1">Dağıtılabilir</p>
+                        <p className="text-sm font-black text-emerald-600">
+                          ₺{calculatedAmounts.distributable_amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* Submit Buttons */}
+              <div className="flex justify-end gap-3">
+                <Link
+                  href="/dashboard/incomes"
+                  className="px-6 py-2.5 border border-slate-200 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 transition-all"
+                >
+                  İptal
+                </Link>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-6 py-2.5 bg-gold text-white font-bold rounded-lg hover:bg-gold/90 disabled:opacity-50 transition-all shadow-lg shadow-gold/20 flex items-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                      Kaydediliyor...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      Gelir Kaydet
+                    </>
+                  )}
+                </button>
               </div>
 
-              {/* Tevkifat Açıklaması */}
-              {selectedProject?.has_withholding_tax && calculatedAmounts.withholding_tax_amount > 0 && (
-                <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                  <p className="text-xs text-orange-800">
-                    <strong>Tevkifat:</strong> Karşı taraf KDV'nin %{selectedProject.withholding_tax_rate}'ını
-                    (₺{calculatedAmounts.withholding_tax_amount.toLocaleString('tr-TR')}) doğrudan devlete öder.
-                    Bize ödenen KDV: ₺{calculatedAmounts.paid_vat_amount.toLocaleString('tr-TR')}
-                  </p>
+              {errors.submit && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-600 font-medium">{errors.submit}</p>
                 </div>
               )}
             </div>
-          )}
 
-          {/* Submit */}
-          <div className="flex justify-end gap-3">
-            <Link
-              href="/dashboard/incomes"
-              className="px-3 py-2 border border-slate-300 rounded text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-            >
-              İptal
-            </Link>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-3 py-2 bg-teal-600 text-white rounded text-sm font-semibold hover:bg-teal-700 disabled:opacity-50 transition-colors"
-            >
-              {loading ? 'Kaydediliyor...' : 'Gelir Kaydet'}
-            </button>
-          </div>
+            {/* Right Column - Project Summary & Commission Status */}
+            <div className="space-y-6">
+              {/* Proje Bilgileri */}
+              {selectedProject && (
+                <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="h-1 w-full bg-gradient-to-r from-navy to-gold" />
+                  <div className="p-5">
+                    <h2 className="text-base font-bold text-navy mb-4 flex items-center gap-2">
+                      <Building2 className="w-5 h-5" />
+                      Proje Bilgileri
+                    </h2>
 
-          {errors.submit && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-600">{errors.submit}</p>
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-slate-500">Proje Kodu</span>
+                        <span className="text-sm font-bold text-navy">{selectedProject.code}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-slate-500">Bütçe</span>
+                        <span className="text-sm font-bold">₺{selectedProject.budget.toLocaleString('tr-TR')}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-slate-500">TTO Komisyonu</span>
+                        <span className="text-sm font-bold text-gold">%{selectedProject.company_rate}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-slate-500">KDV Oranı</span>
+                        <span className="text-sm font-bold">%{selectedProject.vat_rate}</span>
+                      </div>
+                      {selectedProject.has_withholding_tax && (
+                        <div className="flex justify-between">
+                          <span className="text-sm text-slate-500">Tevkifat</span>
+                          <span className="text-sm font-bold text-amber-600">%{selectedProject.withholding_tax_rate}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* Komisyon Durumu */}
+              {selectedProject && (() => {
+                const currentRemainingBudget = selectedProject.remaining_budget ?? selectedProject.budget
+                const grossAmount = parseFloat(formData.gross_amount) || 0
+                const newRemainingBudget = currentRemainingBudget - grossAmount
+                const totalCommissionDue = selectedProject.total_commission_due ?? 0
+                const totalCommissionCollected = selectedProject.total_commission_collected ?? 0
+                const remainingCommission = totalCommissionDue - totalCommissionCollected
+                const canSelectNonTTO = newRemainingBudget >= remainingCommission
+                const commissionProgress = totalCommissionDue > 0 ? (totalCommissionCollected / totalCommissionDue) * 100 : 0
+
+                return (
+                  <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="h-1 w-full bg-gradient-to-r from-navy to-gold" />
+                    <div className="p-5">
+                      <h2 className="text-base font-bold text-navy mb-4 flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5" />
+                        Komisyon Durumu
+                      </h2>
+
+                      <div className="space-y-3">
+                        <div>
+                          <div className="flex justify-between text-xs mb-1">
+                            <span className="text-slate-500">Komisyon Tahsilatı</span>
+                            <span className="font-bold text-navy">%{commissionProgress.toFixed(1)}</span>
+                          </div>
+                          <div className="w-full bg-slate-100 rounded-full h-2">
+                            <div
+                              className="bg-gold h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${Math.min(commissionProgress, 100)}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-slate-50 p-3 rounded-lg">
+                            <p className="text-[10px] text-slate-500 font-bold uppercase">Toplam</p>
+                            <p className="text-sm font-black text-navy">₺{totalCommissionDue.toLocaleString('tr-TR')}</p>
+                          </div>
+                          <div className="bg-emerald-50 p-3 rounded-lg">
+                            <p className="text-[10px] text-emerald-600 font-bold uppercase">Alınan</p>
+                            <p className="text-sm font-black text-emerald-600">₺{totalCommissionCollected.toLocaleString('tr-TR')}</p>
+                          </div>
+                          <div className="bg-amber-50 p-3 rounded-lg">
+                            <p className="text-[10px] text-amber-600 font-bold uppercase">Kalan</p>
+                            <p className="text-sm font-black text-amber-600">₺{remainingCommission.toLocaleString('tr-TR')}</p>
+                          </div>
+                          <div className={`p-3 rounded-lg ${newRemainingBudget < 0 ? 'bg-red-50' : 'bg-slate-50'}`}>
+                            <p className={`text-[10px] font-bold uppercase ${newRemainingBudget < 0 ? 'text-red-600' : 'text-slate-500'}`}>
+                              Yeni Bütçe
+                            </p>
+                            <p className={`text-sm font-black ${newRemainingBudget < 0 ? 'text-red-600' : 'text-navy'}`}>
+                              ₺{newRemainingBudget.toLocaleString('tr-TR')}
+                            </p>
+                          </div>
+                        </div>
+
+                        {!canSelectNonTTO && grossAmount > 0 && (
+                          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+                            <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                            <p className="text-xs text-amber-700">
+                              <span className="font-bold">TTO Dışı Seçilemez:</span> Kalan bütçe komisyon alacağını karşılayamıyor.
+                            </p>
+                          </div>
+                        )}
+
+                        {canSelectNonTTO && grossAmount > 0 && remainingCommission > 0 && (
+                          <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-start gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                            <p className="text-xs text-emerald-700">
+                              <span className="font-bold">TTO Dışı Seçilebilir:</span> Bütçe komisyon alacağını karşılıyor.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </section>
+                )
+              })()}
             </div>
-          )}
+          </div>
         </form>
       </div>
     </DashboardLayout>

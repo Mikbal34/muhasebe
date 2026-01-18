@@ -730,7 +730,7 @@ export default function ReportsPage() {
                       setIsModalOpen(true)
                     }
                   }}
-                  className="flex-1 px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
+                  className="flex-1 px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 text-slate-900"
                 >
                   <option value="">-- Rapor Seçin --</option>
                   <optgroup label="Gelir Raporlari">
@@ -788,14 +788,14 @@ export default function ReportsPage() {
                             : (prev[reportType] || []).filter(k => k !== col.key)
                         }))
                       }}
-                      className="rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                      className="rounded border-slate-300 text-navy focus:ring-navy/30"
                     />
                     {col.label}
                   </label>
                 ))}
               </div>
               {reportType === 'payment_instructions' && (
-                <p className="mt-3 text-xs text-blue-700">
+                <p className="mt-3 text-xs text-navy">
                   Not: Halkbank formati icin sirket IBAN ve VKN bilgileri Ayarlar sayfasindan alinir.
                 </p>
               )}
@@ -816,7 +816,7 @@ export default function ReportsPage() {
                   </div>
                   <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
                     <p className="text-xs text-slate-600 uppercase mb-1">Toplam Brüt</p>
-                    <p className="text-lg font-bold text-emerald-600">₺{(excelReportData.summary.totalAmount || 0).toLocaleString('tr-TR')}</p>
+                    <p className="text-lg font-bold text-navy">₺{(excelReportData.summary.totalAmount || 0).toLocaleString('tr-TR')}</p>
                   </div>
                   <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
                     <p className="text-xs text-slate-600 uppercase mb-1">Toplam KDV</p>
@@ -824,7 +824,7 @@ export default function ReportsPage() {
                   </div>
                   <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
                     <p className="text-xs text-slate-600 uppercase mb-1">Toplam Net</p>
-                    <p className="text-lg font-bold text-teal-600">₺{(excelReportData.summary.totalNet || 0).toLocaleString('tr-TR')}</p>
+                    <p className="text-lg font-bold text-navy">₺{(excelReportData.summary.totalNet || 0).toLocaleString('tr-TR')}</p>
                   </div>
                 </>
               )}
@@ -836,7 +836,7 @@ export default function ReportsPage() {
                   </div>
                   <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
                     <p className="text-xs text-slate-600 uppercase mb-1">Toplam Gider</p>
-                    <p className="text-lg font-bold text-red-600">₺{(excelReportData.summary.totalAmount || 0).toLocaleString('tr-TR')}</p>
+                    <p className="text-lg font-bold text-gold">₺{(excelReportData.summary.totalAmount || 0).toLocaleString('tr-TR')}</p>
                   </div>
                   <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
                     <p className="text-xs text-slate-600 uppercase mb-1">Ortalama Gider</p>
@@ -856,7 +856,7 @@ export default function ReportsPage() {
                   </div>
                   <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
                     <p className="text-xs text-slate-600 uppercase mb-1">Toplam Bütçe</p>
-                    <p className="text-lg font-bold text-teal-600">₺{(excelReportData.summary.totalBudget || 0).toLocaleString('tr-TR')}</p>
+                    <p className="text-lg font-bold text-navy">₺{(excelReportData.summary.totalBudget || 0).toLocaleString('tr-TR')}</p>
                   </div>
                   <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
                     <p className="text-xs text-slate-600 uppercase mb-1">Toplam KDV</p>
@@ -878,15 +878,15 @@ export default function ReportsPage() {
                   </div>
                   <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
                     <p className="text-xs text-slate-600 uppercase mb-1">Toplam Tutar</p>
-                    <p className="text-lg font-bold text-teal-600">₺{(excelReportData.summary.totalAmount || 0).toLocaleString('tr-TR')}</p>
+                    <p className="text-lg font-bold text-navy">₺{(excelReportData.summary.totalAmount || 0).toLocaleString('tr-TR')}</p>
                   </div>
                   <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
                     <p className="text-xs text-slate-600 uppercase mb-1">Bekleyen</p>
-                    <p className="text-lg font-bold text-amber-600">{excelReportData.summary.statusCounts?.pending || 0}</p>
+                    <p className="text-lg font-bold text-gold">{excelReportData.summary.statusCounts?.pending || 0}</p>
                   </div>
                   <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
                     <p className="text-xs text-slate-600 uppercase mb-1">Tamamlanan</p>
-                    <p className="text-lg font-bold text-emerald-600">{excelReportData.summary.statusCounts?.completed || 0}</p>
+                    <p className="text-lg font-bold text-navy">{excelReportData.summary.statusCounts?.completed || 0}</p>
                   </div>
                 </>
               )}
@@ -894,21 +894,21 @@ export default function ReportsPage() {
                 <>
                   <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
                     <p className="text-xs text-slate-600 uppercase mb-1">Toplam Gelir</p>
-                    <p className="text-lg font-bold text-emerald-600">₺{(excelReportData.summary.totalGross || 0).toLocaleString('tr-TR')}</p>
+                    <p className="text-lg font-bold text-navy">₺{(excelReportData.summary.totalGross || 0).toLocaleString('tr-TR')}</p>
                   </div>
                   <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
                     <p className="text-xs text-slate-600 uppercase mb-1">Toplam Gider</p>
-                    <p className="text-lg font-bold text-red-600">₺{(excelReportData.summary.totalExpense || 0).toLocaleString('tr-TR')}</p>
+                    <p className="text-lg font-bold text-gold">₺{(excelReportData.summary.totalExpense || 0).toLocaleString('tr-TR')}</p>
                   </div>
                   <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
                     <p className="text-xs text-slate-600 uppercase mb-1">Net Kar/Zarar</p>
-                    <p className={`text-lg font-bold ${(excelReportData.summary.netProfit || 0) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                    <p className={`text-lg font-bold ${(excelReportData.summary.netProfit || 0) >= 0 ? 'text-navy' : 'text-gold'}`}>
                       ₺{(excelReportData.summary.netProfit || 0).toLocaleString('tr-TR')}
                     </p>
                   </div>
                   <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
                     <p className="text-xs text-slate-600 uppercase mb-1">Tahsil Oranı</p>
-                    <p className="text-lg font-bold text-teal-600">%{(excelReportData.summary.collectionRate || 0).toFixed(1)}</p>
+                    <p className="text-lg font-bold text-navy">%{(excelReportData.summary.collectionRate || 0).toFixed(1)}</p>
                   </div>
                 </>
               )}
@@ -924,11 +924,11 @@ export default function ReportsPage() {
                   </div>
                   <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
                     <p className="text-xs text-slate-600 uppercase mb-1">Toplam Kazanç</p>
-                    <p className="text-lg font-bold text-emerald-600">₺{(excelReportData.summary.totalEarnings || 0).toLocaleString('tr-TR')}</p>
+                    <p className="text-lg font-bold text-navy">₺{(excelReportData.summary.totalEarnings || 0).toLocaleString('tr-TR')}</p>
                   </div>
                   <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
                     <p className="text-xs text-slate-600 uppercase mb-1">Kişi Başı Ortalama</p>
-                    <p className="text-lg font-bold text-teal-600">₺{(excelReportData.summary.avgEarningsPerPersonnel || 0).toLocaleString('tr-TR')}</p>
+                    <p className="text-lg font-bold text-navy">₺{(excelReportData.summary.avgEarningsPerPersonnel || 0).toLocaleString('tr-TR')}</p>
                   </div>
                 </>
               )}
@@ -968,13 +968,13 @@ export default function ReportsPage() {
                       <>
                         <button
                           onClick={() => { setActiveTab('incomes'); setCurrentPage(1) }}
-                          className={`px-4 py-3 text-sm font-medium ${activeTab === 'incomes' ? 'border-b-2 border-teal-500 text-teal-600' : 'text-slate-500 hover:text-slate-700'}`}
+                          className={`px-4 py-3 text-sm font-medium ${activeTab === 'incomes' ? 'border-b-2 border-navy text-navy' : 'text-slate-500 hover:text-slate-700'}`}
                         >
                           Gelirler ({(excelReportData.rows as any).incomes?.length || 0})
                         </button>
                         <button
                           onClick={() => { setActiveTab('expenses'); setCurrentPage(1) }}
-                          className={`px-4 py-3 text-sm font-medium ${activeTab === 'expenses' ? 'border-b-2 border-teal-500 text-teal-600' : 'text-slate-500 hover:text-slate-700'}`}
+                          className={`px-4 py-3 text-sm font-medium ${activeTab === 'expenses' ? 'border-b-2 border-navy text-navy' : 'text-slate-500 hover:text-slate-700'}`}
                         >
                           Giderler ({(excelReportData.rows as any).expenses?.length || 0})
                         </button>
@@ -1085,7 +1085,7 @@ export default function ReportsPage() {
                               <td className="px-4 py-3 text-sm text-slate-600">{row.income_type}</td>
                               <td className="px-4 py-3 text-sm text-slate-900 text-right">₺{(row.gross_amount || 0).toLocaleString('tr-TR')}</td>
                               <td className="px-4 py-3 text-sm text-slate-600 text-right">₺{(row.vat_amount || 0).toLocaleString('tr-TR')}</td>
-                              <td className="px-4 py-3 text-sm text-emerald-600 font-medium text-right">₺{(row.net_amount || 0).toLocaleString('tr-TR')}</td>
+                              <td className="px-4 py-3 text-sm text-navy font-medium text-right">₺{(row.net_amount || 0).toLocaleString('tr-TR')}</td>
                             </>
                           )}
                           {reportType === 'expense_excel' && (
@@ -1094,7 +1094,7 @@ export default function ReportsPage() {
                               <td className="px-4 py-3 text-sm text-slate-900">{row.project_code}</td>
                               <td className="px-4 py-3 text-sm text-slate-600">{row.description}</td>
                               <td className="px-4 py-3 text-sm text-slate-600">{row.is_tto}</td>
-                              <td className="px-4 py-3 text-sm text-red-600 font-medium text-right">₺{(row.amount || 0).toLocaleString('tr-TR')}</td>
+                              <td className="px-4 py-3 text-sm text-gold font-medium text-right">₺{(row.amount || 0).toLocaleString('tr-TR')}</td>
                             </>
                           )}
                           {reportType === 'project_card' && (
@@ -1102,9 +1102,9 @@ export default function ReportsPage() {
                               <td className="px-4 py-3 text-sm font-medium text-slate-900">{row.code}</td>
                               <td className="px-4 py-3 text-sm text-slate-900">{row.name}</td>
                               <td className="px-4 py-3 text-sm text-slate-600">{row.person_name || '-'}</td>
-                              <td className="px-4 py-3 text-sm text-teal-600 font-medium text-right">₺{(row.budget || 0).toLocaleString('tr-TR')}</td>
+                              <td className="px-4 py-3 text-sm text-navy font-medium text-right">₺{(row.budget || 0).toLocaleString('tr-TR')}</td>
                               <td className="px-4 py-3 text-sm">
-                                <span className={`px-2 py-1 rounded-full text-xs ${row.status === 'active' ? 'bg-emerald-100 text-emerald-700' : row.status === 'completed' ? 'bg-slate-100 text-slate-700' : 'bg-amber-100 text-amber-700'}`}>
+                                <span className={`px-2 py-1 rounded-full text-xs ${row.status === 'active' ? 'bg-navy/10 text-navy' : row.status === 'completed' ? 'bg-slate-100 text-slate-700' : 'bg-gold/20 text-gold'}`}>
                                   {row.status === 'active' ? 'Aktif' : row.status === 'completed' ? 'Tamamlandı' : row.status}
                                 </span>
                               </td>
@@ -1123,9 +1123,9 @@ export default function ReportsPage() {
                               <td className="px-4 py-3 text-sm font-medium text-slate-900">{row.instruction_number || '-'}</td>
                               <td className="px-4 py-3 text-sm text-slate-900">{row.recipient_name}</td>
                               <td className="px-4 py-3 text-sm text-slate-600">{row.project_code || '-'}</td>
-                              <td className="px-4 py-3 text-sm text-teal-600 font-medium text-right">₺{(row.total_amount || 0).toLocaleString('tr-TR')}</td>
+                              <td className="px-4 py-3 text-sm text-navy font-medium text-right">₺{(row.total_amount || 0).toLocaleString('tr-TR')}</td>
                               <td className="px-4 py-3 text-sm">
-                                <span className={`px-2 py-1 rounded-full text-xs ${row.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : row.status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
+                                <span className={`px-2 py-1 rounded-full text-xs ${row.status === 'completed' ? 'bg-navy/10 text-navy' : row.status === 'pending' ? 'bg-gold/20 text-gold' : 'bg-slate-200 text-slate-600'}`}>
                                   {row.status === 'completed' ? 'Tamamlandı' : row.status === 'pending' ? 'Bekliyor' : 'İptal'}
                                 </span>
                               </td>
@@ -1136,8 +1136,8 @@ export default function ReportsPage() {
                               <td className="px-4 py-3 text-sm text-slate-900">{row.income_date ? new Date(row.income_date).toLocaleDateString('tr-TR') : '-'}</td>
                               <td className="px-4 py-3 text-sm text-slate-900">{row.project_code}</td>
                               <td className="px-4 py-3 text-sm text-slate-900 text-right">₺{(row.gross_amount || 0).toLocaleString('tr-TR')}</td>
-                              <td className="px-4 py-3 text-sm text-emerald-600 text-right">₺{(row.net_amount || 0).toLocaleString('tr-TR')}</td>
-                              <td className="px-4 py-3 text-sm text-teal-600 text-right">₺{(row.collected_amount || 0).toLocaleString('tr-TR')}</td>
+                              <td className="px-4 py-3 text-sm text-navy text-right">₺{(row.net_amount || 0).toLocaleString('tr-TR')}</td>
+                              <td className="px-4 py-3 text-sm text-navy text-right">₺{(row.collected_amount || 0).toLocaleString('tr-TR')}</td>
                             </>
                           )}
                           {reportType === 'financial_report' && activeTab === 'expenses' && (
@@ -1145,7 +1145,7 @@ export default function ReportsPage() {
                               <td className="px-4 py-3 text-sm text-slate-900">{row.expense_date ? new Date(row.expense_date).toLocaleDateString('tr-TR') : '-'}</td>
                               <td className="px-4 py-3 text-sm text-slate-900">{row.project_code}</td>
                               <td className="px-4 py-3 text-sm text-slate-600">{row.description}</td>
-                              <td className="px-4 py-3 text-sm text-red-600 font-medium text-right">₺{(row.amount || 0).toLocaleString('tr-TR')}</td>
+                              <td className="px-4 py-3 text-sm text-gold font-medium text-right">₺{(row.amount || 0).toLocaleString('tr-TR')}</td>
                             </>
                           )}
                           {reportType === 'personnel_project' && (
@@ -1154,10 +1154,10 @@ export default function ReportsPage() {
                               <td className="px-4 py-3 text-sm text-slate-900">{row.project_code}</td>
                               <td className="px-4 py-3 text-sm text-slate-600">{row.project_name}</td>
                               <td className="px-4 py-3 text-sm text-slate-600">{row.role === 'project_leader' || row.role === 'manager' ? 'Proje Yürütücüsü' : row.role === 'researcher' ? 'Araştırmacı' : row.role === 'consultant' ? 'Danışman' : row.role}</td>
-                              <td className="px-4 py-3 text-sm text-emerald-600 font-medium text-right">₺{(row.total_earnings || 0).toLocaleString('tr-TR')}</td>
+                              <td className="px-4 py-3 text-sm text-navy font-medium text-right">₺{(row.total_earnings || 0).toLocaleString('tr-TR')}</td>
                               <td className="px-4 py-3 text-sm text-slate-600 text-center">{row.allocation_count || 0}</td>
                               <td className="px-4 py-3 text-sm text-center">
-                                <span className={`px-2 py-1 rounded-full text-xs ${row.project_status === 'active' ? 'bg-emerald-100 text-emerald-700' : row.project_status === 'completed' ? 'bg-slate-100 text-slate-700' : 'bg-amber-100 text-amber-700'}`}>
+                                <span className={`px-2 py-1 rounded-full text-xs ${row.project_status === 'active' ? 'bg-navy/10 text-navy' : row.project_status === 'completed' ? 'bg-slate-100 text-slate-700' : 'bg-gold/20 text-gold'}`}>
                                   {row.project_status === 'active' ? 'Aktif' : row.project_status === 'completed' ? 'Tamamlandı' : 'İptal'}
                                 </span>
                               </td>
@@ -1350,7 +1350,7 @@ export default function ReportsPage() {
               <div className="overflow-x-auto">
                 {loading ? (
                   <div className="text-center py-8">
-                    <RefreshCw className="h-8 w-8 animate-spin text-teal-600 mx-auto mb-2" />
+                    <RefreshCw className="h-8 w-8 animate-spin text-navy mx-auto mb-2" />
                     <p className="text-slate-600">Rapor oluşturuluyor...</p>
                   </div>
                 ) : (
@@ -1376,7 +1376,7 @@ export default function ReportsPage() {
                               <td className="px-4 py-3 text-sm font-medium text-slate-900">{income.project?.name || '-'}</td>
                               <td className="px-4 py-3 text-sm text-slate-600">{income.description || '-'}</td>
                               <td className="px-4 py-3 text-sm text-slate-900 text-right">₺{(income.gross_amount || 0).toLocaleString('tr-TR')}</td>
-                              <td className="px-4 py-3 text-sm text-emerald-600 font-medium text-right">₺{(income.net_amount || 0).toLocaleString('tr-TR')}</td>
+                              <td className="px-4 py-3 text-sm text-navy font-medium text-right">₺{(income.net_amount || 0).toLocaleString('tr-TR')}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -1401,7 +1401,7 @@ export default function ReportsPage() {
                             <tr key={index} className="hover:bg-slate-50">
                               <td className="px-4 py-3 text-sm font-medium text-slate-900">{project.code}</td>
                               <td className="px-4 py-3 text-sm text-slate-900">{project.name}</td>
-                              <td className="px-4 py-3 text-sm text-teal-600 font-medium text-right">₺{(project.budget || 0).toLocaleString('tr-TR')}</td>
+                              <td className="px-4 py-3 text-sm text-navy font-medium text-right">₺{(project.budget || 0).toLocaleString('tr-TR')}</td>
                               <td className="px-4 py-3 text-sm text-slate-600">
                                 {project.start_date ? new Date(project.start_date).toLocaleDateString('tr-TR') : '-'}
                               </td>
@@ -1410,9 +1410,9 @@ export default function ReportsPage() {
                               </td>
                               <td className="px-4 py-3 text-sm">
                                 <span className={`px-2 py-1 rounded-full text-xs ${
-                                  project.status === 'active' ? 'bg-emerald-100 text-emerald-700' :
+                                  project.status === 'active' ? 'bg-navy/10 text-navy' :
                                   project.status === 'completed' ? 'bg-slate-100 text-slate-700' :
-                                  'bg-amber-100 text-amber-700'
+                                  'bg-gold/20 text-gold'
                                 }`}>
                                   {project.status === 'active' ? 'Aktif' :
                                    project.status === 'completed' ? 'Tamamlandı' :
@@ -1432,7 +1432,7 @@ export default function ReportsPage() {
               {/* Footer */}
               <div className="p-4 border-t border-slate-200 bg-slate-50">
                 <div className="flex items-center">
-                  <BarChart3 className="h-4 w-4 text-teal-600 mr-2" />
+                  <BarChart3 className="h-4 w-4 text-navy mr-2" />
                   <p className="text-sm text-slate-600">
                     Rapor {new Date().toLocaleString('tr-TR')} tarihinde oluşturuldu
                   </p>

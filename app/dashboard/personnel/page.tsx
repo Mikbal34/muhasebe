@@ -26,6 +26,7 @@ import { StatCardSkeleton, TableSkeleton, Skeleton } from '@/components/ui/skele
 import { VirtualTable } from '@/components/ui/virtual-table'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { usePersonnel, useInvalidatePersonnel } from '@/hooks/use-personnel'
+import { turkishIncludes } from '@/lib/utils/string'
 
 interface User {
   id: string
@@ -128,8 +129,8 @@ export default function PersonnelPage() {
   const filteredPersonnel = useMemo(() => {
     return personnel.filter(p => {
       const matchesSearch =
-        p.full_name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        p.email.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        turkishIncludes(p.full_name, debouncedSearch) ||
+        turkishIncludes(p.email, debouncedSearch) ||
         (p.tc_no && p.tc_no.includes(debouncedSearch))
       const matchesStatus =
         !statusFilter ||
@@ -234,7 +235,7 @@ export default function PersonnelPage() {
               </button>
               <Link
                 href="/dashboard/personnel/new"
-                className="inline-flex items-center px-3 py-2 text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 transition-colors"
+                className="inline-flex items-center px-4 py-2.5 text-sm font-bold rounded-lg text-white bg-navy hover:bg-navy/90 transition-colors shadow-lg shadow-navy/20"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Yeni Personel
@@ -271,7 +272,7 @@ export default function PersonnelPage() {
                 placeholder="Ad, email veya TC No ile ara..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30"
               />
             </div>
 
@@ -280,7 +281,7 @@ export default function PersonnelPage() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30"
               >
                 <option value="">Tüm Durumlar</option>
                 <option value="active">Aktif</option>
@@ -377,12 +378,12 @@ export default function PersonnelPage() {
               width: '10%',
               render: (p) => (
                 p.is_active ? (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-navy/10 text-navy">
                     <CheckCircle className="h-3 w-3 mr-1" />
                     Aktif
                   </span>
                 ) : (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
                     <XCircle className="h-3 w-3 mr-1" />
                     Pasif
                   </span>
@@ -398,7 +399,7 @@ export default function PersonnelPage() {
                 <div className="flex justify-end space-x-2">
                   <Link
                     href={`/dashboard/personnel/${p.id}` as any}
-                    className="p-1 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
+                    className="p-1 text-gray-600 hover:text-navy hover:bg-navy/10 rounded"
                     title="Görüntüle"
                   >
                     <Eye className="h-4 w-4" />
@@ -406,7 +407,7 @@ export default function PersonnelPage() {
 
                   <Link
                     href={`/dashboard/personnel/${p.id}/edit` as any}
-                    className="p-1 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded"
+                    className="p-1 text-gray-600 hover:text-navy hover:bg-navy/10 rounded"
                     title="Düzenle"
                   >
                     <Edit className="h-4 w-4" />
@@ -415,7 +416,7 @@ export default function PersonnelPage() {
                   {user.role === 'admin' && (
                     <button
                       onClick={() => handleDelete(p)}
-                      className="p-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
+                      className="p-1 text-gray-600 hover:text-gold hover:bg-gold/10 rounded"
                       title="Sil"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -449,7 +450,7 @@ export default function PersonnelPage() {
               </button>
               <button
                 onClick={confirmDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                className="px-4 py-2 bg-gold text-white rounded-md hover:bg-gold/90"
               >
                 Sil
               </button>

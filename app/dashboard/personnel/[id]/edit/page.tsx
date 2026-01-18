@@ -201,7 +201,7 @@ export default function EditPersonnelPage({ params }: { params: { id: string } }
   if (loading || !user || !personnel) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-navy"></div>
       </div>
     )
   }
@@ -239,7 +239,7 @@ export default function EditPersonnelPage({ params }: { params: { id: string } }
                 value={formData.full_name}
                 onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-                  errors.full_name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                  errors.full_name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-navy/30'
                 }`}
               />
               {errors.full_name && <p className="mt-1 text-sm text-red-600">{errors.full_name}</p>}
@@ -256,7 +256,7 @@ export default function EditPersonnelPage({ params }: { params: { id: string } }
                 value={formData.tc_no}
                 onChange={(e) => setFormData({ ...formData, tc_no: e.target.value.replace(/\D/g, '').slice(0, 11) })}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-                  errors.tc_no ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                  errors.tc_no ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-navy/30'
                 }`}
                 maxLength={11}
               />
@@ -274,7 +274,7 @@ export default function EditPersonnelPage({ params }: { params: { id: string } }
                   id="title"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30"
                 >
                   <option value="">Seçiniz</option>
                   <option value="Prof. Dr.">Prof. Dr.</option>
@@ -297,7 +297,7 @@ export default function EditPersonnelPage({ params }: { params: { id: string } }
                   id="gender"
                   value={formData.gender}
                   onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30"
                 >
                   <option value="">Seçiniz</option>
                   <option value="ERKEK">Erkek</option>
@@ -316,7 +316,7 @@ export default function EditPersonnelPage({ params }: { params: { id: string } }
                 id="start_date"
                 value={formData.start_date}
                 onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30"
               />
             </div>
           </div>
@@ -336,7 +336,7 @@ export default function EditPersonnelPage({ params }: { params: { id: string } }
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-                  errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                  errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-navy/30'
                 }`}
               />
               {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
@@ -352,7 +352,7 @@ export default function EditPersonnelPage({ params }: { params: { id: string } }
                 id="phone"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30"
               />
             </div>
           </div>
@@ -375,7 +375,7 @@ export default function EditPersonnelPage({ params }: { params: { id: string } }
                   setFormData({ ...formData, iban: value })
                 }}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-                  errors.iban ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                  errors.iban ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-navy/30'
                 }`}
                 maxLength={26}
               />
@@ -397,7 +397,7 @@ export default function EditPersonnelPage({ params }: { params: { id: string } }
                 id="university"
                 value={formData.university}
                 onChange={(e) => setFormData({ ...formData, university: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30"
                 placeholder="Yıldız Teknik Üniversitesi"
               />
             </div>
@@ -414,7 +414,7 @@ export default function EditPersonnelPage({ params }: { params: { id: string } }
                   id="faculty"
                   value={formData.faculty}
                   onChange={(e) => setFormData({ ...formData, faculty: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30"
                   placeholder="Mühendislik Fakültesi"
                 />
               </div>
@@ -429,7 +429,7 @@ export default function EditPersonnelPage({ params }: { params: { id: string } }
                   id="department"
                   value={formData.department}
                   onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30"
                   placeholder="Bilgisayar Mühendisliği"
                 />
               </div>
@@ -450,7 +450,7 @@ export default function EditPersonnelPage({ params }: { params: { id: string } }
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30"
               />
             </div>
 
@@ -460,7 +460,7 @@ export default function EditPersonnelPage({ params }: { params: { id: string } }
                 id="is_active"
                 checked={formData.is_active}
                 onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="h-4 w-4 text-navy focus:ring-navy/30 border-gray-300 rounded"
               />
               <label htmlFor="is_active" className="ml-2 block text-sm text-gray-700">
                 Aktif personel
@@ -479,7 +479,7 @@ export default function EditPersonnelPage({ params }: { params: { id: string } }
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-white bg-navy hover:bg-navy/90 disabled:opacity-50"
             >
               {saving ? (
                 <>

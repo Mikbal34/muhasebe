@@ -93,8 +93,10 @@ export function useProjects(filters: ProjectFilters = {}) {
       if (!data.success) throw new Error('Failed to fetch projects')
       return data.data?.projects || []
     },
-    staleTime: 5 * 60 * 1000, // 5 dakika
-    gcTime: 30 * 60 * 1000,   // 30 dakika cache'te tut
+    staleTime: 0,           // Her zaman stale olarak işaretle
+    gcTime: 5 * 60 * 1000,  // 5 dakika cache'te tut
+    refetchOnMount: true,   // Mount'ta her zaman refetch
+    refetchOnWindowFocus: true, // Focus'ta refetch
     enabled: !!getToken()
   })
 }

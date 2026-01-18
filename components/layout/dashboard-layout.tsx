@@ -23,6 +23,7 @@ import {
   UserCog
 } from 'lucide-react'
 import { NotificationBell } from '@/components/ui/notification'
+import { Logo } from '@/components/ui/logo'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -214,14 +215,15 @@ export default function DashboardLayout({ children, user: propUser }: DashboardL
               : 'lg:translate-x-0 lg:shadow-xl'
             : 'lg:translate-x-0 lg:static lg:inset-auto lg:h-full lg:flex lg:flex-col lg:shadow-xl'}
         `}>
-          <div className="flex items-center justify-between h-16 px-4 border-b border-slate-700">
-            <h1 className="text-lg font-semibold text-white">
-              Gelir Dağıtım
-            </h1>
+          {/* Logo Section */}
+          <div className="flex items-center justify-between h-20 px-4 border-b border-navy-600/50">
+            <div className="flex items-center justify-center flex-1">
+              <Logo variant="full" theme="light" width={180} height={50} className="flex-shrink-0" />
+            </div>
             {/* Mobile close button */}
             <button
               onClick={() => setSidebarOpen(false)}
-              className="lg:hidden p-1 rounded-md text-slate-400 hover:text-slate-300"
+              className="lg:hidden p-1 rounded-md text-gold-300 hover:text-gold-200"
             >
               <X className="h-6 w-6" />
             </button>
@@ -229,7 +231,7 @@ export default function DashboardLayout({ children, user: propUser }: DashboardL
             {user?.role === 'manager' && (
               <button
                 onClick={() => setDesktopSidebarCollapsed(true)}
-                className="hidden lg:block p-1 rounded-md text-slate-400 hover:text-slate-300"
+                className="hidden lg:block p-1 rounded-md text-gold-300 hover:text-gold-200"
               >
                 <X className="h-6 w-6" />
               </button>
@@ -262,15 +264,15 @@ export default function DashboardLayout({ children, user: propUser }: DashboardL
                         className={`
                           w-full group flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200
                           ${isSubmenuActive
-                            ? 'bg-sidebar-active text-accent-teal'
-                            : 'text-slate-300 hover:bg-sidebar-hover hover:text-white'
+                            ? 'bg-sidebar-active text-gold-300'
+                            : 'text-gray-300 hover:bg-sidebar-hover hover:text-white'
                           }
                         `}
                       >
                         <div className="flex items-center">
                           <Icon className={`
                             mr-3 h-5 w-5 flex-shrink-0 transition-colors
-                            ${isSubmenuActive ? 'text-accent-teal' : 'text-slate-400 group-hover:text-accent-teal'}
+                            ${isSubmenuActive ? 'text-gold-300' : 'text-gray-400 group-hover:text-gold-300'}
                           `} />
                           <span>{item.title}</span>
                         </div>
@@ -294,15 +296,15 @@ export default function DashboardLayout({ children, user: propUser }: DashboardL
                                 className={`
                                   group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200
                                   ${isSubActive
-                                    ? 'bg-sidebar-active text-accent-teal-light'
-                                    : 'text-slate-400 hover:bg-sidebar-hover hover:text-slate-200'
+                                    ? 'bg-sidebar-active text-gold-200'
+                                    : 'text-gray-400 hover:bg-sidebar-hover hover:text-gray-200'
                                   }
                                 `}
                                 onClick={() => setSidebarOpen(false)}
                               >
                                 <SubIcon className={`
                                   mr-3 h-4 w-4 flex-shrink-0 transition-colors
-                                  ${isSubActive ? 'text-accent-teal-light' : 'text-slate-500 group-hover:text-accent-teal-light'}
+                                  ${isSubActive ? 'text-gold-200' : 'text-gray-500 group-hover:text-gold-300'}
                                 `} />
                                 {subItem.title}
                               </Link>
@@ -321,15 +323,15 @@ export default function DashboardLayout({ children, user: propUser }: DashboardL
                     className={`
                       group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200
                       ${isActive
-                        ? 'bg-sidebar-active text-accent-teal'
-                        : 'text-slate-300 hover:bg-sidebar-hover hover:text-white'
+                        ? 'bg-sidebar-active text-gold-300'
+                        : 'text-gray-300 hover:bg-sidebar-hover hover:text-white'
                       }
                     `}
                     onClick={() => setSidebarOpen(false)}
                   >
                     <Icon className={`
                       mr-3 h-5 w-5 flex-shrink-0 transition-colors
-                      ${isActive ? 'text-accent-teal' : 'text-slate-400 group-hover:text-accent-teal'}
+                      ${isActive ? 'text-gold-300' : 'text-gray-400 group-hover:text-gold-300'}
                     `} />
                     {item.title}
                   </Link>
@@ -339,7 +341,7 @@ export default function DashboardLayout({ children, user: propUser }: DashboardL
           </nav>
 
           {/* User section */}
-          <div className="mt-auto p-4 border-t border-slate-700">
+          <div className="mt-auto p-4 border-t border-navy-600/50">
             <div className="flex items-center">
               <Link
                 href="/dashboard/profile"
@@ -347,8 +349,8 @@ export default function DashboardLayout({ children, user: propUser }: DashboardL
                 onClick={() => setSidebarOpen(false)}
               >
                 <div className="flex-shrink-0">
-                  <div className="h-9 w-9 bg-gradient-to-br from-accent-teal to-accent-cyan rounded-full flex items-center justify-center ring-2 ring-accent-teal/20">
-                    <span className="text-sm font-semibold text-white">
+                  <div className="h-9 w-9 bg-gradient-to-br from-gold to-gold-300 rounded-full flex items-center justify-center ring-2 ring-gold/30">
+                    <span className="text-sm font-semibold text-navy">
                       {user?.full_name?.charAt(0).toUpperCase() || 'U'}
                     </span>
                   </div>
@@ -357,7 +359,7 @@ export default function DashboardLayout({ children, user: propUser }: DashboardL
                   <p className="text-sm font-medium text-white truncate">
                     {user?.full_name || 'Kullanıcı'}
                   </p>
-                  <p className="text-xs text-slate-400 capitalize">
+                  <p className="text-xs text-gold-300 capitalize">
                     {user?.role === 'admin' ? 'Yönetici (Admin)' :
                       user?.role === 'manager' ? 'Yönetici' : 'Kullanıcı'}
                   </p>
@@ -365,7 +367,7 @@ export default function DashboardLayout({ children, user: propUser }: DashboardL
               </Link>
               <button
                 onClick={handleLogout}
-                className="ml-2 flex-shrink-0 p-2 text-slate-400 hover:text-accent-teal hover:bg-sidebar-hover rounded-lg transition-all duration-200"
+                className="ml-2 flex-shrink-0 p-2 text-gray-400 hover:text-gold-300 hover:bg-sidebar-hover rounded-lg transition-all duration-200"
                 title="Çıkış Yap"
               >
                 <LogOut className="h-5 w-5" />
@@ -391,7 +393,7 @@ export default function DashboardLayout({ children, user: propUser }: DashboardL
               {user?.role === 'manager' && (
                 <button
                   onClick={() => setDesktopSidebarCollapsed(!desktopSidebarCollapsed)}
-                  className="hidden lg:flex p-2 rounded-md text-slate-500 hover:text-teal-600 hover:bg-slate-100 transition-colors"
+                  className="hidden lg:flex p-2 rounded-md text-gray-500 hover:text-navy hover:bg-gray-100 transition-colors"
                   title={desktopSidebarCollapsed ? 'Menüyü Aç' : 'Menüyü Kapat'}
                 >
                   <Menu className="h-5 w-5" />

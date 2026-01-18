@@ -1,12 +1,21 @@
 import './globals.css'
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Montserrat } from 'next/font/google'
 import { NotificationProvider } from '@/contexts/notification-context'
 import { NotificationToast } from '@/components/ui/notification'
 import { QueryProvider } from '@/providers/query-provider'
 import { AuthProvider } from '@/contexts/auth-context'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+})
+
+const montserrat = Montserrat({
+  subsets: ['latin'],
+  variable: '--font-montserrat',
+  weight: ['500', '600', '700'],
+})
 
 export const metadata: Metadata = {
   title: 'Akademik Proje Gelir Dağıtım Sistemi',
@@ -20,7 +29,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="tr">
-      <body className={inter.className}>
+      <body className={`${inter.variable} ${montserrat.variable} font-sans`}>
         <QueryProvider>
           <AuthProvider>
             <NotificationProvider>

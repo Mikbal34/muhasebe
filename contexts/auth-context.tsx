@@ -167,7 +167,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
               {/* Button */}
               <button
                 onClick={handleRedirectToLogin}
-                className="w-full inline-flex justify-center items-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors"
+                className="w-full inline-flex justify-center items-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-navy hover:bg-navy/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-navy/30 transition-colors"
               >
                 Giriş Sayfasına Git
               </button>

@@ -1,6 +1,71 @@
 import { NextRequest } from 'next/server'
 import { apiResponse, withAuth } from '@/lib/middleware/auth'
 
+// Mock data for 2025 (presentation purposes)
+const MOCK_DATA_2025 = {
+  // Ana metrikler
+  total_budget: 113861050.00,
+  total_invoiced: 100884473.50,
+  total_collected: 89421125.46,
+  total_outstanding: 12804482.25,
+  remaining_to_invoice: 12776576.50,
+  total_commission: 21552581.40,
+  total_commission_collected: 21552581.40,
+  total_payments: 34200000,
+  active_project_count: 25,
+  progress_percentage: 88.76,
+  collection_percentage: 88.64,
+
+  // Yıllık breakdown
+  year_breakdown: [
+    { year: '2023', invoiced: 58149110.93, commission: 8772366.64, remaining: 0 },
+    { year: '2024', invoiced: 78667902.68, commission: 11800185.40, remaining: 0 },
+    { year: '2025', invoiced: 113661050.00, commission: 21552581.40, remaining: 12776576.50 },
+  ],
+
+  // Aylık breakdown (2025)
+  monthly_breakdown: {
+    '2023': Array.from({ length: 12 }, (_, i) => ({
+      month: i + 1,
+      income: 0,
+      expense: 0,
+      payment: 0,
+      difference: 0,
+    })),
+    '2024': Array.from({ length: 12 }, (_, i) => ({
+      month: i + 1,
+      income: 0,
+      expense: 0,
+      payment: 0,
+      difference: 0,
+    })),
+    '2025': [
+      { month: 1, income: 5500000, expense: 2200000, payment: 1800000, difference: 3300000 },
+      { month: 2, income: 6200000, expense: 2400000, payment: 2100000, difference: 3800000 },
+      { month: 3, income: 7800000, expense: 2800000, payment: 2500000, difference: 5000000 },
+      { month: 4, income: 8500000, expense: 3100000, payment: 2800000, difference: 5400000 },
+      { month: 5, income: 9200000, expense: 3400000, payment: 3200000, difference: 5800000 },
+      { month: 6, income: 10500000, expense: 3800000, payment: 3600000, difference: 6700000 },
+      { month: 7, income: 11200000, expense: 4100000, payment: 3900000, difference: 7100000 },
+      { month: 8, income: 10800000, expense: 3900000, payment: 3700000, difference: 6900000 },
+      { month: 9, income: 9600000, expense: 3500000, payment: 3300000, difference: 6100000 },
+      { month: 10, income: 8400000, expense: 3000000, payment: 2900000, difference: 5400000 },
+      { month: 11, income: 7184473.50, expense: 2600000, payment: 2400000, difference: 4584473.50 },
+      { month: 12, income: 6000000, expense: 2300000, payment: 2000000, difference: 3700000 },
+    ],
+    '2026': Array.from({ length: 12 }, (_, i) => ({
+      month: i + 1,
+      income: 0,
+      expense: 0,
+      payment: 0,
+      difference: 0,
+    })),
+  },
+
+  all_years: ['2025', '2024', '2023'],
+  filters: { startDate: '2025-01-01', endDate: '2025-12-31' },
+}
+
 // GET /api/dashboard/metrics - Get comprehensive dashboard metrics for TTO
 export async function GET(request: NextRequest) {
   return withAuth(request, async (req, ctx) => {
@@ -17,10 +82,17 @@ export async function GET(request: NextRequest) {
 
       console.log('Dashboard metrics - Date filters:', { startDate, endDate })
 
+      // Mock data kontrolü - 2025 yılı için (sunum amaçlı)
+      const is2025Filter = startDate === '2025-01-01' && endDate === '2025-12-31'
+      if (is2025Filter) {
+        console.log('Returning mock data for 2025')
+        return apiResponse.success(MOCK_DATA_2025)
+      }
+
       // 1. Get total budget from projects (filtered by start_date if provided)
       let projectsQuery = ctx.supabase
         .from('projects')
-        .select('budget, status, start_date')
+        .select('budget, status, start_date, total_commission_due')
 
       // Filter projects by start_date
       if (startDate) {
@@ -41,6 +113,9 @@ export async function GET(request: NextRequest) {
 
       // Total budget includes filtered projects (active + completed)
       const totalBudget = allProjects?.reduce((sum, p) => sum + (p.budget || 0), 0) || 0
+
+      // Total commission due from projects (Excel'den gelen alınması gereken komisyon)
+      const totalCommissionDue = allProjects?.reduce((sum, p) => sum + (p.total_commission_due || 0), 0) || 0
 
       // 2. Get active project count (only active ones from filtered)
       const activeProjectCount = allProjects?.filter(p => p.status === 'active').length || 0
@@ -260,7 +335,8 @@ export async function GET(request: NextRequest) {
         total_collected: totalCollected,
         total_outstanding: totalOutstanding,
         remaining_to_invoice: remainingToInvoice,
-        total_commission: totalCommission,
+        total_commission: totalCommissionDue, // Excel'den gelen alınması gereken komisyon
+        total_commission_collected: totalCommission, // Gerçekleşen (tahsil edilen) komisyon
         total_payments: totalPayments,
         active_project_count: activeProjectCount,
 

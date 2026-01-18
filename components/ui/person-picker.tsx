@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { User, Briefcase, Search } from 'lucide-react'
+import { turkishIncludes } from '@/lib/utils/string'
 
 export type PersonType = 'user' | 'personnel'
 
@@ -87,10 +88,9 @@ export default function PersonPicker({
 
     // Search filter
     if (searchTerm) {
-      const search = searchTerm.toLowerCase()
       return (
-        person.full_name.toLowerCase().includes(search) ||
-        person.email.toLowerCase().includes(search)
+        turkishIncludes(person.full_name, searchTerm) ||
+        turkishIncludes(person.email, searchTerm)
       )
     }
 
@@ -120,13 +120,13 @@ export default function PersonPicker({
     return (
       <div>
         {label && (
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
             {label}
             {required && <span className="text-red-500 ml-1">*</span>}
           </label>
         )}
-        <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
-          <div className="animate-pulse">Yükleniyor...</div>
+        <div className="w-full px-3 py-2.5 border border-slate-200 rounded-lg bg-slate-50">
+          <div className="animate-pulse text-sm text-slate-400">Yükleniyor...</div>
         </div>
       </div>
     )
@@ -135,7 +135,7 @@ export default function PersonPicker({
   return (
     <div className="relative">
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
@@ -144,9 +144,9 @@ export default function PersonPicker({
       {/* Selected Person Display */}
       <div
         onClick={() => !disabled && setShowDropdown(!showDropdown)}
-        className={`w-full px-3 py-2 border rounded-md cursor-pointer ${
-          error ? 'border-red-500' : 'border-gray-300'
-        } ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'hover:border-gray-400 bg-white'}`}
+        className={`w-full px-3 py-2.5 border rounded-lg cursor-pointer transition-all ${
+          error ? 'border-red-500' : 'border-slate-200'
+        } ${disabled ? 'bg-slate-100 cursor-not-allowed' : 'hover:border-gold bg-slate-50 hover:bg-white'}`}
       >
         {selectedPerson ? (
           <div className="flex items-center justify-between">
@@ -174,17 +174,17 @@ export default function PersonPicker({
 
       {/* Dropdown */}
       {showDropdown && !disabled && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-96 overflow-hidden">
+        <div className="absolute z-[100] w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-96 overflow-hidden">
           {/* Search Input */}
-          <div className="p-2 border-b">
+          <div className="p-3 border-b border-slate-100 bg-slate-50">
             <div className="relative">
-              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Ara..."
-                className="w-full pl-8 pr-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="İsim veya e-posta ara..."
+                className="w-full pl-10 pr-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold text-sm"
                 autoFocus
               />
             </div>
@@ -193,34 +193,39 @@ export default function PersonPicker({
           {/* People List */}
           <div className="max-h-80 overflow-y-auto">
             {filteredPeople.length === 0 ? (
-              <div className="px-3 py-8 text-center text-gray-500">
-                {searchTerm ? 'Sonuç bulunamadı' : 'Kişi bulunamadı'}
+              <div className="px-4 py-8 text-center text-slate-400">
+                <User className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">{searchTerm ? 'Sonuç bulunamadı' : 'Kişi bulunamadı'}</p>
               </div>
             ) : (
               filteredPeople.map((person) => (
                 <div
                   key={person.id}
                   onClick={() => handleSelect(person)}
-                  className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-0"
+                  className="px-4 py-3 hover:bg-gold/5 cursor-pointer border-b border-slate-50 last:border-0 transition-colors"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2 flex-1 min-w-0">
-                      <PersonIcon type={person.type} />
+                    <div className="flex items-center space-x-3 flex-1 min-w-0">
+                      <div className="w-9 h-9 rounded-full bg-navy/10 flex items-center justify-center flex-shrink-0">
+                        <PersonIcon type={person.type} />
+                      </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">{person.full_name}</div>
-                        <div className="text-sm text-gray-500 truncate">{person.email}</div>
+                        <div className="font-semibold text-navy truncate">{person.full_name}</div>
+                        <div className="text-xs text-slate-500 truncate">{person.email}</div>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2 ml-2">
                       {showBalance && person.balance && (
-                        <span className="text-sm text-gray-600 whitespace-nowrap">
+                        <span className="text-sm font-medium text-gold whitespace-nowrap">
                           ₺{person.balance.available_amount.toLocaleString('tr-TR')}
                         </span>
                       )}
                       <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap ${getPersonTypeColor(
-                          person.type
-                        )}`}
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
+                          person.type === 'user'
+                            ? 'bg-navy/10 text-navy'
+                            : 'bg-gold/10 text-gold'
+                        }`}
                       >
                         {getPersonTypeLabel(person.type)}
                       </span>
@@ -236,7 +241,7 @@ export default function PersonPicker({
       {/* Click Outside to Close */}
       {showDropdown && (
         <div
-          className="fixed inset-0 z-40"
+          className="fixed inset-0 z-[99]"
           onClick={() => setShowDropdown(false)}
         />
       )}

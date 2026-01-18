@@ -6,14 +6,12 @@ import DashboardLayout from '@/components/layout/dashboard-layout'
 import Link from 'next/link'
 import {
   Building2,
-  Users,
   Calendar,
   DollarSign,
   Edit,
   ArrowLeft,
   Wallet,
   FileText,
-  TrendingUp,
   User,
   Crown,
   Download,
@@ -21,10 +19,14 @@ import {
   Clock,
   FilePlus,
   XCircle,
-  Ban,
-  AlertTriangle
+  AlertTriangle,
+  Star,
+  ChevronRight,
+  Users,
+  File,
+  MoreVertical,
+  CreditCard
 } from 'lucide-react'
-import { supabase } from '@/lib/supabase/client'
 import PersonBadge from '@/components/ui/person-badge'
 import { SupplementaryContractModal } from '@/components/projects/supplementary-contract-modal'
 import { SupplementaryContractHistory } from '@/components/projects/supplementary-contract-history'
@@ -45,6 +47,7 @@ interface Project {
   end_date?: string
   status: 'active' | 'completed' | 'cancelled'
   created_at: string
+  company_rate: number
   created_by_user: {
     full_name: string
   }
@@ -74,6 +77,7 @@ interface Project {
   representatives: Array<{
     id: string
     role: 'project_leader' | 'researcher'
+    share_percentage: number
     user_id?: string | null
     personnel_id?: string | null
     user?: {
@@ -180,7 +184,6 @@ export default function ProjectDetailPage() {
 
       const data = await response.json()
       if (data.success) {
-        // Refresh project data
         await fetchProject(token!, project.id)
       } else {
         alert('Hata: ' + (data.error || 'Hakem onayı işlenirken bir hata oluştu'))
@@ -254,44 +257,97 @@ export default function ProjectDetailPage() {
     }
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800'
-      case 'completed': return 'bg-blue-100 text-blue-800'
-      case 'cancelled': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'active':
+        return (
+          <span className="px-3 py-1.5 rounded-full bg-gold/10 text-gold text-xs font-bold uppercase tracking-wider border border-gold/20">
+            Aktif
+          </span>
+        )
+      case 'completed':
+        return (
+          <span className="px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 text-xs font-bold uppercase tracking-wider border border-blue-200">
+            Tamamlandı
+          </span>
+        )
+      case 'cancelled':
+        return (
+          <span className="px-3 py-1.5 rounded-full bg-red-50 text-red-700 text-xs font-bold uppercase tracking-wider border border-red-200">
+            İptal Edildi
+          </span>
+        )
+      default:
+        return null
     }
   }
 
-  const getStatusText = (status: string) => {
+  const getPaymentStatusBadge = (status: string) => {
     switch (status) {
-      case 'active': return 'Aktif'
-      case 'completed': return 'Tamamlandı'
-      case 'cancelled': return 'İptal Edildi'
-      default: return status
+      case 'pending':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-100 text-amber-600 text-xs font-bold">
+            <span className="size-1.5 rounded-full bg-amber-500"></span>
+            Beklemede
+          </span>
+        )
+      case 'approved':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-100 text-blue-600 text-xs font-bold">
+            <span className="size-1.5 rounded-full bg-blue-500"></span>
+            Onaylandı
+          </span>
+        )
+      case 'processing':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-100 text-purple-600 text-xs font-bold">
+            <span className="size-1.5 rounded-full bg-purple-500"></span>
+            İşleniyor
+          </span>
+        )
+      case 'completed':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-600 text-xs font-bold">
+            <span className="size-1.5 rounded-full bg-emerald-500"></span>
+            Ödendi
+          </span>
+        )
+      case 'rejected':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-red-100 text-red-600 text-xs font-bold">
+            <span className="size-1.5 rounded-full bg-red-500"></span>
+            Reddedildi
+          </span>
+        )
+      default:
+        return null
     }
   }
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Yükleniyor...</p>
+      <DashboardLayout user={user || { id: '', full_name: 'Yükleniyor...', email: '', role: 'manager' }}>
+        <div className="flex items-center justify-center h-[60vh]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-10 w-10 border-2 border-navy border-t-transparent mx-auto mb-4"></div>
+            <p className="text-slate-500 text-sm">Proje yükleniyor...</p>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     )
   }
 
   if (!project) {
     return (
       <DashboardLayout user={user}>
-        <div className="text-center py-12">
-          <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Proje bulunamadı</h3>
+        <div className="text-center py-16">
+          <div className="h-16 w-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Building2 className="h-8 w-8 text-slate-400" />
+          </div>
+          <h3 className="text-lg font-bold text-slate-900 mb-2">Proje bulunamadı</h3>
           <Link
             href="/dashboard/projects"
-            className="text-blue-600 hover:text-blue-500"
+            className="text-navy hover:text-gold transition-colors font-medium"
           >
             Projeler listesine dön
           </Link>
@@ -305,59 +361,52 @@ export default function ProjectDetailPage() {
   const totalExpense = project.expenses?.reduce((sum, expense) => sum + (expense.amount || 0), 0) || 0
   const totalPayment = project.payment_instructions?.reduce((sum, payment) => sum + (payment.total_amount || 0), 0) || 0
 
-  const getPaymentStatusText = (status: string) => {
-    switch (status) {
-      case 'pending': return 'Bekliyor'
-      case 'approved': return 'Onaylandı'
-      case 'processing': return 'İşleniyor'
-      case 'completed': return 'Tamamlandı'
-      case 'rejected': return 'Reddedildi'
-      default: return status
-    }
-  }
+  // Calculate distribution percentages - TTO and Akademisyen shares only
+  const ttoShare = project.company_rate || 0
+  const akademisyenShare = 100 - ttoShare
 
-  const getPaymentStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'text-yellow-600'
-      case 'approved': return 'text-blue-600'
-      case 'processing': return 'text-purple-600'
-      case 'completed': return 'text-green-600'
-      case 'rejected': return 'text-red-600'
-      default: return 'text-gray-600'
-    }
-  }
+  const collectionRate = project.budget > 0 ? Math.round((totalIncome / project.budget) * 100) : 0
 
   return (
     <DashboardLayout user={user}>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Link
-                href="/dashboard/projects"
-                className="p-2 hover:bg-slate-100 rounded transition-colors text-slate-600 hover:text-slate-900"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Link>
-              <div>
-                <h1 className="text-xl font-bold text-slate-900">{project.name}</h1>
-                <p className="text-sm text-slate-600">{project.code}</p>
+        {/* Back Button & Breadcrumbs */}
+        <div>
+          <div className="flex items-center gap-4 mb-4">
+            <Link
+              href="/dashboard/projects"
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 hover:border-navy/30 transition-all shadow-sm"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Projelere Dön
+            </Link>
+            <nav className="flex items-center gap-2 text-slate-500 text-sm font-medium">
+              <Link href="/dashboard/projects" className="hover:text-navy transition-colors">Projeler</Link>
+              <ChevronRight className="w-4 h-4" />
+              <span className="text-slate-900">{project.code}</span>
+            </nav>
+          </div>
+
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-3">
+                <Star className="w-8 h-8 text-gold fill-gold" />
+                <h1 className="text-3xl md:text-4xl font-black text-navy tracking-tight">{project.name}</h1>
+              </div>
+              <div className="flex items-center gap-3 flex-wrap">
+                {getStatusBadge(project.status)}
+                <span className="text-slate-500 text-sm font-medium border-l border-slate-300 pl-3">
+                  ID: {project.code}
+                </span>
+                {project.has_supplementary_contract && (
+                  <span className="px-3 py-1.5 rounded-full bg-purple-50 text-purple-700 text-xs font-bold border border-purple-200">
+                    Ek Sözleşme ({project.supplementary_contract_count})
+                  </span>
+                )}
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className={`px-3 py-1.5 text-xs font-semibold rounded ${getStatusColor(project.status)}`}>
-                {getStatusText(project.status)}
-              </span>
-
-              {/* Ek Sözleşme Badge */}
-              {project.has_supplementary_contract && (
-                <span className="px-3 py-1.5 text-xs font-semibold rounded bg-purple-100 text-purple-800">
-                  Ek Sözleşme {project.supplementary_contract_count > 1 ? `(${project.supplementary_contract_count})` : ''}
-                </span>
-              )}
-
+            <div className="flex items-center gap-3 flex-wrap">
               {/* Hakem Heyeti Onayı Butonu */}
               {(user.role === 'admin' || user.role === 'manager') &&
                project.sent_to_referee &&
@@ -365,349 +414,501 @@ export default function ProjectDetailPage() {
                 <button
                   onClick={handleApproveReferee}
                   disabled={approvingReferee}
-                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-semibold rounded text-white bg-emerald-600 hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition-all disabled:opacity-50"
                 >
                   {approvingReferee ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
-                      İşleniyor...
-                    </>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
                   ) : (
-                    <>
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Hakem Onayını İşaretle
-                    </>
+                    <CheckCircle className="w-4 h-4" />
                   )}
+                  Hakem Onayı
                 </button>
               )}
 
-              {/* Ek Sözleşme Ekle Butonu - active ve completed projeler için */}
+              {/* Ek Sözleşme Ekle */}
               {(user.role === 'admin' || user.role === 'manager') && project.status !== 'cancelled' && (
                 <button
                   onClick={() => setShowSupplementaryModal(true)}
-                  className="inline-flex items-center px-3 py-2 border border-purple-600 text-sm font-semibold rounded text-purple-600 bg-white hover:bg-purple-50 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gold/50 text-gold font-bold rounded-lg hover:bg-gold/5 hover:border-gold transition-all"
                 >
-                  <FilePlus className="h-4 w-4 mr-2" />
-                  Ek Sözleşme Ekle
+                  <FilePlus className="w-4 h-4" />
+                  Ek Sözleşme
                 </button>
               )}
 
+              {/* Düzenle */}
               {(user.role === 'admin' || user.role === 'manager') && project.status === 'active' && (
                 <Link
-                  href={`/dashboard/projects/${project.id}/edit` as any}
-                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 transition-colors"
+                  href={`/dashboard/projects/${project.id}/edit`}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-white border border-navy/30 text-navy font-bold rounded-lg hover:bg-navy/5 hover:border-navy transition-all"
                 >
-                  <Edit className="h-4 w-4 mr-2" />
+                  <Edit className="w-4 h-4" />
                   Düzenle
                 </Link>
               )}
-              {(user.role === 'admin' || user.role === 'manager') && project.status !== 'active' && (
-                <div className="inline-flex items-center px-3 py-2 border border-slate-300 text-sm font-semibold rounded text-slate-400 bg-slate-100 cursor-not-allowed">
-                  <Edit className="h-4 w-4 mr-2" />
-                  Düzenle
-                </div>
-              )}
 
-              {/* Projeyi İptal Et Butonu - sadece active projeler için */}
-              {(user.role === 'admin' || user.role === 'manager') && project.status === 'active' && (
-                <button
-                  onClick={() => setShowCancelModal(true)}
-                  className="inline-flex items-center px-3 py-2 border border-red-600 text-sm font-semibold rounded text-red-600 bg-white hover:bg-red-50 transition-colors"
-                >
-                  <XCircle className="h-4 w-4 mr-2" />
-                  İptal Et
-                </button>
-              )}
+              {/* Rapor Al */}
+              <button className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-50 transition-all">
+                <Download className="w-4 h-4" />
+                Rapor Al
+              </button>
 
-              {/* Projeyi Aktife Al Butonu - completed ve cancelled projeler için */}
-              {(user.role === 'admin' || user.role === 'manager') && project.status !== 'active' && (
-                <button
-                  onClick={handleActivateProject}
-                  disabled={activating}
-                  className="inline-flex items-center px-3 py-2 border border-emerald-600 text-sm font-semibold rounded text-emerald-600 bg-white hover:bg-emerald-50 transition-colors disabled:opacity-50"
-                >
-                  {activating ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-emerald-600 border-t-transparent mr-2" />
-                      İşleniyor...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Aktife Al
-                    </>
-                  )}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-slate-200">
-            <p className="text-xs text-slate-600 uppercase mb-1">Bütçe</p>
-            <p className="text-lg font-bold text-slate-900">
-              ₺{project.budget.toLocaleString('tr-TR')}
-            </p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-slate-200">
-            <p className="text-xs text-slate-600 uppercase mb-1">Toplam Gelir</p>
-            <p className="text-lg font-bold text-emerald-600">
-              ₺{totalIncome.toLocaleString('tr-TR')}
-            </p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-slate-200">
-            <p className="text-xs text-slate-600 uppercase mb-1">Net Gelir</p>
-            <p className="text-lg font-bold text-purple-600">
-              ₺{totalNetIncome.toLocaleString('tr-TR')}
-            </p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-slate-200">
-            <p className="text-xs text-slate-600 uppercase mb-1">Giderler</p>
-            <p className="text-lg font-bold text-red-600">
-              ₺{totalExpense.toLocaleString('tr-TR')}
-            </p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-slate-200">
-            <p className="text-xs text-slate-600 uppercase mb-1">Ödemeler</p>
-            <p className="text-lg font-bold text-orange-600">
-              ₺{totalPayment.toLocaleString('tr-TR')}
-            </p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-slate-200">
-            <p className="text-xs text-slate-600 uppercase mb-1">Temsilciler</p>
-            <p className="text-lg font-bold text-slate-900">
-              {project.representatives.length}
-            </p>
-            <div className="text-xs text-slate-600 mt-1">
-              Proje ekibi
-            </div>
-          </div>
-        </div>
-
-        {/* Project Details */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Project Info */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Proje Bilgileri</h2>
-            <div className="space-y-4">
-              <div className="flex items-center text-sm">
-                <Calendar className="h-4 w-4 text-gray-400 mr-3" />
-                <span className="text-gray-600">Başlangıç:</span>
-                <span className="ml-2 font-medium">
-                  {new Date(project.start_date).toLocaleDateString('tr-TR')}
-                </span>
-              </div>
-
-              {project.end_date && (
-                <div className="flex items-center text-sm">
-                  <Calendar className="h-4 w-4 text-gray-400 mr-3" />
-                  <span className="text-gray-600">Bitiş:</span>
-                  <span className="ml-2 font-medium">
-                    {new Date(project.end_date).toLocaleDateString('tr-TR')}
-                  </span>
-                </div>
-              )}
-
-              <div className="flex items-center text-sm">
-                <User className="h-4 w-4 text-gray-400 mr-3" />
-                <span className="text-gray-600">Oluşturan:</span>
-                <span className="ml-2 font-medium">
-                  {project.created_by_user.full_name}
-                </span>
-              </div>
-
-              <div className="flex items-center text-sm">
-                <Calendar className="h-4 w-4 text-gray-400 mr-3" />
-                <span className="text-gray-600">Oluşturulma:</span>
-                <span className="ml-2 font-medium">
-                  {new Date(project.created_at).toLocaleDateString('tr-TR')}
-                </span>
-              </div>
-
-              <div className="flex items-center text-sm">
-                <DollarSign className="h-4 w-4 text-gray-400 mr-3" />
-                <span className="text-gray-600">Hakem Heyeti:</span>
-                <span className="ml-2 font-medium">
-                  {project.referee_payer === 'company' ? 'Şirket' : 'Karşı Taraf'}
-                  {project.referee_payment > 0 && ` (₺${project.referee_payment.toLocaleString('tr-TR')})`}
-                </span>
-              </div>
-
-              {project.stamp_duty_payer && (
-                <div className="flex items-center text-sm">
-                  <FileText className="h-4 w-4 text-gray-400 mr-3" />
-                  <span className="text-gray-600">Damga Vergisi:</span>
-                  <span className="ml-2 font-medium">
-                    {project.stamp_duty_payer === 'company' ? 'Şirket' : 'Karşı Taraf'}
-                    {project.stamp_duty_amount > 0 && ` (₺${project.stamp_duty_amount.toLocaleString('tr-TR')})`}
-                  </span>
-                </div>
-              )}
-
-              {/* KDV ve Tevkifat */}
-              <div className="flex items-center text-sm">
-                <DollarSign className="h-4 w-4 text-gray-400 mr-3" />
-                <span className="text-gray-600">KDV Oranı:</span>
-                <span className="ml-2 font-medium">%{project.vat_rate}</span>
-              </div>
-
-              {project.has_withholding_tax && (
-                <div className="flex items-center text-sm">
-                  <DollarSign className="h-4 w-4 text-gray-400 mr-3" />
-                  <span className="text-gray-600">Tevkifat:</span>
-                  <span className="ml-2 font-medium text-orange-600">
-                    Evet - %{project.withholding_tax_rate}
-                  </span>
-                </div>
-              )}
-
-              {/* Hakem Heyeti Durumu */}
-              {project.sent_to_referee && (
-                <div className="flex items-center text-sm">
-                  {project.referee_approved ? (
-                    <CheckCircle className="h-4 w-4 text-green-500 mr-3" />
-                  ) : (
-                    <Clock className="h-4 w-4 text-yellow-500 mr-3" />
-                  )}
-                  <span className="text-gray-600">Hakem Heyeti:</span>
-                  <span className={`ml-2 font-medium ${project.referee_approved ? 'text-green-600' : 'text-yellow-600'}`}>
-                    {project.referee_approved
-                      ? `Onaylandı (${new Date(project.referee_approval_date!).toLocaleDateString('tr-TR')})`
-                      : 'Onay Bekliyor'}
-                  </span>
-                </div>
-              )}
-
-              {/* Sözleşme Belgesi */}
-              {project.contract_path && (
-                <div className="flex items-center text-sm">
-                  <FileText className="h-4 w-4 text-gray-400 mr-3" />
-                  <span className="text-gray-600">Sözleşme:</span>
-                  <a
-                    href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/contracts/${project.contract_path}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="ml-2 font-medium text-blue-600 hover:text-blue-700 flex items-center"
+              {/* İptal Et / Aktife Al */}
+              {(user.role === 'admin' || user.role === 'manager') && (
+                project.status === 'active' ? (
+                  <button
+                    onClick={() => setShowCancelModal(true)}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-500 font-bold rounded-lg hover:bg-red-50 hover:border-red-300 hover:text-red-600 transition-all"
                   >
-                    <Download className="h-3 w-3 mr-1" />
-                    İndir
-                  </a>
-                </div>
-              )}
-
-              {/* Görevlendirme İzni */}
-              <div className="flex items-center text-sm">
-                {project.has_assignment_permission ? (
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-3" />
+                    <XCircle className="w-4 h-4" />
+                    İptal Et
+                  </button>
                 ) : (
-                  <FileText className="h-4 w-4 text-gray-400 mr-3" />
-                )}
-                <span className="text-gray-600">Görevlendirme İzni:</span>
-                <span className={`ml-2 font-medium ${project.has_assignment_permission ? 'text-green-600' : 'text-gray-600'}`}>
-                  {project.has_assignment_permission ? 'Var' : 'Yok'}
-                </span>
-              </div>
-
-              {/* Görevlendirme Yazısı */}
-              {project.has_assignment_permission && project.assignment_document_path && (
-                <div className="flex items-center text-sm">
-                  <FileText className="h-4 w-4 text-gray-400 mr-3" />
-                  <span className="text-gray-600">Görevlendirme Yazısı:</span>
-                  <a
-                    href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/contracts/${project.assignment_document_path}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="ml-2 font-medium text-blue-600 hover:text-blue-700 flex items-center"
+                  <button
+                    onClick={handleActivateProject}
+                    disabled={activating}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gold/50 text-gold font-bold rounded-lg hover:bg-gold/5 hover:border-gold transition-all disabled:opacity-50"
                   >
-                    <Download className="h-3 w-3 mr-1" />
-                    İndir
-                  </a>
-                </div>
+                    {activating ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-gold border-t-transparent" />
+                    ) : (
+                      <CheckCircle className="w-4 h-4" />
+                    )}
+                    Aktife Al
+                  </button>
+                )
               )}
+            </div>
+          </div>
+        </div>
 
-              {/* İptal Bilgileri */}
-              {project.status === 'cancelled' && project.cancelled_at && (
-                <div className="mt-4 pt-4 border-t border-red-200 bg-red-50 -mx-6 px-6 pb-4 rounded-b-lg">
-                  <div className="flex items-center mb-2">
-                    <Ban className="h-4 w-4 text-red-600 mr-2" />
-                    <span className="text-sm font-semibold text-red-800">İptal Bilgileri</span>
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Column */}
+          <div className="lg:col-span-8 space-y-6">
+            {/* Genel Bilgiler Card */}
+            <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="p-6">
+                <h3 className="text-lg font-bold text-navy mb-4 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-navy" />
+                  Genel Bilgiler
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <p className="text-slate-600 leading-relaxed">
+                      {project.name} projesi, {new Date(project.start_date).toLocaleDateString('tr-TR')} tarihinde başlamış olup
+                      {project.end_date ? ` ${new Date(project.end_date).toLocaleDateString('tr-TR')} tarihine kadar devam edecektir.` : ' devam etmektedir.'}
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-slate-50 rounded-lg">
+                        <p className="text-xs text-slate-500 font-bold uppercase mb-1">Başlangıç Tarihi</p>
+                        <p className="text-slate-900 font-semibold">
+                          {new Date(project.start_date).toLocaleDateString('tr-TR')}
+                        </p>
+                      </div>
+                      <div className="p-4 bg-slate-50 rounded-lg">
+                        <p className="text-xs text-slate-500 font-bold uppercase mb-1">Bitiş Tarihi</p>
+                        <p className="text-slate-900 font-semibold">
+                          {project.end_date ? new Date(project.end_date).toLocaleDateString('tr-TR') : 'Belirsiz'}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex items-center">
-                      <span className="text-red-600">İptal Tarihi:</span>
-                      <span className="ml-2 font-medium text-red-800">
-                        {new Date(project.cancelled_at).toLocaleDateString('tr-TR')} - {new Date(project.cancelled_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+
+                  {/* Progress Stats */}
+                  <div className="space-y-4">
+                    <div className="p-4 bg-navy/5 rounded-lg border border-navy/10">
+                      <div className="flex justify-between items-end mb-2">
+                        <span className="text-xs font-bold text-slate-500 uppercase">Tahsilat Oranı</span>
+                        <span className="text-lg font-black text-navy">{collectionRate}%</span>
+                      </div>
+                      <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${collectionRate === 100 ? 'bg-emerald-500' : ''}`}
+                          style={{
+                            width: `${Math.min(collectionRate, 100)}%`,
+                            background: collectionRate < 100 ? 'linear-gradient(90deg, #00205c 0%, #AD976E 100%)' : undefined
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="p-3 bg-emerald-50 rounded-lg">
+                        <p className="text-[10px] font-bold text-emerald-600 uppercase">Toplam Gelir</p>
+                        <p className="text-lg font-black text-emerald-700">₺{totalIncome.toLocaleString('tr-TR')}</p>
+                      </div>
+                      <div className="p-3 bg-slate-50 rounded-lg">
+                        <p className="text-[10px] font-bold text-slate-500 uppercase">Bütçe</p>
+                        <p className="text-lg font-black text-slate-700">₺{project.budget.toLocaleString('tr-TR')}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Finansal Dağılım Card */}
+            <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="p-6">
+                <h3 className="text-lg font-bold text-navy mb-6 flex items-center gap-2">
+                  <Wallet className="w-5 h-5 text-navy" />
+                  Finansal Dağılım
+                </h3>
+
+                {/* Visual Distribution Bar - TTO ve Akademisyen Payı */}
+                <div className="mb-8">
+                  <div className="flex h-14 w-full rounded-xl overflow-hidden shadow-inner bg-slate-100 mb-4">
+                    <div
+                      className="h-full flex items-center justify-center text-white text-sm font-bold transition-all bg-gold"
+                      style={{ width: `${ttoShare}%` }}
+                      title={`TTO Payı: %${ttoShare}`}
+                    >
+                      {ttoShare > 5 && `%${ttoShare}`}
+                    </div>
+                    <div
+                      className="h-full flex items-center justify-center text-white text-sm font-bold transition-all bg-navy"
+                      style={{ width: `${akademisyenShare}%` }}
+                      title={`Akademisyen Payı: %${akademisyenShare}`}
+                    >
+                      {akademisyenShare > 5 && `%${akademisyenShare}`}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-8 justify-center">
+                    <div className="flex items-center gap-2">
+                      <div className="size-4 rounded-full bg-gold"></div>
+                      <span className="text-sm font-semibold text-slate-700">TTO Payı</span>
+                      <span className="text-sm font-bold text-gold">%{ttoShare}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="size-4 rounded-full bg-navy"></div>
+                      <span className="text-sm font-semibold text-slate-700">Akademisyen Payı</span>
+                      <span className="text-sm font-bold text-navy">%{akademisyenShare}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Instructions Table */}
+                {project.payment_instructions && project.payment_instructions.length > 0 && (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-200">
+                          <th className="pb-3 pt-1 text-xs font-bold text-slate-500 uppercase tracking-wider">Kişi</th>
+                          <th className="pb-3 pt-1 text-xs font-bold text-slate-500 uppercase tracking-wider">Tutar</th>
+                          <th className="pb-3 pt-1 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Durum</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {project.payment_instructions
+                          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                          .slice(0, 5)
+                          .map((payment) => (
+                            <tr key={payment.id} className="group hover:bg-slate-50 transition-colors">
+                              <td className="py-4 text-sm font-medium">
+                                {payment.personnel?.full_name || payment.user?.full_name || 'Bilinmiyor'}
+                              </td>
+                              <td className="py-4 text-sm font-bold text-navy">
+                                ₺{payment.total_amount.toLocaleString('tr-TR')}
+                              </td>
+                              <td className="py-4 text-sm text-right">
+                                {getPaymentStatusBadge(payment.status)}
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Son Gelirler ve Ödemeler - İki Sütun */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Son Gelirler */}
+              <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-navy flex items-center gap-2">
+                      <DollarSign className="w-5 h-5 text-gold" />
+                      Son Gelirler
+                    </h3>
+                    <Link
+                      href={`/dashboard/incomes?project_id=${project.id}`}
+                      className="text-sm font-semibold text-navy hover:text-gold transition-colors"
+                    >
+                      Tümünü gör
+                    </Link>
+                  </div>
+
+                  {project.incomes && project.incomes.length > 0 ? (
+                    <div className="space-y-3">
+                      {project.incomes
+                        .sort((a, b) => new Date(b.created_at || b.income_date).getTime() - new Date(a.created_at || a.income_date).getTime())
+                        .slice(0, 5)
+                        .map((income) => (
+                          <div key={income.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-navy/5 transition-colors border border-transparent hover:border-navy/10">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-navy truncate text-sm">{income.description || 'Gelir'}</p>
+                              <p className="text-xs text-slate-500">
+                                {new Date(income.income_date).toLocaleDateString('tr-TR')}
+                              </p>
+                            </div>
+                            <div className="text-right ml-3">
+                              <p className="font-bold text-gold text-sm">₺{income.gross_amount.toLocaleString('tr-TR')}</p>
+                              <p className="text-[10px] text-slate-500">Net: ₺{income.net_amount.toLocaleString('tr-TR')}</p>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <div className="h-12 w-12 bg-navy/5 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <DollarSign className="h-6 w-6 text-navy/40" />
+                      </div>
+                      <p className="text-slate-500 text-sm">Henüz gelir kaydı yok</p>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {/* Son Ödemeler */}
+              <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-navy flex items-center gap-2">
+                      <CreditCard className="w-5 h-5 text-gold" />
+                      Son Ödemeler
+                    </h3>
+                    <Link
+                      href={`/dashboard/payments?project_id=${project.id}`}
+                      className="text-sm font-semibold text-navy hover:text-gold transition-colors"
+                    >
+                      Tümünü gör
+                    </Link>
+                  </div>
+
+                  {project.payment_instructions && project.payment_instructions.length > 0 ? (
+                    <div className="space-y-3">
+                      {project.payment_instructions
+                        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                        .slice(0, 5)
+                        .map((payment) => (
+                          <div key={payment.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-navy/5 transition-colors border border-transparent hover:border-navy/10">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-navy truncate text-sm">
+                                {payment.personnel?.full_name || payment.user?.full_name || 'Bilinmiyor'}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {new Date(payment.created_at).toLocaleDateString('tr-TR')}
+                              </p>
+                            </div>
+                            <div className="text-right ml-3">
+                              <p className="font-bold text-gold text-sm">₺{payment.total_amount.toLocaleString('tr-TR')}</p>
+                              <div className="mt-0.5">{getPaymentStatusBadge(payment.status)}</div>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <div className="h-12 w-12 bg-navy/5 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <CreditCard className="h-6 w-6 text-navy/40" />
+                      </div>
+                      <p className="text-slate-500 text-sm">Henüz ödeme kaydı yok</p>
+                    </div>
+                  )}
+                </div>
+              </section>
+            </div>
+          </div>
+
+          {/* Right Column - Sidebar */}
+          <div className="lg:col-span-4 space-y-6">
+            {/* Finansal Özet Card */}
+            <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden relative">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-navy to-gold"></div>
+              <div className="p-6">
+                <h3 className="text-lg font-bold text-navy mb-4 flex items-center gap-2">
+                  <Wallet className="w-5 h-5 text-gold" />
+                  Finansal Özet
+                </h3>
+
+                <div className="space-y-3">
+                  <div className="p-3 bg-navy/5 rounded-lg border border-navy/10">
+                    <p className="text-[10px] font-bold text-navy/70 uppercase mb-0.5">Toplam Brüt Gelir</p>
+                    <p className="text-lg font-black text-navy">₺{totalIncome.toLocaleString('tr-TR')}</p>
+                  </div>
+
+                  <div className="p-3 bg-gold/10 rounded-lg border border-gold/20">
+                    <p className="text-[10px] font-bold text-gold uppercase mb-0.5">KDV Sonrası Net Gelir</p>
+                    <p className="text-lg font-black text-gold">₺{totalNetIncome.toLocaleString('tr-TR')}</p>
+                  </div>
+
+                  {project.referee_payment > 0 && (
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                      <p className="text-[10px] font-bold text-slate-600 uppercase mb-0.5">
+                        Hakem Heyeti Parası
+                        <span className="font-normal ml-1 normal-case">
+                          ({project.referee_payer === 'company' ? 'Şirket öder' : 'Müşteri öder'})
+                        </span>
+                      </p>
+                      <p className="text-lg font-black text-slate-700">₺{project.referee_payment.toLocaleString('tr-TR')}</p>
+                    </div>
+                  )}
+
+                  <div className="p-3 bg-navy/5 rounded-lg border border-navy/10">
+                    <p className="text-[10px] font-bold text-navy/70 uppercase mb-0.5">Toplam Ödeme</p>
+                    <p className="text-lg font-black text-navy">₺{totalPayment.toLocaleString('tr-TR')}</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Proje Ekibi Card */}
+            <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="p-6">
+                <h3 className="text-lg font-bold text-navy mb-6 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-navy" />
+                  Proje Ekibi
+                </h3>
+
+                <div className="space-y-4">
+                  {project.representatives.map((rep) => {
+                    const person = rep.user || rep.personnel
+                    const personType = rep.user_id ? 'user' : 'personnel'
+                    const personName = person?.full_name || 'Bilinmiyor'
+
+                    return (
+                      <div key={rep.id} className="flex items-center gap-4 group">
+                        <div className="size-12 rounded-full bg-slate-100 flex items-center justify-center border-2 border-transparent group-hover:border-gold transition-all">
+                          <span className="text-lg font-bold text-navy">
+                            {personName.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                            {personName}
+                            {rep.role === 'project_leader' && <Crown className="w-4 h-4 text-gold" />}
+                          </p>
+                          <p className="text-xs font-medium text-slate-500">
+                            {rep.role === 'project_leader' ? 'Proje Yürütücüsü' : 'Araştırmacı'}
+                            {rep.share_percentage > 0 && ` • %${rep.share_percentage}`}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </section>
+
+            {/* İlgili Belgeler Card */}
+            <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="p-6">
+                <h3 className="text-lg font-bold text-navy mb-6 flex items-center gap-2">
+                  <File className="w-5 h-5 text-navy" />
+                  İlgili Belgeler
+                </h3>
+
+                <div className="space-y-3">
+                  {project.contract_path && (
+                    <a
+                      href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/contracts/${project.contract_path}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-navy/5 transition-all group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <FileText className="w-5 h-5 text-red-500" />
+                        <span className="text-sm font-semibold text-slate-700">Sözleşme.pdf</span>
+                      </div>
+                      <Download className="w-4 h-4 text-slate-400 group-hover:text-navy transition-colors" />
+                    </a>
+                  )}
+
+                  {project.assignment_document_path && (
+                    <a
+                      href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/contracts/${project.assignment_document_path}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-navy/5 transition-all group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <FileText className="w-5 h-5 text-blue-500" />
+                        <span className="text-sm font-semibold text-slate-700">Görevlendirme Yazısı.pdf</span>
+                      </div>
+                      <Download className="w-4 h-4 text-slate-400 group-hover:text-navy transition-colors" />
+                    </a>
+                  )}
+
+                  {!project.contract_path && !project.assignment_document_path && (
+                    <div className="text-center py-6">
+                      <File className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                      <p className="text-sm text-slate-400">Henüz belge yok</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+
+            {/* Proje Detayları Card */}
+            <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="p-6">
+                <h3 className="text-lg font-bold text-navy mb-4">Proje Detayları</h3>
+
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-center justify-between py-2 border-b border-slate-100">
+                    <span className="text-slate-500">KDV Oranı</span>
+                    <span className="font-semibold text-slate-900">%{project.vat_rate}</span>
+                  </div>
+
+                  {project.has_withholding_tax && (
+                    <div className="flex items-center justify-between py-2 border-b border-slate-100">
+                      <span className="text-slate-500">Tevkifat</span>
+                      <span className="font-semibold text-orange-600">%{project.withholding_tax_rate}</span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between py-2 border-b border-slate-100">
+                    <span className="text-slate-500">Hakem Heyeti</span>
+                    <span className="font-semibold text-slate-900">
+                      {project.referee_payer === 'company' ? 'Şirket' : 'Müşteri'}
+                    </span>
+                  </div>
+
+                  {project.sent_to_referee && (
+                    <div className="flex items-center justify-between py-2 border-b border-slate-100">
+                      <span className="text-slate-500">Hakem Durumu</span>
+                      <span className={`font-semibold ${project.referee_approved ? 'text-emerald-600' : 'text-amber-600'}`}>
+                        {project.referee_approved ? 'Onaylandı' : 'Bekliyor'}
                       </span>
                     </div>
-                    {project.cancelled_by_user && (
-                      <div className="flex items-center">
-                        <span className="text-red-600">İptal Eden:</span>
-                        <span className="ml-2 font-medium text-red-800">{project.cancelled_by_user.full_name}</span>
-                      </div>
-                    )}
-                    {project.cancellation_reason && (
-                      <div>
-                        <span className="text-red-600">Sebep:</span>
-                        <p className="mt-1 text-red-800">{project.cancellation_reason}</p>
-                      </div>
-                    )}
+                  )}
+
+                  <div className="flex items-center justify-between py-2 border-b border-slate-100">
+                    <span className="text-slate-500">Görevlendirme İzni</span>
+                    <span className={`font-semibold ${project.has_assignment_permission ? 'text-emerald-600' : 'text-slate-400'}`}>
+                      {project.has_assignment_permission ? 'Var' : 'Yok'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-slate-500">Oluşturan</span>
+                    <span className="font-semibold text-slate-900">{project.created_by_user.full_name}</span>
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Representatives */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Proje Temsilcileri</h2>
-            <div className="space-y-3">
-              {project.representatives.map((rep) => {
-                const person = rep.user || rep.personnel
-                const personType = rep.user_id ? 'user' : 'personnel'
-                const personName = person?.full_name || 'Bilinmiyor'
-                const personEmail = person?.email || ''
-
-                return (
-                  <div key={rep.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center">
-                      <div className="h-8 w-8 bg-blue-500 rounded-full flex items-center justify-center mr-3">
-                        <span className="text-sm font-medium text-white">
-                          {personName.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900 flex items-center gap-2">
-                          {personName}
-                          {rep.role === 'project_leader' && (
-                            <Crown className="h-4 w-4 text-yellow-500" />
-                          )}
-                          <PersonBadge type={personType} />
-                        </p>
-                        <p className="text-sm text-gray-600">{personEmail}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className={`text-sm font-medium ${rep.role === 'project_leader' ? 'text-yellow-600' : 'text-blue-600'}`}>
-                        {rep.role === 'project_leader' ? 'Proje Yürütücüsü' : 'Araştırmacı'}
-                      </p>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+              </div>
+            </section>
           </div>
         </div>
 
         {/* Ek Sözleşme Geçmişi */}
         {project.has_supplementary_contract && (
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
+          <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden p-6">
             <SupplementaryContractHistory
               projectId={project.id}
               onContractDeleted={() => {
@@ -715,127 +916,8 @@ export default function ProjectDetailPage() {
                 if (token) fetchProject(token, project.id)
               }}
             />
-          </div>
+          </section>
         )}
-
-        {/* Recent Incomes */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Son Gelirler</h2>
-            <Link
-              href={`/dashboard/incomes?project_id=${project.id}` as any}
-              className="text-sm text-blue-600 hover:text-blue-500"
-            >
-              Tümünü gör
-            </Link>
-          </div>
-
-          {project.incomes && project.incomes.length > 0 ? (
-            <div className="space-y-3">
-              {project.incomes
-                .sort((a, b) => {
-                  const dateA = new Date(a.created_at || a.income_date).getTime()
-                  const dateB = new Date(b.created_at || b.income_date).getTime()
-                  return dateB - dateA
-                })
-                .slice(0, 5)
-                .map((income) => (
-                  <div key={income.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-gray-900">{income.description || 'Gelir'}</p>
-                      <p className="text-sm text-gray-600">
-                        {new Date(income.income_date).toLocaleDateString('tr-TR')}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-green-600">
-                        ₺{income.gross_amount.toLocaleString('tr-TR')}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        Net: ₺{income.net_amount.toLocaleString('tr-TR')}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-600">Henüz gelir kaydı yok</p>
-            </div>
-          )}
-        </div>
-
-        {/* Giderler */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Giderler</h2>
-          {project.expenses && project.expenses.length > 0 ? (
-            <div className="space-y-3">
-              {project.expenses
-                .sort((a, b) => {
-                  const dateA = new Date(a.created_at || a.expense_date).getTime()
-                  const dateB = new Date(b.created_at || b.expense_date).getTime()
-                  return dateB - dateA
-                })
-                .map((expense) => (
-                  <div key={expense.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-gray-900">{expense.description || 'Gider'}</p>
-                      <p className="text-sm text-gray-600">
-                        {new Date(expense.expense_date).toLocaleDateString('tr-TR')}
-                      </p>
-                    </div>
-                    <p className="font-semibold text-red-600">
-                      -₺{expense.amount.toLocaleString('tr-TR')}
-                    </p>
-                  </div>
-                ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <Wallet className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-600">Henüz gider kaydı yok</p>
-            </div>
-          )}
-        </div>
-
-        {/* Ödeme Talimatları */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Ödeme Talimatları</h2>
-          {project.payment_instructions && project.payment_instructions.length > 0 ? (
-            <div className="space-y-3">
-              {project.payment_instructions
-                .sort((a, b) => {
-                  const dateA = new Date(a.created_at).getTime()
-                  const dateB = new Date(b.created_at).getTime()
-                  return dateB - dateA
-                })
-                .map((payment) => (
-                  <div key={payment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-gray-900">
-                        {payment.personnel?.full_name || payment.user?.full_name || 'Bilinmiyor'}
-                      </p>
-                      <p className="text-sm text-gray-600">{payment.instruction_number}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-orange-600">
-                        ₺{payment.total_amount.toLocaleString('tr-TR')}
-                      </p>
-                      <p className={`text-xs ${getPaymentStatusColor(payment.status)}`}>
-                        {getPaymentStatusText(payment.status)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-600">Henüz ödeme talimatı yok</p>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Ek Sözleşme Modal */}
@@ -856,28 +938,27 @@ export default function ProjectDetailPage() {
       {showCancelModal && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex min-h-screen items-center justify-center p-4">
-            <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => !cancelling && setShowCancelModal(false)} />
-            <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="fixed inset-0 bg-black/50" onClick={() => !cancelling && setShowCancelModal(false)} />
+            <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full">
               <div className="p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="h-10 w-10 bg-red-100 rounded-full flex items-center justify-center">
-                    <AlertTriangle className="h-5 w-5 text-red-600" />
+                  <div className="h-12 w-12 bg-red-100 rounded-full flex items-center justify-center">
+                    <AlertTriangle className="h-6 w-6 text-red-600" />
                   </div>
-                  <h2 className="text-lg font-semibold text-slate-900">Projeyi İptal Et</h2>
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">Projeyi İptal Et</h2>
+                    <p className="text-sm text-slate-500">{project.code}</p>
+                  </div>
                 </div>
 
-                <p className="text-sm text-slate-600 mb-4">
-                  <strong>{project.code} - {project.name}</strong> projesini iptal etmek istediğinizden emin misiniz?
-                </p>
-
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-                  <p className="text-sm text-yellow-800">
-                    <strong>Dikkat:</strong> İptal edilen projelere yeni gelir/gider eklenemez ve tahsilat yapılamaz. Mevcut veriler korunur.
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-amber-800">
+                    <strong>Dikkat:</strong> İptal edilen projelere yeni gelir/gider eklenemez ve tahsilat yapılamaz.
                   </p>
                 </div>
 
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
                     İptal Sebebi <span className="text-slate-400 font-normal">(opsiyonel)</span>
                   </label>
                   <textarea
@@ -885,7 +966,7 @@ export default function ProjectDetailPage() {
                     onChange={(e) => setCancelReason(e.target.value)}
                     rows={3}
                     placeholder="İptal sebebini yazabilirsiniz..."
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
                   />
                 </div>
 
@@ -896,14 +977,14 @@ export default function ProjectDetailPage() {
                       setCancelReason('')
                     }}
                     disabled={cancelling}
-                    className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
+                    className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
                   >
                     Vazgeç
                   </button>
                   <button
                     onClick={handleCancelProject}
                     disabled={cancelling}
-                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="flex-1 px-4 py-2.5 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {cancelling ? (
                       <>

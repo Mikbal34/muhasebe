@@ -21,7 +21,7 @@ export function Input({
     w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 transition-colors
     ${error
       ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-      : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+      : 'border-gray-300 focus:ring-navy/30 focus:border-navy'
     }
     ${className}
   `
@@ -71,7 +71,7 @@ export function Select({
     w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 transition-colors
     ${error
       ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-      : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+      : 'border-gray-300 focus:ring-navy/30 focus:border-navy'
     }
     ${className}
   `
@@ -128,7 +128,7 @@ export function Textarea({
     w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 transition-colors resize-none
     ${error
       ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-      : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+      : 'border-gray-300 focus:ring-navy/30 focus:border-navy'
     }
     ${className}
   `
@@ -174,7 +174,7 @@ export function Checkbox({
         <input
           type="checkbox"
           {...props}
-          className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${className}`}
+          className={`h-4 w-4 text-navy focus:ring-navy/30 border-gray-300 rounded ${className}`}
         />
         <label className="ml-2 block text-sm text-gray-700">
           {label}
@@ -287,17 +287,17 @@ export function Button({
   const getVariantClasses = () => {
     switch (variant) {
       case 'primary':
-        return 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
+        return 'bg-navy text-white hover:bg-navy-600 focus:ring-navy/30'
       case 'secondary':
-        return 'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500'
+        return 'bg-gold text-white hover:bg-gold-600 focus:ring-gold/30'
       case 'outline':
-        return 'border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 focus:ring-blue-500'
+        return 'border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 focus:ring-navy/30'
       case 'ghost':
         return 'text-gray-700 hover:bg-gray-100 focus:ring-gray-500'
       case 'danger':
         return 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500'
       default:
-        return 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
+        return 'bg-navy text-white hover:bg-navy-600 focus:ring-navy/30'
     }
   }
 
@@ -362,7 +362,7 @@ export function LoadingSpinner({ size = 'md', className = '' }: LoadingSpinnerPr
   }
 
   return (
-    <div className={`animate-spin rounded-full border-2 border-blue-600 border-t-transparent ${getSizeClasses()} ${className}`} />
+    <div className={`animate-spin rounded-full border-2 border-navy border-t-transparent ${getSizeClasses()} ${className}`} />
   )
 }
 

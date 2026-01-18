@@ -59,7 +59,7 @@ export default function NotificationsPage() {
       case 'warning':
         return <AlertTriangle className="h-5 w-5 text-yellow-500" />
       case 'info':
-        return <Info className="h-5 w-5 text-teal-500" />
+        return <Info className="h-5 w-5 text-navy" />
       default:
         return <Info className="h-5 w-5 text-slate-500" />
     }
@@ -78,7 +78,7 @@ export default function NotificationsPage() {
       case 'warning':
         return 'bg-yellow-50'
       case 'info':
-        return 'bg-teal-50'
+        return 'bg-navy/5'
       default:
         return 'bg-slate-50'
     }
@@ -93,7 +93,7 @@ export default function NotificationsPage() {
       case 'warning':
         return 'border-l-yellow-500'
       case 'info':
-        return 'border-l-teal-500'
+        return 'border-l-navy'
       default:
         return 'border-l-slate-500'
     }
@@ -202,7 +202,7 @@ export default function NotificationsPage() {
               <select
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
+                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 text-slate-900"
               >
                 <option value="all">Tüm Bildirimler</option>
                 <option value="unread">Okunmamış</option>
@@ -221,7 +221,7 @@ export default function NotificationsPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as 'newest' | 'oldest')}
-                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
+                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 text-slate-900"
               >
                 <option value="newest">Yeniden Eskiye</option>
                 <option value="oldest">Eskiden Yeniye</option>
@@ -276,7 +276,7 @@ export default function NotificationsPage() {
                             {notification.title}
                           </h4>
                           {!notification.read && (
-                            <div className="w-2 h-2 bg-teal-600 rounded-full"></div>
+                            <div className="w-2 h-2 bg-navy rounded-full"></div>
                           )}
                         </div>
 
@@ -299,7 +299,7 @@ export default function NotificationsPage() {
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${notification.type === 'success' ? 'bg-emerald-100 text-emerald-800' :
                               notification.type === 'error' ? 'bg-red-100 text-red-800' :
                                 notification.type === 'warning' ? 'bg-yellow-100 text-yellow-800' :
-                                  'bg-teal-100 text-teal-800'
+                                  'bg-navy/10 text-navy'
                             }`}>
                             {notification.type === 'success' ? 'Başarılı' :
                               notification.type === 'error' ? 'Hata' :
@@ -310,7 +310,7 @@ export default function NotificationsPage() {
                         {notification.action && (
                           <button
                             onClick={notification.action.onClick}
-                            className="mt-3 text-sm text-teal-600 hover:text-teal-800 font-medium"
+                            className="mt-3 text-sm text-navy hover:text-navy/80 font-medium"
                           >
                             {notification.action.label}
                           </button>
@@ -321,7 +321,7 @@ export default function NotificationsPage() {
                         {!notification.read && (
                           <button
                             onClick={() => markAsRead(notification.id)}
-                            className="p-2 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
+                            className="p-2 text-slate-400 hover:text-navy hover:bg-navy/5 rounded-md transition-colors"
                             title="Okundu işaretle"
                           >
                             <Eye className="h-4 w-4" />

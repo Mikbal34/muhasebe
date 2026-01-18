@@ -8,23 +8,26 @@ import {
   Building2,
   Plus,
   Search,
-  Filter,
   Eye,
   Edit,
   Trash2,
-  Users,
+  Download,
+  LayoutGrid,
+  LayoutList,
+  TrendingUp,
+  Wallet,
+  FolderOpen,
+  Activity,
+  CheckCircle,
+  MoreVertical,
   Calendar,
-  DollarSign,
-  Download
+  User
 } from 'lucide-react'
 import { DeleteConfirmationModal } from '@/components/ui/confirmation-modal'
 import { useDeleteConfirmation } from '@/hooks/useDeleteConfirmation'
-import { ProjectCardSkeleton, TableSkeleton, Skeleton } from '@/components/ui/skeleton'
-import { VirtualGrid } from '@/components/ui/virtual-grid'
-import { VirtualTable } from '@/components/ui/virtual-table'
-import { useColumnCount } from '@/hooks/useColumnCount'
-import { useDebouncedValue } from '@/hooks/useDebouncedValue'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useProjects, useAcademicians, useInvalidateProjects } from '@/hooks/use-projects'
+import { turkishIncludes } from '@/lib/utils/string'
 
 interface User {
   id: string
@@ -74,20 +77,19 @@ interface Project {
 export default function ProjectsPage() {
   const [user, setUser] = useState<User | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
   const [representativeFilter, setRepresentativeFilter] = useState<string>('')
   const [sortOrder, setSortOrder] = useState<string>('')
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
   const router = useRouter()
 
-  // React Query hooks - 5 dakika cache
   const { data: projects = [], isLoading: projectsLoading } = useProjects({
-    status: statusFilter || undefined,
+    status: statusFilter === 'all' ? undefined : statusFilter || undefined,
     representative_id: representativeFilter || undefined
   })
   const { data: academicians = [] } = useAcademicians()
   const invalidateProjects = useInvalidateProjects()
 
-  // Delete functionality
   const {
     isModalOpen: isDeleteModalOpen,
     itemToDelete,
@@ -99,17 +101,15 @@ export default function ProjectsPage() {
     entityName: 'Proje',
     apiEndpoint: '/api/projects',
     onSuccess: () => {
-      invalidateProjects() // React Query cache'i invalidate et
+      invalidateProjects()
     },
     onError: (error) => {
       console.error('Delete error:', error)
     }
   })
 
-  // Export functionality
   const [exportingKunye, setExportingKunye] = useState(false)
 
-  // Sadece user kontrolü - data fetching React Query'de
   useEffect(() => {
     const token = localStorage.getItem('token')
     const userData = localStorage.getItem('user')
@@ -126,25 +126,17 @@ export default function ProjectsPage() {
     }
   }, [router])
 
-  // View mode state
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-
-  // Virtual scrolling hooks
-  const debouncedSearch = useDebouncedValue(searchTerm, 300)
-  const columnCount = useColumnCount({ sm: 1, md: 2, lg: 3 })
-
   const filteredProjects = useMemo(() => {
     let result = projects.filter(project => {
-      const matchesSearch = project.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        project.code.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      const matchesSearch = turkishIncludes(project.name, searchTerm) ||
+        turkishIncludes(project.code, searchTerm) ||
         project.representatives.some(rep => {
           const person = rep.user || rep.personnel
-          return person?.full_name?.toLowerCase().includes(debouncedSearch.toLowerCase()) || false
+          return turkishIncludes(person?.full_name || '', searchTerm)
         })
       return matchesSearch
     })
 
-    // Sıralama uygula
     if (sortOrder === 'budget_desc') {
       result = [...result].sort((a, b) => b.budget - a.budget)
     } else if (sortOrder === 'budget_asc') {
@@ -156,23 +148,47 @@ export default function ProjectsPage() {
     }
 
     return result
-  }, [projects, debouncedSearch, sortOrder])
+  }, [projects, searchTerm, sortOrder])
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-green-100 text-green-800'
-      case 'completed': return 'bg-blue-100 text-blue-800'
-      case 'cancelled': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
+  // Stats calculations
+  const stats = useMemo(() => {
+    const total = projects.length
+    const active = projects.filter(p => p.status === 'active').length
+    const totalBudget = projects.reduce((sum, p) => sum + p.budget, 0)
+    const totalCollected = projects.reduce((sum, p) => sum + p.total_received, 0)
+    return { total, active, totalBudget, totalCollected }
+  }, [projects])
 
-  const getStatusText = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'active': return 'Aktif'
-      case 'completed': return 'Tamamlandı'
-      case 'cancelled': return 'İptal Edildi'
-      default: return status
+      case 'active':
+        return (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 w-fit">
+            <div className="size-1.5 rounded-full bg-emerald-500"></div>
+            <span className="text-xs font-bold">Aktif</span>
+          </div>
+        )
+      case 'completed':
+        return (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 w-fit">
+            <div className="size-1.5 rounded-full bg-blue-500"></div>
+            <span className="text-xs font-bold">Tamamlandı</span>
+          </div>
+        )
+      case 'cancelled':
+        return (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-100 text-red-700 w-fit">
+            <div className="size-1.5 rounded-full bg-red-500"></div>
+            <span className="text-xs font-bold">İptal</span>
+          </div>
+        )
+      default:
+        return (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 w-fit">
+            <div className="size-1.5 rounded-full bg-amber-500"></div>
+            <span className="text-xs font-bold">Beklemede</span>
+          </div>
+        )
     }
   }
 
@@ -212,34 +228,61 @@ export default function ProjectsPage() {
     }
   }
 
+  const getProjectLeader = (project: Project) => {
+    const leader = project.representatives.find(r => r.role === 'project_leader')
+    if (leader) {
+      return leader.user?.full_name || leader.personnel?.full_name || 'Belirsiz'
+    }
+    return 'Belirsiz'
+  }
+
+  const getCollectionPercentage = (project: Project) => {
+    if (project.budget === 0) return 0
+    return Math.round((project.total_received / project.budget) * 100)
+  }
+
+  const getTTOShare = (project: Project) => {
+    // TTO payı genelde %10 olarak hesaplanıyor (company_rate üzerinden)
+    return project.total_received * (project.company_rate / 100)
+  }
+
   if (projectsLoading || !user) {
     return (
       <DashboardLayout user={user || { id: '', full_name: 'Yükleniyor...', email: '', role: 'manager' }}>
         <div className="space-y-6">
           {/* Header Skeleton */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex justify-between items-center">
             <div>
-              <Skeleton className="h-8 w-32 mb-2" />
+              <Skeleton className="h-10 w-40 mb-2" />
               <Skeleton className="h-5 w-64" />
             </div>
-            <div className="flex items-center gap-3">
-              <Skeleton className="h-10 w-32" />
-              <Skeleton className="h-10 w-32" />
-            </div>
+            <Skeleton className="h-10 w-36" />
           </div>
 
-          {/* Filters & View Toggle Skeleton */}
-          <div className="bg-white rounded-lg shadow-sm border p-4">
-            <div className="flex flex-col lg:flex-row gap-4">
-              <Skeleton className="h-10 flex-1" />
-              <Skeleton className="h-10 w-48" />
-              <Skeleton className="h-10 w-48" />
-              <Skeleton className="h-10 w-32" />
-            </div>
+          {/* Stats Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-xl border overflow-hidden">
+                <Skeleton className="h-1 w-full" />
+                <div className="p-5">
+                  <Skeleton className="h-4 w-24 mb-3" />
+                  <Skeleton className="h-8 w-20" />
+                </div>
+              </div>
+            ))}
           </div>
 
-          {/* Projects Skeleton - Default to grid view */}
-          <ProjectCardSkeleton count={6} />
+          {/* Table Skeleton */}
+          <div className="bg-white rounded-xl border overflow-hidden">
+            <div className="p-4">
+              <Skeleton className="h-10 w-full" />
+            </div>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="border-t p-4">
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ))}
+          </div>
         </div>
       </DashboardLayout>
     )
@@ -248,428 +291,433 @@ export default function ProjectsPage() {
   return (
     <DashboardLayout user={user}>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h1 className="text-xl font-bold text-slate-900">Projeler</h1>
-              <p className="text-sm text-slate-600">Tüm projeleri görüntüleyin ve yönetin</p>
+        {/* Page Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <h1 className="text-3xl font-black text-navy tracking-tight">Projeler</h1>
+              <span className="bg-navy/10 text-navy text-xs font-bold px-2.5 py-1 rounded-full">
+                {stats.total} proje
+              </span>
+            </div>
+            <p className="text-slate-500 text-sm">Üniversite bünyesindeki aktif ve tamamlanmış projelerin listesi.</p>
+          </div>
+
+          {/* Filter Chips & Actions */}
+          <div className="flex flex-wrap gap-2 items-center">
+            {/* Status Filter Chips */}
+            <div className="flex bg-white p-1 rounded-lg shadow-sm border border-slate-100">
+              {['all', 'active', 'completed', 'cancelled'].map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setStatusFilter(status)}
+                  className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+                    statusFilter === status
+                      ? 'bg-navy text-white'
+                      : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  {status === 'all' ? 'Tümü' : status === 'active' ? 'Aktif' : status === 'completed' ? 'Tamamlandı' : 'İptal'}
+                </button>
+              ))}
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="bg-slate-100 border border-slate-300 rounded p-1 flex items-center gap-1">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-1.5 rounded transition-colors ${viewMode === 'grid' ? 'bg-teal-600 text-white' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200'}`}
-                  title="Izgara Görünümü"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-1.5 rounded transition-colors ${viewMode === 'list' ? 'bg-teal-600 text-white' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200'}`}
-                  title="Liste Görünümü"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-                </button>
-              </div>
-
+            {/* View Toggle */}
+            <div className="flex bg-white p-1 rounded-lg shadow-sm border border-slate-100">
               <button
-                onClick={handleExportProjectCard}
-                disabled={exportingKunye}
-                className="inline-flex items-center px-3 py-2 border border-slate-300 text-sm font-semibold rounded text-slate-700 bg-white hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => setViewMode('list')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+                  viewMode === 'list' ? 'bg-navy text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
+                }`}
               >
-                <Download className="h-4 w-4 mr-2" />
-                {exportingKunye ? 'İndiriliyor...' : 'Dışa Aktar'}
+                <LayoutList className="w-4 h-4" />
+                Liste
               </button>
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+                  viewMode === 'grid' ? 'bg-navy text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
+                }`}
+              >
+                <LayoutGrid className="w-4 h-4" />
+                Grid
+              </button>
+            </div>
 
-              {['admin', 'manager'].includes(user.role) && (
-                <Link
-                  href="/dashboard/projects/new"
-                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 transition-colors"
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Yeni Proje
-                </Link>
-              )}
+            {['admin', 'manager'].includes(user.role) && (
+              <Link
+                href="/dashboard/projects/new"
+                className="bg-navy hover:bg-navy/90 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-navy/20 transition-all"
+              >
+                <Plus className="w-4 h-4" />
+                Yeni Proje
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Toplam Proje */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden group hover:shadow-md transition-shadow">
+            <div className="h-1 bg-gradient-to-r from-navy to-gold"></div>
+            <div className="p-5">
+              <div className="flex justify-between items-start mb-3">
+                <p className="text-slate-500 font-semibold text-sm">Toplam Proje</p>
+                <FolderOpen className="w-5 h-5 text-navy/40 group-hover:text-navy transition-colors" />
+              </div>
+              <p className="text-3xl font-black text-slate-900">{stats.total}</p>
+              <div className="flex items-center gap-1 text-emerald-600 text-xs font-bold mt-2">
+                <TrendingUp className="w-3.5 h-3.5" />
+                Toplam kayıtlı proje
+              </div>
+            </div>
+          </div>
+
+          {/* Aktif Proje */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden group hover:shadow-md transition-shadow">
+            <div className="h-1 bg-gradient-to-r from-navy to-gold"></div>
+            <div className="p-5">
+              <div className="flex justify-between items-start mb-3">
+                <p className="text-slate-500 font-semibold text-sm">Aktif Proje</p>
+                <Activity className="w-5 h-5 text-navy/40 group-hover:text-navy transition-colors" />
+              </div>
+              <p className="text-3xl font-black text-slate-900">{stats.active}</p>
+              <div className="flex items-center gap-1 text-emerald-600 text-xs font-bold mt-2">
+                <TrendingUp className="w-3.5 h-3.5" />
+                Devam eden projeler
+              </div>
+            </div>
+          </div>
+
+          {/* Toplam Bütçe */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden group hover:shadow-md transition-shadow">
+            <div className="h-1 bg-gradient-to-r from-navy to-gold"></div>
+            <div className="p-5">
+              <div className="flex justify-between items-start mb-3">
+                <p className="text-slate-500 font-semibold text-sm">Toplam Bütçe</p>
+                <Wallet className="w-5 h-5 text-navy/40 group-hover:text-navy transition-colors" />
+              </div>
+              <p className="text-xl font-black text-slate-900">
+                ₺{stats.totalBudget.toLocaleString('tr-TR')}
+              </p>
+              <div className="flex items-center gap-1 text-emerald-600 text-xs font-bold mt-2">
+                <TrendingUp className="w-3.5 h-3.5" />
+                Toplam proje bütçesi
+              </div>
+            </div>
+          </div>
+
+          {/* Tahsil Edilen */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden group hover:shadow-md transition-shadow">
+            <div className="h-1 bg-gradient-to-r from-navy to-gold"></div>
+            <div className="p-5">
+              <div className="flex justify-between items-start mb-3">
+                <p className="text-slate-500 font-semibold text-sm">Tahsil Edilen</p>
+                <CheckCircle className="w-5 h-5 text-navy/40 group-hover:text-navy transition-colors" />
+              </div>
+              <p className="text-xl font-black text-slate-900">
+                ₺{stats.totalCollected.toLocaleString('tr-TR')}
+              </p>
+              <div className="flex items-center gap-1 text-emerald-600 text-xs font-bold mt-2">
+                <TrendingUp className="w-3.5 h-3.5" />
+                Toplam tahsilat
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+        {/* Search & Sort Bar */}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4">
+          <div className="flex flex-col md:flex-row gap-3">
+            {/* Search */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
               <input
                 type="text"
                 placeholder="Proje adı, kodu veya akademisyen ara..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-600 focus:border-teal-600 text-slate-900 placeholder-slate-400"
+                className="w-full h-10 bg-slate-50 border-none rounded-lg pl-10 pr-4 text-sm focus:ring-2 focus:ring-navy/20 placeholder:text-slate-400"
               />
             </div>
 
-            <div className="relative">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-600 focus:border-teal-600 text-slate-900 appearance-none cursor-pointer"
-              >
-                <option value="">Tüm Durumlar</option>
-                <option value="active">Aktif</option>
-                <option value="completed">Tamamlandı</option>
-                <option value="cancelled">İptal Edildi</option>
-              </select>
-            </div>
+            {/* Representative Filter */}
+            <select
+              value={representativeFilter}
+              onChange={(e) => setRepresentativeFilter(e.target.value)}
+              className="h-10 px-3 bg-slate-50 border-none rounded-lg text-sm focus:ring-2 focus:ring-navy/20 text-slate-700"
+            >
+              <option value="">Tüm Temsilciler</option>
+              {academicians.map(academician => (
+                <option key={academician.id} value={academician.id}>
+                  {academician.full_name}
+                </option>
+              ))}
+            </select>
 
-            <div className="relative">
-              <select
-                value={representativeFilter}
-                onChange={(e) => setRepresentativeFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-600 focus:border-teal-600 text-slate-900 appearance-none cursor-pointer"
-              >
-                <option value="">Tüm Temsilciler</option>
-                {academicians.map(academician => (
-                  <option key={academician.id} value={academician.id}>
-                    {academician.full_name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Sort */}
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              className="h-10 px-3 bg-slate-50 border-none rounded-lg text-sm focus:ring-2 focus:ring-navy/20 text-slate-700"
+            >
+              <option value="">Sıralama</option>
+              <option value="budget_desc">Bütçe (Yüksek → Düşük)</option>
+              <option value="budget_asc">Bütçe (Düşük → Yüksek)</option>
+              <option value="date_desc">Tarih (Yeni → Eski)</option>
+              <option value="date_asc">Tarih (Eski → Yeni)</option>
+            </select>
 
-            <div className="relative">
-              <select
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-600 focus:border-teal-600 text-slate-900 appearance-none cursor-pointer"
-              >
-                <option value="">Sıralama</option>
-                <option value="budget_desc">Bütçe (Yüksek → Düşük)</option>
-                <option value="budget_asc">Bütçe (Düşük → Yüksek)</option>
-                <option value="date_desc">Tarih (Yeni → Eski)</option>
-                <option value="date_asc">Tarih (Eski → Yeni)</option>
-              </select>
-            </div>
-
-            <div className="col-span-full flex items-center text-sm text-slate-700">
-              {filteredProjects.length} proje görüntüleniyor
-            </div>
+            {/* Export Button */}
+            <button
+              onClick={handleExportProjectCard}
+              disabled={exportingKunye}
+              className="h-10 px-4 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-2 disabled:opacity-50"
+            >
+              <Download className="w-4 h-4" />
+              {exportingKunye ? 'İndiriliyor...' : 'Dışa Aktar'}
+            </button>
           </div>
         </div>
 
         {/* Projects View */}
-        {viewMode === 'grid' ? (
-          <VirtualGrid
-            items={filteredProjects}
-            columnCount={columnCount}
-            height="calc(100vh - 340px)"
-            estimatedRowHeight={380}
-            gap={20}
-            getItemKey={(project) => project.id}
-            emptyMessage="Proje bulunamadı"
-            renderItem={(project) => (
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 hover:shadow-md transition-shadow h-full">
-                <div className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h3 className="text-base font-bold text-slate-900 mb-1">
-                        {project.name}
-                      </h3>
-                      <p className="text-sm text-slate-600">{project.code}</p>
-                    </div>
-                    <div className="flex flex-col gap-1 items-end">
-                      <span className={`px-2 py-1 text-xs font-semibold rounded ${getStatusColor(project.status)}`}>
-                        {getStatusText(project.status)}
-                      </span>
-                      {project.has_supplementary_contract && (
-                        <span className="px-2 py-1 text-xs font-semibold rounded bg-purple-100 text-purple-800">
-                          Ek Sözleşme {project.supplementary_contract_count > 1 ? `(${project.supplementary_contract_count})` : ''}
+        {viewMode === 'list' ? (
+          /* Table View */
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/50 border-b border-slate-100">
+                    <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Proje Adı</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Yürütücü</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Durum</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Bütçe</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Faturalanan</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Tahsilat</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">TTO Payı</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">İşlem</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredProjects.map((project) => (
+                    <tr key={project.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-bold text-navy">{project.name}</div>
+                        <div className="text-xs text-slate-400">{project.code}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-slate-400" />
+                          <span className="text-sm text-slate-600">{getProjectLeader(project)}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        {getStatusBadge(project.status)}
+                      </td>
+                      <td className="px-6 py-4 text-right text-sm font-medium text-slate-900">
+                        ₺{project.budget.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="px-6 py-4 text-right text-sm text-slate-600">
+                        ₺{project.total_received.toLocaleString('tr-TR')}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-20 bg-slate-100 rounded-full h-1.5">
+                            <div
+                              className={`h-1.5 rounded-full ${
+                                getCollectionPercentage(project) === 100 ? 'bg-emerald-500' : 'bg-navy'
+                              }`}
+                              style={{ width: `${Math.min(getCollectionPercentage(project), 100)}%` }}
+                            ></div>
+                          </div>
+                          <span className={`text-xs font-bold ${
+                            getCollectionPercentage(project) === 100 ? 'text-emerald-600' : 'text-slate-600'
+                          }`}>
+                            {getCollectionPercentage(project)}%
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <span className="text-sm font-black text-gold tracking-tight">
+                          ₺{getTTOShare(project).toLocaleString('tr-TR', { maximumFractionDigits: 0 })}
                         </span>
-                      )}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Link
+                            href={`/dashboard/projects/${project.id}`}
+                            className="p-1.5 text-slate-400 hover:text-navy hover:bg-slate-100 rounded transition-colors"
+                            title="Görüntüle"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Link>
+                          {['admin', 'manager'].includes(user.role) && project.status === 'active' && (
+                            <Link
+                              href={`/dashboard/projects/${project.id}/edit`}
+                              className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-slate-100 rounded transition-colors"
+                              title="Düzenle"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Link>
+                          )}
+                          {['admin', 'manager'].includes(user.role) && (
+                            <button
+                              onClick={() => showDeleteModal({
+                                id: project.id,
+                                name: `${project.code} - ${project.name}`,
+                                description: `Bu proje silindiğinde tüm gelir kayıtları ve ödeme talimatları da silinecektir.`,
+                                warningItems: [
+                                  'Proje gelir kayıtları',
+                                  'Gelir dağıtımları',
+                                  'Ödeme talimatları',
+                                  'Bakiye geçmişi'
+                                ]
+                              })}
+                              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-slate-100 rounded transition-colors"
+                              title="Sil"
+                              disabled={isDeleting}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
+              <p className="text-xs text-slate-500">{filteredProjects.length} kayıt gösteriliyor</p>
+            </div>
+          </div>
+        ) : (
+          /* Grid View */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredProjects.map((project) => (
+              <div
+                key={project.id}
+                className="group bg-white rounded-xl overflow-hidden shadow-sm border border-transparent transition-all duration-300 hover:shadow-xl hover:border-gold/30 flex flex-col"
+                style={{ borderTop: '3px solid', borderImage: 'linear-gradient(90deg, #00205c 0%, #AD976E 100%) 1' }}
+              >
+                <div className="p-5 flex flex-col flex-1">
+                  {/* Header */}
+                  <div className="flex justify-between items-start mb-4">
+                    {getStatusBadge(project.status)}
+                    <div className="flex items-center gap-1">
+                      <Link
+                        href={`/dashboard/projects/${project.id}`}
+                        className="p-1.5 text-slate-400 hover:text-navy transition-colors"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Link>
+                      <button className="text-slate-400 hover:text-navy transition-colors">
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
 
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-slate-600">Bütçe:</span>
-                      <span className="font-semibold text-slate-900">₺{project.budget.toLocaleString('tr-TR')}</span>
-                    </div>
+                  {/* Project Info */}
+                  <h3 className="text-navy text-lg font-black leading-tight mb-2 group-hover:text-gold transition-colors">
+                    {project.name}
+                  </h3>
+                  <div className="flex items-center gap-2 text-slate-500 text-sm mb-5">
+                    <Building2 className="w-4 h-4" />
+                    {getProjectLeader(project)}
+                  </div>
 
-                    {/* Progress Bar */}
-                    <div className="w-full bg-slate-200 rounded h-2">
+                  {/* Metrics */}
+                  <div className="grid grid-cols-3 gap-2 mb-5">
+                    <div className="bg-slate-50 p-3 rounded-lg flex flex-col">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">BÜTÇE</span>
+                      <span className="text-navy text-[10px] font-black">
+                        ₺{project.budget.toLocaleString('tr-TR')}
+                      </span>
+                    </div>
+                    <div className="bg-slate-50 p-3 rounded-lg flex flex-col">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">TAHSİLAT</span>
+                      <span className="text-navy text-[10px] font-black">
+                        ₺{project.total_received.toLocaleString('tr-TR')}
+                      </span>
+                    </div>
+                    <div className="bg-gold/10 p-3 rounded-lg flex flex-col">
+                      <span className="text-[9px] font-bold text-gold uppercase tracking-tighter">TTO PAYI</span>
+                      <span className="text-gold text-[10px] font-black">
+                        ₺{getTTOShare(project).toLocaleString('tr-TR', { maximumFractionDigits: 0 })}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="space-y-2 mb-5">
+                    <div className="flex justify-between items-end">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">Tahsilat Oranı</span>
+                      <span className="text-sm font-black text-navy">{getCollectionPercentage(project)}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                       <div
-                        className="bg-teal-600 h-2 rounded transition-all"
+                        className={`h-full rounded-full ${
+                          getCollectionPercentage(project) === 100 ? 'bg-emerald-500' : ''
+                        }`}
                         style={{
-                          width: `${project.budget > 0 ? Math.min((project.total_received / project.budget) * 100, 100) : 0}%`
+                          width: `${Math.min(getCollectionPercentage(project), 100)}%`,
+                          background: getCollectionPercentage(project) < 100 ? 'linear-gradient(90deg, #00205c 0%, #AD976E 100%)' : undefined
                         }}
                       ></div>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div className="bg-emerald-50 rounded p-2 border border-emerald-100">
-                        <div className="text-emerald-700 text-xs mb-0.5">Gelen</div>
-                        <div className="text-emerald-800 font-semibold text-sm">₺{project.total_received.toLocaleString('tr-TR')}</div>
-                      </div>
-                      <div className="bg-orange-50 rounded p-2 border border-orange-100">
-                        <div className="text-orange-700 text-xs mb-0.5">Kalan</div>
-                        <div className="text-orange-800 font-semibold text-sm">₺{project.remaining_budget.toLocaleString('tr-TR')}</div>
-                      </div>
-                    </div>
-
-                    <div className="text-xs text-slate-600">
-                      {new Date(project.start_date).toLocaleDateString('tr-TR')}
-                      {project.end_date && ` - ${new Date(project.end_date).toLocaleDateString('tr-TR')}`}
-                    </div>
-
-                    <div className="text-xs text-slate-600">
-                      {project.representatives.length} temsilci
-                    </div>
                   </div>
+                </div>
 
-                  {/* Representatives Preview */}
-                  <div className="mb-4 bg-slate-50 rounded p-3 border border-slate-200">
-                    <h4 className="text-xs font-semibold text-slate-900 mb-2">Temsilciler</h4>
-                    <div className="space-y-1.5">
-                      {project.representatives.slice(0, 2).map((rep) => {
-                        const personName = rep.user?.full_name || rep.personnel?.full_name || 'Bilinmiyor'
-                        const isLeader = rep.role === 'project_leader'
-                        return (
-                          <div key={rep.id} className="flex items-center text-xs">
-                            <div className="h-5 w-5 bg-slate-700 rounded-full flex items-center justify-center text-white text-xs font-semibold mr-2">
-                              {personName.charAt(0)}
-                            </div>
-                            <span className="text-slate-700">
-                              {personName}
-                              {isLeader && <span className="text-teal-600 font-semibold"> (Yürütücü)</span>}
-                            </span>
-                          </div>
-                        )
-                      })}
-                      {project.representatives.length > 2 && (
-                        <p className="text-xs text-slate-500 ml-7">
-                          +{project.representatives.length - 2} diğer
-                        </p>
-                      )}
-                    </div>
+                {/* Footer */}
+                <div className="mt-auto border-t border-slate-50 p-5 bg-slate-50/50 grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      Başlangıç
+                    </span>
+                    <span className="text-xs font-semibold text-slate-700">
+                      {new Date(project.start_date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </span>
                   </div>
-
-                  {/* Actions */}
-                  <div className="flex justify-end space-x-2 pt-3 border-t border-slate-200">
-                    <Link
-                      href={`/dashboard/projects/${project.id}` as any}
-                      className="p-2 text-slate-600 hover:text-teal-600 hover:bg-slate-100 rounded transition-colors"
-                      title="Görüntüle"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Link>
-
-                    {(['admin', 'manager'].includes(user.role)) && (
-                      <>
-                        {project.status === 'active' ? (
-                          <Link
-                            href={`/dashboard/projects/${project.id}/edit` as any}
-                            className="p-2 text-slate-600 hover:text-emerald-600 hover:bg-slate-100 rounded transition-colors"
-                            title="Düzenle"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Link>
-                        ) : (
-                          <div
-                            className="p-2 text-slate-400 cursor-not-allowed rounded"
-                            title="Tamamlanan projeler düzenlenemez"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </div>
-                        )}
-
-                        <button
-                          onClick={() => showDeleteModal({
-                            id: project.id,
-                            name: `${project.code} - ${project.name}`,
-                            description: `Bu proje silindiğinde tüm gelir kayıtları ve ödeme talimatları da silinecektir.`,
-                            warningItems: [
-                              'Proje gelir kayıtları',
-                              'Gelir dağıtımları',
-                              'Ödeme talimatları',
-                              'Bakiye geçmişi'
-                            ]
-                          })}
-                          className="p-2 text-slate-600 hover:text-red-600 hover:bg-slate-100 rounded transition-colors"
-                          title="Sil"
-                          disabled={isDeleting}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </>
-                    )}
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
+                      <User className="w-3 h-3" />
+                      Yürütücü
+                    </span>
+                    <span className="text-xs font-semibold text-slate-700 truncate">
+                      {getProjectLeader(project)}
+                    </span>
                   </div>
                 </div>
               </div>
-            )}
-          />
-        ) : (
-          <VirtualTable
-            items={filteredProjects}
-            height="calc(100vh - 340px)"
-            estimatedRowHeight={60}
-            getRowKey={(project) => project.id}
-            emptyMessage="Proje bulunamadı"
-            columns={[
-              {
-                key: 'project',
-                header: 'Proje',
-                width: '25%',
-                render: (project) => (
-                  <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-slate-900">{project.name}</span>
-                    <span className="text-xs text-slate-600">{project.code}</span>
-                  </div>
-                )
-              },
-              {
-                key: 'status',
-                header: 'Durum',
-                width: '15%',
-                render: (project) => (
-                  <div className="flex flex-col gap-1">
-                    <span className={`px-2 py-1 text-xs font-semibold rounded inline-block w-fit ${getStatusColor(project.status)}`}>
-                      {getStatusText(project.status)}
-                    </span>
-                    {project.has_supplementary_contract && (
-                      <span className="px-2 py-1 text-xs font-semibold rounded bg-purple-100 text-purple-800 inline-block w-fit">
-                        Ek Sözleşme {project.supplementary_contract_count > 1 ? `(${project.supplementary_contract_count})` : ''}
-                      </span>
-                    )}
-                  </div>
-                )
-              },
-              {
-                key: 'budget',
-                header: 'Bütçe / Kalan',
-                width: '15%',
-                render: (project) => (
-                  <div className="flex flex-col text-sm">
-                    <span className="text-slate-900 font-semibold">₺{project.budget.toLocaleString('tr-TR')}</span>
-                    <span className="text-orange-600 text-xs">Kalan: ₺{project.remaining_budget.toLocaleString('tr-TR')}</span>
-                  </div>
-                )
-              },
-              {
-                key: 'date',
-                header: 'Tarih',
-                width: '12%',
-                render: (project) => (
-                  <span className="text-sm text-slate-700">
-                    {new Date(project.start_date).toLocaleDateString('tr-TR')}
-                  </span>
-                )
-              },
-              {
-                key: 'representatives',
-                header: 'Temsilciler',
-                width: '20%',
-                render: (project) => (
-                  <div className="flex -space-x-2 overflow-hidden">
-                    {project.representatives.slice(0, 3).map((rep) => {
-                      const person = rep.user || rep.personnel
-                      const fullName = person?.full_name || 'N/A'
-                      return (
-                        <div
-                          key={rep.id}
-                          className="inline-block h-7 w-7 rounded-full ring-2 ring-white bg-slate-700 flex items-center justify-center text-xs font-semibold text-white"
-                          title={`${fullName} (%${rep.share_percentage})`}
-                        >
-                          {fullName.charAt(0)}
-                        </div>
-                      )
-                    })}
-                    {project.representatives.length > 3 && (
-                      <div className="inline-block h-7 w-7 rounded-full ring-2 ring-white bg-slate-200 flex items-center justify-center text-xs font-semibold text-slate-700">
-                        +{project.representatives.length - 3}
-                      </div>
-                    )}
-                  </div>
-                )
-              },
-              {
-                key: 'actions',
-                header: 'İşlemler',
-                width: '18%',
-                className: 'text-right',
-                render: (project) => (
-                  <div className="flex justify-end space-x-2">
-                    <Link
-                      href={`/dashboard/projects/${project.id}` as any}
-                      className="p-1.5 text-slate-600 hover:text-teal-600 hover:bg-slate-100 rounded transition-colors"
-                      title="Görüntüle"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Link>
-
-                    {(['admin', 'manager'].includes(user.role)) && (
-                      <>
-                        {project.status === 'active' ? (
-                          <Link
-                            href={`/dashboard/projects/${project.id}/edit` as any}
-                            className="p-1.5 text-slate-600 hover:text-emerald-600 hover:bg-slate-100 rounded transition-colors"
-                            title="Düzenle"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Link>
-                        ) : (
-                          <span className="p-1.5 text-slate-400 cursor-not-allowed rounded">
-                            <Edit className="h-4 w-4" />
-                          </span>
-                        )}
-
-                        <button
-                          onClick={() => showDeleteModal({
-                            id: project.id,
-                            name: `${project.code} - ${project.name}`,
-                            description: `Bu proje silindiğinde tüm gelir kayıtları ve ödeme talimatları da silinecektir.`,
-                            warningItems: [
-                              'Proje gelir kayıtları',
-                              'Gelir dağıtımları',
-                              'Ödeme talimatları',
-                              'Bakiye geçmişi'
-                            ]
-                          })}
-                          className="p-1.5 text-slate-600 hover:text-red-600 hover:bg-slate-100 rounded transition-colors"
-                          title="Sil"
-                          disabled={isDeleting}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                )
-              }
-            ]}
-          />
+            ))}
+          </div>
         )}
 
+        {/* Empty State */}
         {filteredProjects.length === 0 && (
-          <div className="bg-white rounded-lg shadow-sm border border-slate-200 text-center py-12">
-            <div className="h-16 w-16 bg-slate-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <Building2 className="h-8 w-8 text-slate-400" />
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 text-center py-16">
+            <div className="h-16 w-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FolderOpen className="h-8 w-8 text-slate-400" />
             </div>
             <h3 className="text-lg font-bold text-slate-900 mb-2">
-              {searchTerm || statusFilter ? 'Proje bulunamadı' : 'Henüz proje yok'}
+              {searchTerm || statusFilter !== 'all' ? 'Proje bulunamadı' : 'Henüz proje yok'}
             </h3>
-            <p className="text-sm text-slate-600 mb-6 max-w-md mx-auto">
-              {searchTerm || statusFilter
+            <p className="text-sm text-slate-500 mb-6 max-w-md mx-auto">
+              {searchTerm || statusFilter !== 'all'
                 ? 'Arama kriterlerinizi değiştirmeyi deneyin'
                 : 'İlk projeyi oluşturmak için butona tıklayın'
               }
             </p>
-            {['admin', 'manager'].includes(user.role) && !searchTerm && !statusFilter && (
+            {['admin', 'manager'].includes(user.role) && !searchTerm && statusFilter === 'all' && (
               <Link
                 href="/dashboard/projects/new"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 transition-colors"
+                className="inline-flex items-center px-5 py-2.5 bg-navy text-white text-sm font-bold rounded-lg hover:bg-navy/90 transition-colors shadow-lg shadow-navy/20"
               >
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="w-4 h-4 mr-2" />
                 Yeni Proje Oluştur
               </Link>
             )}

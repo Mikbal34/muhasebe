@@ -14,7 +14,17 @@ import {
   X,
   User,
   Crown,
-  Save
+  Star,
+  Percent,
+  Receipt,
+  Users,
+  Upload,
+  CheckCircle,
+  AlertCircle,
+  Info,
+  Save,
+  Download,
+  Edit3
 } from 'lucide-react'
 import { MoneyInput } from '@/components/ui/money-input'
 import { supabase } from '@/lib/supabase/client'
@@ -32,12 +42,12 @@ interface User {
 }
 
 interface ProjectRepresentative {
-  id: string // person id (either user_id or personnel_id)
-  type: PersonType // 'user' or 'personnel'
+  id: string
+  type: PersonType
   user_id?: string | null
   personnel_id?: string | null
   role: 'project_leader' | 'researcher'
-  person: Person // full person data
+  person: Person
 }
 
 interface Project {
@@ -152,13 +162,11 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
         const projectData = data.data.project
         setProject(projectData)
 
-        // Check if project is completed
         if (projectData.status !== 'active') {
           router.push(`/dashboard/projects/${params.id}` as any)
           return
         }
 
-        // Populate form data
         setFormData({
           code: projectData.code,
           name: projectData.name,
@@ -180,7 +188,6 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
           referee_approval_date: projectData.referee_approval_date ? projectData.referee_approval_date.split('T')[0] : ''
         })
 
-        // Populate representatives - handle both users and personnel
         setRepresentatives(projectData.representatives.map((rep: any) => {
           const isUser = !!rep.user_id
           const person = isUser ? rep.user : rep.personnel
@@ -204,7 +211,6 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
           }
         }))
 
-        // Fetch installments for this project
         try {
           const installmentsResponse = await fetch(`/api/projects/${params.id}/installments`, {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -281,10 +287,8 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
   }
 
   const addRepresentative = (personId: string, personType: PersonType, person: Person) => {
-    // Check if already added
     if (representatives.some(rep => rep.id === personId)) return
 
-    // First representative is project_leader, rest are researchers
     const newRepresentative: ProjectRepresentative = {
       id: personId,
       type: personType,
@@ -302,7 +306,6 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
   }
 
   const updateRepresentativeRole = (personId: string, role: 'project_leader' | 'researcher') => {
-    // If setting as project_leader, remove project_leader from others
     if (role === 'project_leader') {
       setRepresentatives(representatives.map(rep =>
         rep.id === personId
@@ -363,7 +366,6 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
       let uploadedContractPath = project?.contract_path || null
       let uploadedAssignmentPath = project?.assignment_document_path || null
 
-      // Upload new contract file if selected
       if (contractFile) {
         setUploadingContract(true)
         uploadedContractPath = await handleFileUpload(contractFile)
@@ -376,7 +378,6 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
         }
       }
 
-      // Upload new assignment document if selected and permission is granted
       if (formData.has_assignment_permission && assignmentFile) {
         setUploadingAssignment(true)
         uploadedAssignmentPath = await handleFileUpload(assignmentFile)
@@ -424,7 +425,6 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
       const data = await response.json()
 
       if (data.success) {
-        // Update installments if there are any changes
         if (hasPaymentPlan && installments.length > 0) {
           const installmentsResponse = await fetch(`/api/projects/${params.id}/installments`, {
             method: 'PUT',
@@ -465,8 +465,8 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Yükleniyor...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-navy mx-auto"></div>
+          <p className="mt-2 text-slate-600">Yükleniyor...</p>
         </div>
       </div>
     )
@@ -478,612 +478,661 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
     <DashboardLayout user={user}>
       <div className="space-y-6">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/dashboard/projects"
-              className="p-2 hover:bg-slate-100 rounded transition-colors text-slate-600 hover:text-slate-900"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900">Proje Düzenle</h1>
-              <p className="text-sm text-slate-600">{project.code} - {project.name}</p>
-            </div>
+        <div className="flex items-center gap-4">
+          <Link
+            href={`/dashboard/projects/${params.id}`}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 hover:border-navy/30 transition-all shadow-sm"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Geri
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-navy flex items-center gap-2">
+              <Edit3 className="w-6 h-6 text-gold" />
+              Proje Düzenle
+            </h1>
+            <p className="text-sm text-slate-500">{project.code} - {project.name}</p>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Basic Information */}
-          <div className="bg-white rounded-lg shadow-sm border p-4">
-            <h2 className="text-base font-semibold text-gray-900 mb-4">
-              Temel Bilgiler
-            </h2>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Main Grid - 2 columns */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column - Main Info */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Section 1: Proje Kimliği */}
+              <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="h-1 w-full bg-gradient-to-r from-navy to-gold" />
+                <div className="p-5">
+                  <h2 className="text-base font-bold text-navy mb-4 flex items-center gap-2">
+                    <Building2 className="w-5 h-5" />
+                    Proje Kimliği
+                  </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Proje Kodu *
-                </label>
-                <input
-                  type="text"
-                  value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="PRJ-2024-001"
-                />
-                {errors.code && <p className="mt-1 text-sm text-red-600">{errors.code}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Proje Adı *
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="AI Tabanlı Sistem Geliştirme"
-                />
-                {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Açıklama
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Proje hakkında detaylı açıklama..."
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Bütçe (₺) *
-                </label>
-                <MoneyInput
-                  value={formData.budget}
-                  onChange={(value) => setFormData({ ...formData, budget: value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="1.000.000"
-                />
-                {errors.budget && <p className="mt-1 text-sm text-red-600">{errors.budget}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Şirket Komisyon Oranı (%)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  value={formData.company_rate}
-                  onChange={(e) => setFormData({ ...formData, company_rate: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              {/* KDV ve Tevkifat */}
-              <div className="md:col-span-2 border-t border-gray-200 pt-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">KDV Bilgileri</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      KDV Oranı (%)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.01"
-                      value={formData.vat_rate}
-                      onChange={(e) => setFormData({ ...formData, vat_rate: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div className="flex flex-col justify-end">
-                    <div className="flex items-center">
-                      <input
-                        id="has_withholding_tax"
-                        type="checkbox"
-                        checked={formData.has_withholding_tax}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          has_withholding_tax: e.target.checked,
-                          withholding_tax_rate: e.target.checked ? formData.withholding_tax_rate : '0'
-                        })}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
-                      <label htmlFor="has_withholding_tax" className="ml-2 block text-sm text-gray-900">
-                        Tevkifat Uygulanıyor
-                      </label>
-                    </div>
-                    <p className="mt-1 text-xs text-gray-500">
-                      KDV tevkifatı varsa işaretleyin
-                    </p>
-                  </div>
-
-                  {formData.has_withholding_tax && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Tevkifat Oranı (%)
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+                        Proje Kodu *
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.code}
+                        onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-gold/30 focus:border-gold focus:bg-white transition-all outline-none text-sm"
+                        placeholder="PRJ-2024-001"
+                      />
+                      {errors.code && <p className="mt-1 text-xs text-red-600">{errors.code}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+                        Proje Adı *
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-gold/30 focus:border-gold focus:bg-white transition-all outline-none text-sm"
+                        placeholder="AI Tabanlı Sistem Geliştirme"
+                      />
+                      {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name}</p>}
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+                        Açıklama
+                      </label>
+                      <textarea
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        rows={2}
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-gold/30 focus:border-gold focus:bg-white transition-all outline-none text-sm resize-none"
+                        placeholder="Proje hakkında kısa açıklama..."
+                      />
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Section 2: Finansal Bilgiler */}
+              <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="h-1 w-full bg-gradient-to-r from-navy to-gold" />
+                <div className="p-5">
+                  <h2 className="text-base font-bold text-navy mb-4 flex items-center gap-2">
+                    <DollarSign className="w-5 h-5" />
+                    Finansal Bilgiler
+                  </h2>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+                        Bütçe (₺) *
+                      </label>
+                      <MoneyInput
+                        value={formData.budget}
+                        onChange={(value) => setFormData({ ...formData, budget: value })}
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-gold/30 focus:border-gold focus:bg-white transition-all outline-none text-sm"
+                        placeholder="1.000.000"
+                      />
+                      {errors.budget && <p className="mt-1 text-xs text-red-600">{errors.budget}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+                        TTO Komisyon (%)
                       </label>
                       <input
                         type="number"
                         min="0"
                         max="100"
                         step="0.01"
-                        value={formData.withholding_tax_rate}
-                        onChange={(e) => setFormData({ ...formData, withholding_tax_rate: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Örn: 50 (5/10 için)"
+                        value={formData.company_rate}
+                        onChange={(e) => setFormData({ ...formData, company_rate: e.target.value })}
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-gold/30 focus:border-gold focus:bg-white transition-all outline-none text-sm"
                       />
-                      <p className="mt-1 text-xs text-gray-500">
-                        KDV tutarının yüzde kaçı tevkif edilecek?
-                      </p>
                     </div>
-                  )}
-                </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Hakem Heyeti Ödemesini Kim Yapacak?
-                </label>
-                <select
-                  value={formData.referee_payer}
-                  onChange={(e) => setFormData({ ...formData, referee_payer: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="company">TTO (Şirket)</option>
-                  <option value="academic">Akademisyen</option>
-                  <option value="client">Karşı Taraf (Müşteri)</option>
-                </select>
-              </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+                        Akademisyen Payı
+                      </label>
+                      <div className="px-3 py-2.5 bg-navy/5 border border-navy/10 rounded-lg text-sm font-semibold text-navy">
+                        %{100 - (parseFloat(formData.company_rate) || 0)}
+                      </div>
+                    </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Hakem Heyeti Ödemesi (₺)
-                </label>
-                <MoneyInput
-                  value={formData.referee_payment}
-                  onChange={(value) => setFormData({ ...formData, referee_payment: value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  {formData.referee_payer === 'company'
-                    ? 'Bu tutar her tahsilatta oransal olarak TTO payından düşülecektir.'
-                    : formData.referee_payer === 'academic'
-                    ? 'Bu tutar her tahsilatta oransal olarak akademisyen bakiyelerinden düşülecektir.'
-                    : 'Bu tutar sadece kayıt amaçlıdır, bakiyelerden düşülmez.'}
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Damga Vergisini Kim Ödeyecek?
-                </label>
-                <select
-                  value={formData.stamp_duty_payer}
-                  onChange={(e) => setFormData({ ...formData, stamp_duty_payer: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="company">TTO (Şirket)</option>
-                  <option value="academic">Akademisyen</option>
-                  <option value="client">Karşı Taraf (Müşteri)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Damga Vergisi Tutarı (₺)
-                </label>
-                <MoneyInput
-                  value={formData.stamp_duty_amount}
-                  onChange={(value) => setFormData({ ...formData, stamp_duty_amount: value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  {formData.stamp_duty_payer === 'company'
-                    ? 'Bu tutar her tahsilatta oransal olarak TTO payından düşülecektir.'
-                    : formData.stamp_duty_payer === 'academic'
-                    ? 'Bu tutar her tahsilatta oransal olarak akademisyen bakiyelerinden düşülecektir.'
-                    : 'Bu tutar sadece kayıt amaçlıdır, bakiyelerden düşülmez.'}
-                </p>
-              </div>
-
-              {/* Hakem Heyeti Durumu */}
-              <div className="md:col-span-2 border-t border-gray-200 pt-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Hakem Heyeti Durumu</h3>
-
-                <div className="space-y-4">
-                  <div className="flex items-center">
-                    <input
-                      id="sent_to_referee"
-                      type="checkbox"
-                      checked={formData.sent_to_referee}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        sent_to_referee: e.target.checked,
-                        // Gönderilmedi ise onay da kaldırılsın
-                        referee_approved: e.target.checked ? formData.referee_approved : false,
-                        referee_approval_date: e.target.checked ? formData.referee_approval_date : ''
-                      })}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <label htmlFor="sent_to_referee" className="ml-2 block text-sm text-gray-900">
-                      Hakem heyetine gönderildi
-                    </label>
-                  </div>
-
-                  <div className="flex items-center">
-                    <input
-                      id="referee_approved"
-                      type="checkbox"
-                      checked={formData.referee_approved}
-                      disabled={!formData.sent_to_referee}
-                      onChange={(e) => setFormData({ ...formData, referee_approved: e.target.checked })}
-                      className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${!formData.sent_to_referee ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    />
-                    <label htmlFor="referee_approved" className={`ml-2 block text-sm ${!formData.sent_to_referee ? 'text-gray-400' : 'text-gray-900'}`}>
-                      Hakem heyeti onayı alındı
-                    </label>
-                  </div>
-
-                  {formData.referee_approved && (
-                    <div className="max-w-xs">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Onay Tarihi
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+                        Başlangıç Tarihi *
                       </label>
                       <input
                         type="date"
-                        value={formData.referee_approval_date}
-                        onChange={(e) => setFormData({ ...formData, referee_approval_date: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={formData.start_date}
+                        onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-gold/30 focus:border-gold focus:bg-white transition-all outline-none text-sm"
                       />
+                      {errors.start_date && <p className="mt-1 text-xs text-red-600">{errors.start_date}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+                        Bitiş Tarihi *
+                      </label>
+                      <input
+                        type="date"
+                        value={formData.end_date}
+                        onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-gold/30 focus:border-gold focus:bg-white transition-all outline-none text-sm"
+                      />
+                      {errors.end_date && <p className="mt-1 text-xs text-red-600">{errors.end_date}</p>}
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Section 3: Vergi Ayarları */}
+              <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="h-1 w-full bg-gradient-to-r from-navy to-gold" />
+                <div className="p-5">
+                  <h2 className="text-base font-bold text-navy mb-4 flex items-center gap-2">
+                    <Percent className="w-5 h-5" />
+                    Vergi Ayarları
+                  </h2>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+                        KDV Oranı (%)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value={formData.vat_rate}
+                        onChange={(e) => setFormData({ ...formData, vat_rate: e.target.value })}
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-gold/30 focus:border-gold focus:bg-white transition-all outline-none text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+                        Tevkifat
+                      </label>
+                      <div className="flex items-center gap-3 h-[42px]">
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formData.has_withholding_tax}
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              has_withholding_tax: e.target.checked,
+                              withholding_tax_rate: e.target.checked ? formData.withholding_tax_rate : '0'
+                            })}
+                            className="sr-only peer"
+                          />
+                          <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-gold/30 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-gold"></div>
+                        </label>
+                        {formData.has_withholding_tax && (
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={formData.withholding_tax_rate}
+                            onChange={(e) => setFormData({ ...formData, withholding_tax_rate: e.target.value })}
+                            className="w-20 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                            placeholder="%"
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+                        Damga Vergisi (₺)
+                      </label>
+                      <MoneyInput
+                        value={formData.stamp_duty_amount}
+                        onChange={(value) => setFormData({ ...formData, stamp_duty_amount: value })}
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-gold/30 focus:border-gold focus:bg-white transition-all outline-none text-sm"
+                        placeholder="0"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+                        Damga V. Ödeyen
+                      </label>
+                      <select
+                        value={formData.stamp_duty_payer}
+                        onChange={(e) => setFormData({ ...formData, stamp_duty_payer: e.target.value })}
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-gold/30 focus:border-gold focus:bg-white transition-all outline-none text-sm"
+                      >
+                        <option value="company">TTO</option>
+                        <option value="academic">Akademisyen</option>
+                        <option value="client">Müşteri</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Section 4: Proje Ekibi */}
+              <section className="bg-white rounded-xl border border-slate-200 shadow-sm relative">
+                <div className="h-1 w-full bg-gradient-to-r from-navy to-gold rounded-t-xl" />
+                <div className="p-5">
+                  <h2 className="text-base font-bold text-navy mb-4 flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    Proje Ekibi
+                  </h2>
+
+                  <div className="mb-4 relative z-30">
+                    <PersonPicker
+                      value={selectedPersonId}
+                      onChange={(personId, personType, person) => {
+                        addRepresentative(personId, personType, person)
+                        setSelectedPersonId('')
+                      }}
+                      excludeIds={excludedPersonIds}
+                      label="Temsilci Ekle"
+                      placeholder="Kullanıcı veya personel ara..."
+                      required={false}
+                    />
+                  </div>
+
+                  {representatives.length > 0 && (
+                    <div className="space-y-2">
+                      {representatives.map((rep) => (
+                        <div key={rep.id} className="flex items-center justify-between bg-slate-50 p-3 rounded-lg border border-slate-100">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-navy/10 flex items-center justify-center">
+                              {rep.role === 'project_leader' ? (
+                                <Crown className="w-4 h-4 text-gold" />
+                              ) : (
+                                <User className="w-4 h-4 text-navy" />
+                              )}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-semibold text-slate-900">{rep.person.full_name}</p>
+                                <PersonBadge type={rep.type} size="sm" />
+                              </div>
+                              <p className="text-xs text-slate-500">{rep.person.email}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={rep.role}
+                              onChange={(e) => updateRepresentativeRole(rep.id, e.target.value as 'project_leader' | 'researcher')}
+                              className="px-2 py-1 text-xs border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-gold/30"
+                            >
+                              <option value="project_leader">Yürütücü</option>
+                              <option value="researcher">Araştırmacı</option>
+                            </select>
+
+                            <button
+                              type="button"
+                              onClick={() => removeRepresentative(rep.id)}
+                              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
 
-                  <p className="text-sm text-gray-600">
-                    ⚠️ Hakem heyeti onayı olmadan gelir kaydı yapılamaz.
-                  </p>
+                  {errors.representatives && (
+                    <p className="mt-2 text-xs text-red-600">{errors.representatives}</p>
+                  )}
                 </div>
-              </div>
+              </section>
 
-              {/* Mevcut Sözleşme Belgesi Gösterimi */}
-              {project?.contract_path && (
-                <div className="md:col-span-2">
-                  <div className="bg-green-50 p-3 rounded-lg flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <FileText className="h-5 w-5 text-green-600" />
-                      <span className="text-sm text-gray-700">Mevcut sözleşme belgesi yüklü</span>
+              {/* Section 5: Hakem Heyeti */}
+              <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="h-1 w-full bg-gradient-to-r from-navy to-gold" />
+                <div className="p-5">
+                  <h2 className="text-base font-bold text-navy mb-4 flex items-center gap-2">
+                    <Receipt className="w-5 h-5" />
+                    Hakem Heyeti
+                  </h2>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+                        Hakem Ödemesi (₺)
+                      </label>
+                      <MoneyInput
+                        value={formData.referee_payment}
+                        onChange={(value) => setFormData({ ...formData, referee_payment: value })}
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-gold/30 focus:border-gold focus:bg-white transition-all outline-none text-sm"
+                        placeholder="0"
+                      />
                     </div>
-                    <a
-                      href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/contracts/${project.contract_path}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:text-blue-700 underline"
-                    >
-                      İndir
-                    </a>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+                        Ödemeyi Yapacak
+                      </label>
+                      <select
+                        value={formData.referee_payer}
+                        onChange={(e) => setFormData({ ...formData, referee_payer: e.target.value })}
+                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-gold/30 focus:border-gold focus:bg-white transition-all outline-none text-sm"
+                      >
+                        <option value="company">TTO</option>
+                        <option value="academic">Akademisyen</option>
+                        <option value="client">Müşteri</option>
+                      </select>
+                    </div>
+
+                    {formData.referee_approved && (
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+                          Onay Tarihi
+                        </label>
+                        <input
+                          type="date"
+                          value={formData.referee_approval_date}
+                          onChange={(e) => setFormData({ ...formData, referee_approval_date: e.target.value })}
+                          className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-gold/30 focus:border-gold focus:bg-white transition-all outline-none text-sm"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.sent_to_referee}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          sent_to_referee: e.target.checked,
+                          referee_approved: e.target.checked ? formData.referee_approved : false,
+                          referee_approval_date: e.target.checked ? formData.referee_approval_date : ''
+                        })}
+                        className="w-4 h-4 text-gold bg-slate-100 border-slate-300 rounded focus:ring-gold"
+                      />
+                      <span className="text-sm text-slate-700">Hakem heyetine gönderildi</span>
+                    </label>
+
+                    <label className={`flex items-center gap-2 ${!formData.sent_to_referee ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
+                      <input
+                        type="checkbox"
+                        checked={formData.referee_approved}
+                        disabled={!formData.sent_to_referee}
+                        onChange={(e) => setFormData({ ...formData, referee_approved: e.target.checked })}
+                        className="w-4 h-4 text-gold bg-slate-100 border-slate-300 rounded focus:ring-gold disabled:opacity-50"
+                      />
+                      <span className="text-sm text-slate-700">Hakem onayı alındı</span>
+                    </label>
+                  </div>
+
+                  <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-amber-700">Hakem heyeti onayı olmadan gelir kaydı yapılamaz.</p>
                   </div>
                 </div>
-              )}
+              </section>
 
-              {/* Sözleşme Belgesi Upload */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Sözleşme (PDF) {project?.contract_path && '- Yeni dosya yüklerseniz eskisi değiştirilecek'}
-                </label>
-                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-blue-400 transition-colors">
-                  <div className="space-y-1 text-center">
-                    <FileText className="mx-auto h-12 w-12 text-gray-400" />
-                    <div className="flex text-sm text-gray-600">
-                      <label
-                        htmlFor="contract-upload"
-                        className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
+              {/* Section 6: Ödeme Planı */}
+              {hasPaymentPlan && (
+                <PaymentPlanSection
+                  budget={parseFloat(formData.budget) || 0}
+                  startDate={formData.start_date}
+                  enabled={true}
+                  installments={installments}
+                  onEnabledChange={() => {}}
+                  onInstallmentsChange={setInstallments}
+                  readOnly={false}
+                />
+              )}
+            </div>
+
+            {/* Right Column - Belgeler & Özet */}
+            <div className="space-y-6">
+              {/* Belgeler */}
+              <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="h-1 w-full bg-gradient-to-r from-navy to-gold" />
+                <div className="p-5">
+                  <h2 className="text-base font-bold text-navy mb-4 flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Belgeler
+                  </h2>
+
+                  {/* Mevcut Sözleşme */}
+                  {project?.contract_path && !contractFile && (
+                    <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-emerald-600" />
+                          <span className="text-xs font-medium text-emerald-700">Sözleşme yüklü</span>
+                        </div>
+                        <a
+                          href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/contracts/${project.contract_path}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700"
+                        >
+                          <Download className="w-3 h-3" />
+                          İndir
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Sözleşme Upload */}
+                  <div className="mb-4">
+                    <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
+                      {project?.contract_path ? 'Yeni Sözleşme (PDF)' : 'Sözleşme (PDF)'}
+                    </label>
+                    <div
+                      className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-all ${
+                        contractFile ? 'border-gold bg-gold/5' : 'border-slate-200 hover:border-gold hover:bg-gold/5'
+                      }`}
+                      onClick={() => document.getElementById('contract-upload')?.click()}
+                    >
+                      <input
+                        id="contract-upload"
+                        type="file"
+                        accept=".pdf"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            if (file.type !== 'application/pdf') {
+                              setErrors({ ...errors, contract: 'Sadece PDF' })
+                              return
+                            }
+                            setContractFile(file)
+                            setErrors({ ...errors, contract: '' })
+                          }
+                        }}
+                      />
+                      {contractFile ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <FileText className="w-5 h-5 text-red-500" />
+                          <span className="text-sm font-medium text-navy truncate max-w-[150px]">{contractFile.name}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setContractFile(null)
+                            }}
+                            className="text-slate-400 hover:text-red-600"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-slate-400">
+                          <Upload className="w-8 h-8 mx-auto mb-2" />
+                          <p className="text-xs">PDF yükle</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Görevlendirme İzni */}
+                  <div className="p-3 bg-slate-50 rounded-lg mb-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.has_assignment_permission}
+                        onChange={(e) => setFormData({ ...formData, has_assignment_permission: e.target.checked })}
+                        className="w-4 h-4 text-gold bg-slate-100 border-slate-300 rounded focus:ring-gold"
+                      />
+                      <span className="text-sm text-slate-700">Görevlendirme izni var</span>
+                    </label>
+                  </div>
+
+                  {/* Mevcut Görevlendirme Belgesi */}
+                  {formData.has_assignment_permission && project?.assignment_document_path && !assignmentFile && (
+                    <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-emerald-600" />
+                          <span className="text-xs font-medium text-emerald-700">Görevlendirme belgesi yüklü</span>
+                        </div>
+                        <a
+                          href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/contracts/${project.assignment_document_path}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700"
+                        >
+                          <Download className="w-3 h-3" />
+                          İndir
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Görevlendirme Belgesi Upload */}
+                  {formData.has_assignment_permission && (
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
+                        {project?.assignment_document_path ? 'Yeni Görevlendirme Yazısı' : 'Görevlendirme Yazısı'}
+                      </label>
+                      <div
+                        className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-all ${
+                          assignmentFile ? 'border-gold bg-gold/5' : 'border-slate-200 hover:border-gold hover:bg-gold/5'
+                        }`}
+                        onClick={() => document.getElementById('assignment-upload')?.click()}
                       >
-                        <span>Dosya Seç</span>
                         <input
-                          id="contract-upload"
-                          name="contract-upload"
+                          id="assignment-upload"
                           type="file"
-                          className="sr-only"
                           accept=".pdf"
+                          className="hidden"
                           onChange={(e) => {
                             const file = e.target.files?.[0]
                             if (file) {
                               if (file.type !== 'application/pdf') {
-                                setErrors({ ...errors, contract: 'Sadece PDF dosyaları yüklenebilir' })
+                                setErrors({ ...errors, assignmentFile: 'Sadece PDF' })
                                 return
                               }
-                              if (file.size > 10 * 1024 * 1024) {
-                                setErrors({ ...errors, contract: 'Dosya boyutu 10MB\'dan küçük olmalı' })
-                                return
-                              }
-                              setContractFile(file)
-                              setErrors({ ...errors, contract: '' })
+                              setAssignmentFile(file)
+                              setErrors({ ...errors, assignmentFile: '' })
                             }
                           }}
                         />
-                      </label>
-                      <p className="pl-1">veya sürükleyip bırakın</p>
-                    </div>
-                    <p className="text-xs text-gray-500">PDF, maksimum 10MB</p>
-                    {contractFile && (
-                      <p className="text-sm text-green-600 font-medium">
-                        ✓ {contractFile.name}
-                      </p>
-                    )}
-                    {errors.contract && (
-                      <p className="text-sm text-red-600">
-                        {errors.contract}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Akademisyen Görevlendirme İzni */}
-              <div className="md:col-span-2">
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <div className="flex items-start space-x-3">
-                    <input
-                      id="assignment-permission"
-                      type="checkbox"
-                      checked={formData.has_assignment_permission}
-                      onChange={(e) => setFormData({ ...formData, has_assignment_permission: e.target.checked })}
-                      className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <label htmlFor="assignment-permission" className="block text-sm font-medium text-gray-700">
-                      Akademisyen görevlendirme izni var mı?
-                      <p className="text-xs text-gray-500 font-normal mt-1">
-                        Eğer işaretlenirse, görevlendirme belgesi yükleme alanı görünecektir.
-                      </p>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* Mevcut Görevlendirme Belgesi Gösterimi */}
-              {project?.assignment_document_path && (
-                <div className="md:col-span-2">
-                  <div className="bg-green-50 p-3 rounded-lg flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <FileText className="h-5 w-5 text-green-600" />
-                      <span className="text-sm text-gray-700">Mevcut görevlendirme belgesi yüklü</span>
-                    </div>
-                    <a
-                      href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/contracts/${project.assignment_document_path}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:text-blue-700 underline"
-                    >
-                      İndir
-                    </a>
-                  </div>
-                </div>
-              )}
-
-              {/* Görevlendirme Belgesi Upload - Sadece izin varsa görünür */}
-              {formData.has_assignment_permission && (
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Görevlendirme Yazısı (PDF) {project?.assignment_document_path && '- Yeni dosya yüklerseniz eskisi değiştirilecek'}
-                  </label>
-                  <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-blue-400 transition-colors">
-                    <div className="space-y-1 text-center">
-                      <FileText className="mx-auto h-12 w-12 text-gray-400" />
-                      <div className="flex text-sm text-gray-600">
-                        <label
-                          htmlFor="assignment-upload"
-                          className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
-                        >
-                          <span>Dosya Seç</span>
-                          <input
-                            id="assignment-upload"
-                            name="assignment-upload"
-                            type="file"
-                            className="sr-only"
-                            accept=".pdf"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0]
-                              if (file) {
-                                if (file.type !== 'application/pdf') {
-                                  setErrors({ ...errors, assignmentFile: 'Sadece PDF dosyaları yüklenebilir' })
-                                  return
-                                }
-                                if (file.size > 10 * 1024 * 1024) {
-                                  setErrors({ ...errors, assignmentFile: 'Dosya boyutu 10MB\'dan küçük olmalı' })
-                                  return
-                                }
-                                setAssignmentFile(file)
-                                setErrors({ ...errors, assignmentFile: '' })
-                              }
-                            }}
-                          />
-                        </label>
-                        <p className="pl-1">veya sürükleyip bırakın</p>
-                      </div>
-                      <p className="text-xs text-gray-500">
-                        PDF (max 10MB)
-                      </p>
-                      {assignmentFile && (
-                        <p className="text-sm text-green-600 font-medium mt-2">
-                          Seçilen dosya: {assignmentFile.name}
-                        </p>
-                      )}
-                      {errors.assignmentFile && (
-                        <p className="text-sm text-red-600 mt-2">
-                          {errors.assignmentFile}
-                        </p>
-                      )}
-                      {uploadingAssignment && (
-                        <p className="text-sm text-blue-600 mt-2">
-                          Yükleniyor...
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Başlangıç Tarihi *
-                </label>
-                <input
-                  type="date"
-                  value={formData.start_date}
-                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                {errors.start_date && <p className="mt-1 text-sm text-red-600">{errors.start_date}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Bitiş Tarihi *
-                </label>
-                <input
-                  type="date"
-                  value={formData.end_date}
-                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                {errors.end_date && <p className="mt-1 text-sm text-red-600">{errors.end_date}</p>}
-              </div>
-            </div>
-          </div>
-
-          {/* Representatives */}
-          <div className="bg-white rounded-lg shadow-sm border p-4">
-            <h2 className="text-base font-semibold text-gray-900 mb-4">
-              Proje Temsilcileri
-            </h2>
-
-            {/* Add Representative */}
-            <div className="mb-6">
-              <PersonPicker
-                value={selectedPersonId}
-                onChange={(personId, personType, person) => {
-                  addRepresentative(personId, personType, person)
-                  setSelectedPersonId('') // Reset after adding
-                }}
-                excludeIds={excludedPersonIds}
-                label="Temsilci Ekle"
-                placeholder="Bir kullanıcı veya personel seçin..."
-                required={false}
-              />
-            </div>
-
-            {/* Representatives List */}
-            <div className="space-y-4">
-              {representatives.map((rep) => (
-                <div key={rep.id} className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="flex items-center">
-                      {rep.role === 'project_leader' && (
-                        <Crown className="h-4 w-4 text-yellow-500 mr-1" />
-                      )}
-                      <div>
-                        <div className="flex items-center space-x-2">
-                          <p className="font-medium text-gray-900">{rep.person.full_name}</p>
-                          <PersonBadge type={rep.type} size="sm" />
-                        </div>
-                        <p className="text-sm text-gray-600">{rep.person.email}</p>
+                        {assignmentFile ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <FileText className="w-5 h-5 text-blue-500" />
+                            <span className="text-sm font-medium text-navy truncate max-w-[150px]">{assignmentFile.name}</span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setAssignmentFile(null)
+                              }}
+                              className="text-slate-400 hover:text-red-600"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="text-slate-400">
+                            <Upload className="w-8 h-8 mx-auto mb-2" />
+                            <p className="text-xs">PDF yükle</p>
+                          </div>
+                        )}
                       </div>
                     </div>
+                  )}
+                </div>
+              </section>
+
+              {/* Özet Kartı */}
+              <section className="bg-gradient-to-br from-navy to-navy/90 rounded-xl shadow-sm overflow-hidden text-white p-5">
+                <h2 className="text-base font-bold mb-4 flex items-center gap-2">
+                  <Info className="w-5 h-5" />
+                  Proje Özeti
+                </h2>
+
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-white/70">Bütçe</span>
+                    <span className="font-bold">₺{parseFloat(formData.budget || '0').toLocaleString('tr-TR')}</span>
                   </div>
-
-                  <div className="flex items-center space-x-3">
-                    <select
-                      value={rep.role}
-                      onChange={(e) => updateRepresentativeRole(rep.id, e.target.value as 'project_leader' | 'researcher')}
-                      className={`px-3 py-1 rounded text-sm font-medium border ${
-                        rep.role === 'project_leader'
-                          ? 'bg-yellow-50 text-yellow-800 border-yellow-200'
-                          : 'bg-gray-50 text-gray-700 border-gray-200'
-                      }`}
-                    >
-                      <option value="project_leader">Proje Yürütücüsü</option>
-                      <option value="researcher">Araştırmacı</option>
-                    </select>
-
-                    <button
-                      type="button"
-                      onClick={() => removeRepresentative(rep.id)}
-                      className="p-1 text-red-600 hover:bg-red-50 rounded"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
+                  <div className="flex justify-between">
+                    <span className="text-white/70">TTO Payı</span>
+                    <span className="font-bold text-gold">%{formData.company_rate}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-white/70">Akademisyen Payı</span>
+                    <span className="font-bold">%{100 - (parseFloat(formData.company_rate) || 0)}</span>
+                  </div>
+                  <div className="border-t border-white/20 pt-3 flex justify-between">
+                    <span className="text-white/70">Ekip</span>
+                    <span className="font-bold">{representatives.length} kişi</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-white/70">Hakem Onayı</span>
+                    <span className={`font-bold ${formData.referee_approved ? 'text-emerald-400' : 'text-amber-400'}`}>
+                      {formData.referee_approved ? 'Onaylı' : 'Bekliyor'}
+                    </span>
                   </div>
                 </div>
-              ))}
-            </div>
+              </section>
 
-            {representatives.length > 0 && (
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                <p className="text-sm font-medium text-blue-900">
-                  Toplam {representatives.length} temsilci
-                  {' • '}
-                  {representatives.filter(r => r.role === 'project_leader').length} Yürütücü
-                  {' • '}
-                  {representatives.filter(r => r.role === 'researcher').length} Araştırmacı
-                </p>
+              {/* Submit Buttons */}
+              <div className="space-y-3">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="w-full px-4 py-3 bg-gold text-white font-bold rounded-lg hover:bg-gold/90 disabled:opacity-50 transition-all shadow-lg shadow-gold/20 flex items-center justify-center gap-2"
+                >
+                  {saving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                      Kaydediliyor...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      Değişiklikleri Kaydet
+                    </>
+                  )}
+                </button>
+
+                <Link
+                  href={`/dashboard/projects/${params.id}`}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+                >
+                  İptal
+                </Link>
               </div>
-            )}
 
-            {errors.representatives && (
-              <p className="mt-2 text-sm text-red-600">{errors.representatives}</p>
-            )}
-          </div>
-
-          {/* Payment Plan - Read Only View with Edit Capability */}
-          {hasPaymentPlan && (
-            <PaymentPlanSection
-              budget={parseFloat(formData.budget) || 0}
-              startDate={formData.start_date}
-              enabled={true}
-              installments={installments}
-              onEnabledChange={() => {}} // Can't disable existing plan
-              onInstallmentsChange={setInstallments}
-              readOnly={false}
-            />
-          )}
-
-          {/* Submit */}
-          <div className="flex justify-end space-x-2">
-            <Link
-              href="/dashboard/projects"
-              className="px-3 py-2 border border-gray-300 rounded text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              İptal
-            </Link>
-            <button
-              type="submit"
-              disabled={saving}
-              className="px-3 py-2 bg-teal-600 text-white rounded text-sm font-semibold hover:bg-teal-700 disabled:opacity-50 flex items-center transition-colors"
-            >
-              {saving && <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />}
-              <Save className="h-4 w-4 mr-2" />
-              {saving ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
-            </button>
-          </div>
-
-          {errors.submit && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-600">{errors.submit}</p>
+              {errors.submit && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-xs text-red-600">{errors.submit}</p>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </form>
       </div>
     </DashboardLayout>

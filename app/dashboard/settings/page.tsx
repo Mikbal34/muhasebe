@@ -242,7 +242,7 @@ export default function SettingsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-navy mx-auto"></div>
           <p className="mt-2 text-gray-600">Yükleniyor...</p>
         </div>
       </div>
@@ -284,7 +284,7 @@ export default function SettingsPage() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="inline-flex items-center px-3 py-2 text-sm font-semibold rounded text-white bg-teal-600 hover:bg-teal-700 disabled:opacity-50 transition-colors"
+                className="inline-flex items-center px-3 py-2 text-sm font-semibold rounded text-white bg-navy hover:bg-navy/90 disabled:opacity-50 transition-colors"
               >
                 {saving ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
@@ -299,10 +299,10 @@ export default function SettingsPage() {
 
         {/* Success Message */}
         {successMessage && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="bg-navy/5 border border-navy/20 rounded-lg p-4">
             <div className="flex items-center">
-              <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
-              <span className="text-green-800">{successMessage}</span>
+              <CheckCircle className="h-5 w-5 text-navy mr-2" />
+              <span className="text-navy">{successMessage}</span>
             </div>
           </div>
         )}
@@ -334,7 +334,7 @@ export default function SettingsPage() {
                     type="text"
                     value={settings.company.name}
                     onChange={(e) => handleInputChange('company', 'name', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors['company.name'] ? 'border-red-300' : 'border-gray-300'
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 ${errors['company.name'] ? 'border-red-300' : 'border-gray-300'
                       }`}
                   />
                   {errors['company.name'] && (
@@ -350,7 +350,7 @@ export default function SettingsPage() {
                     type="text"
                     value={settings.company.tax_number}
                     onChange={(e) => handleInputChange('company', 'tax_number', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors['company.tax_number'] ? 'border-red-300' : 'border-gray-300'
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 ${errors['company.tax_number'] ? 'border-red-300' : 'border-gray-300'
                       }`}
                   />
                   {errors['company.tax_number'] && (
@@ -366,7 +366,7 @@ export default function SettingsPage() {
                     value={settings.company.address}
                     onChange={(e) => handleInputChange('company', 'address', e.target.value)}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30"
                   />
                 </div>
 
@@ -378,7 +378,7 @@ export default function SettingsPage() {
                     type="text"
                     value={settings.company.phone}
                     onChange={(e) => handleInputChange('company', 'phone', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30"
                   />
                 </div>
 
@@ -390,7 +390,7 @@ export default function SettingsPage() {
                     type="email"
                     value={settings.company.email}
                     onChange={(e) => handleInputChange('company', 'email', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors['company.email'] ? 'border-red-300' : 'border-gray-300'
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 ${errors['company.email'] ? 'border-red-300' : 'border-gray-300'
                       }`}
                   />
                   {errors['company.email'] && (
@@ -418,7 +418,7 @@ export default function SettingsPage() {
                   <select
                     value={settings.banking.bank_name}
                     onChange={(e) => handleInputChange('banking', 'bank_name', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30"
                   >
                     <option value="HALKBANK">Halkbank</option>
                     <option value="ZIRAAT">Ziraat Bankası</option>
@@ -446,7 +446,7 @@ export default function SettingsPage() {
                       handleInputChange('banking', 'company_iban', value)
                     }}
                     placeholder="TR000000000000000000000000"
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 font-mono ${
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 font-mono ${
                       errors['banking.company_iban'] ? 'border-red-300' : 'border-gray-300'
                     }`}
                   />
@@ -482,7 +482,7 @@ export default function SettingsPage() {
                     step="0.1"
                     value={settings.financial.default_vat_rate}
                     onChange={(e) => handleInputChange('financial', 'default_vat_rate', parseFloat(e.target.value))}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors['financial.default_vat_rate'] ? 'border-red-300' : 'border-gray-300'
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 ${errors['financial.default_vat_rate'] ? 'border-red-300' : 'border-gray-300'
                       }`}
                   />
                   {errors['financial.default_vat_rate'] && (
@@ -501,7 +501,7 @@ export default function SettingsPage() {
                     step="0.1"
                     value={settings.financial.default_company_rate}
                     onChange={(e) => handleInputChange('financial', 'default_company_rate', parseFloat(e.target.value))}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors['financial.default_company_rate'] ? 'border-red-300' : 'border-gray-300'
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 ${errors['financial.default_company_rate'] ? 'border-red-300' : 'border-gray-300'
                       }`}
                   />
                   {errors['financial.default_company_rate'] && (
@@ -516,7 +516,7 @@ export default function SettingsPage() {
                   <select
                     value={settings.financial.currency}
                     onChange={(e) => handleInputChange('financial', 'currency', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30"
                   >
                     <option value="TRY">Turkish Lira (₺)</option>
                     <option value="USD">US Dollar ($)</option>
@@ -531,7 +531,7 @@ export default function SettingsPage() {
                   <select
                     value={settings.financial.decimal_places}
                     onChange={(e) => handleInputChange('financial', 'decimal_places', parseInt(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30"
                   >
                     <option value={0}>0</option>
                     <option value={1}>1</option>
@@ -564,7 +564,7 @@ export default function SettingsPage() {
                     onChange={(e) => handleInputChange('notifications', 'email_enabled', e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-navy/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-navy"></div>
                 </label>
               </div>
 
@@ -580,7 +580,7 @@ export default function SettingsPage() {
                     onChange={(e) => handleInputChange('notifications', 'payment_status_changes', e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-navy/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-navy"></div>
                 </label>
               </div>
 
@@ -596,7 +596,7 @@ export default function SettingsPage() {
                     onChange={(e) => handleInputChange('notifications', 'new_income_notifications', e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-navy/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-navy"></div>
                 </label>
               </div>
 
@@ -612,7 +612,7 @@ export default function SettingsPage() {
                     onChange={(e) => handleInputChange('notifications', 'project_updates', e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-navy/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-navy"></div>
                 </label>
               </div>
             </div>
@@ -640,7 +640,7 @@ export default function SettingsPage() {
                       onChange={(e) => handleInputChange('system', 'backup_enabled', e.target.checked)}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-navy/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-navy"></div>
                   </label>
                 </div>
 
@@ -652,7 +652,7 @@ export default function SettingsPage() {
                     value={settings.system.backup_frequency}
                     onChange={(e) => handleInputChange('system', 'backup_frequency', e.target.value)}
                     disabled={!settings.system.backup_enabled}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 disabled:opacity-50"
                   >
                     <option value="hourly">Saatlik</option>
                     <option value="daily">Günlük</option>
@@ -671,7 +671,7 @@ export default function SettingsPage() {
                     max="100"
                     value={settings.system.max_file_size}
                     onChange={(e) => handleInputChange('system', 'max_file_size', parseInt(e.target.value))}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors['system.max_file_size'] ? 'border-red-300' : 'border-gray-300'
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 ${errors['system.max_file_size'] ? 'border-red-300' : 'border-gray-300'
                       }`}
                   />
                   {errors['system.max_file_size'] && (
@@ -689,7 +689,7 @@ export default function SettingsPage() {
                     max="480"
                     value={settings.system.session_timeout}
                     onChange={(e) => handleInputChange('system', 'session_timeout', parseInt(e.target.value))}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors['system.session_timeout'] ? 'border-red-300' : 'border-gray-300'
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-navy/30 ${errors['system.session_timeout'] ? 'border-red-300' : 'border-gray-300'
                       }`}
                   />
                   {errors['system.session_timeout'] && (

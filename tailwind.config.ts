@@ -52,27 +52,52 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
-        // Modern Dashboard Colors
+        // YTÜ Kurumsal Renkler
+        navy: {
+          DEFAULT: '#00205C', // Ana lacivert
+          50: '#E6EBF5',
+          100: '#C2CEE8',
+          200: '#8FA3D1',
+          300: '#5C78BA',
+          400: '#2E4D9B',
+          500: '#00205C', // Ana
+          600: '#001A4D',
+          700: '#00143E',
+          800: '#000E2F',
+          900: '#000820',
+        },
+        gold: {
+          DEFAULT: '#AD976E', // Ana altın
+          50: '#F7F5F1',
+          100: '#EDE8DE',
+          200: '#DDD4C2',
+          300: '#CDBFA5',
+          400: '#BDAB89',
+          500: '#AD976E', // Ana
+          600: '#8E7A56',
+          700: '#6F5E40',
+          800: '#50432B',
+          900: '#312816',
+        },
         sidebar: {
-          DEFAULT: '#1E293B', // slate-800
-          hover: '#334155', // slate-700
-          active: 'rgba(20, 184, 166, 0.1)', // teal with opacity
+          DEFAULT: '#00205C', // Lacivert
+          hover: '#002878', // Açık lacivert
+          active: 'rgba(173, 151, 110, 0.15)', // Altın transparan
         },
-        'accent-teal': {
-          DEFAULT: '#14B8A6', // teal-500
-          light: '#5EEAD4', // teal-300
-          dark: '#0D9488', // teal-600
-        },
-        'accent-cyan': {
-          DEFAULT: '#06B6D4', // cyan-500
-          light: '#67E8F9', // cyan-300
-          dark: '#0891B2', // cyan-600
+        'accent-gold': {
+          DEFAULT: '#AD976E', // Ana altın
+          light: '#CDBFA5', // Açık altın
+          dark: '#8E7A56', // Koyu altın
         },
       },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+      },
+      fontFamily: {
+        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        heading: ['var(--font-montserrat)', 'system-ui', 'sans-serif'],
       },
       keyframes: {
         'accordion-down': {

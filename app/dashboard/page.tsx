@@ -17,7 +17,10 @@ import {
   Landmark,
   AlertCircle,
   FolderOpen,
-  Calendar
+  Calendar,
+  Download,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 import { StatCardSkeleton, ProgressBarSkeleton, MonthlyTableSkeleton, Skeleton } from '@/components/ui/skeleton'
 import { MiniChart } from '@/components/ui/mini-chart'
@@ -40,7 +43,6 @@ export default function DashboardPage() {
   const [dateRange, setDateRange] = useState<DateRange>({ startDate: null, endDate: null })
   const router = useRouter()
 
-  // React Query hooks - 5 dakika cache ile
   const { stats, metrics: dashboardMetrics, ttoFinancials, isLoading } = useDashboard(user?.role, dateRange)
   const { data: cashFlowData, isLoading: cashFlowLoading } = useCashFlow(cashFlowPeriod)
 
@@ -61,7 +63,6 @@ export default function DashboardPage() {
     }
   }, [router])
 
-  // Cash flow period değiştiğinde React Query otomatik yeniden fetch eder
   const handleCashFlowPeriodChange = (newPeriod: CashFlowPeriod) => {
     setCashFlowPeriod(newPeriod)
   }
@@ -71,432 +72,311 @@ export default function DashboardPage() {
   if (loading || !user) {
     return (
       <DashboardLayout user={user || { id: '', full_name: 'Yükleniyor...', email: '', role: 'manager' }}>
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Welcome Section Skeleton */}
-          <div className="bg-white rounded-lg shadow-sm p-6 border">
+          <div className="bg-white rounded-lg shadow-sm p-4 border">
             <div className="flex items-center justify-between">
-              <div>
-                <Skeleton className="h-8 w-64 mb-2" />
-                <Skeleton className="h-4 w-48" />
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-12 w-12 rounded-full" />
+                <div>
+                  <Skeleton className="h-6 w-48 mb-1" />
+                  <Skeleton className="h-4 w-32" />
+                </div>
               </div>
-              <Skeleton className="h-4 w-48" />
             </div>
           </div>
 
           {/* Stat Cards Skeleton */}
-          <StatCardSkeleton count={6} />
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-lg shadow-sm p-3 border relative overflow-hidden">
+                <Skeleton className="h-1 w-full absolute top-0 left-0" />
+                <Skeleton className="h-3 w-20 mb-2" />
+                <Skeleton className="h-5 w-24" />
+              </div>
+            ))}
+          </div>
 
-          {/* Admin-specific skeletons - only shows briefly during loading */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Skeleton className="h-5 w-5 rounded-lg" />
-              <Skeleton className="h-6 w-64" />
-            </div>
-
-            {/* 6 Cards Grid Skeleton */}
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="bg-white rounded-lg shadow-sm p-4 border">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-3 w-20" />
-                      <Skeleton className="h-6 w-24" />
-                    </div>
-                    <Skeleton className="h-8 w-8 rounded-lg" />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Progress Bar Skeleton */}
-            <ProgressBarSkeleton />
-
-            {/* Year Cards Skeleton */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="bg-white rounded-lg shadow-sm p-4 border">
-                  <Skeleton className="h-5 w-16 mb-3" />
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Skeleton className="h-3 w-28" />
-                      <Skeleton className="h-4 w-24" />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Skeleton className="h-3 w-20" />
-                      <Skeleton className="h-4 w-24" />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Monthly Table Skeleton */}
-            <MonthlyTableSkeleton />
+          {/* Progress Bar Skeleton */}
+          <div className="bg-white rounded-lg shadow-sm p-4 border">
+            <Skeleton className="h-4 w-32 mb-3" />
+            <Skeleton className="h-8 w-full rounded-lg" />
           </div>
         </div>
       </DashboardLayout>
     )
   }
 
-  // Different stat cards based on user role
-  const statCards = user.role === 'manager' ? [
-    {
-      title: 'Bakiyeniz',
-      value: `₺${(stats?.totalBalance || 0).toLocaleString('tr-TR')}`,
-      icon: PiggyBank,
-      color: 'bg-green-500',
-      textColor: 'text-green-600'
-    },
-    {
-      title: 'Dahil Olduğunuz Projeler',
-      value: stats?.totalProjects || 0,
-      icon: Building2,
-      color: 'bg-blue-500',
-      textColor: 'text-blue-600'
-    },
-    {
-      title: 'Projelerden Toplam Gelir',
-      value: `₺${(stats?.totalIncome || 0).toLocaleString('tr-TR')}`,
-      icon: Wallet,
-      color: 'bg-purple-500',
-      textColor: 'text-purple-600'
-    },
-    {
-      title: 'Ödeme Talepleriniz',
-      value: `₺${(stats?.totalPayments || 0).toLocaleString('tr-TR')}`,
-      icon: FileText,
-      color: 'bg-indigo-500',
-      textColor: 'text-indigo-600'
-    },
-    {
-      title: 'Bekleyen Ödemeler',
-      value: stats?.pendingPayments || 0,
-      icon: AlertTriangle,
-      color: 'bg-yellow-500',
-      textColor: 'text-yellow-600'
-    },
-    {
-      title: 'Aktif Projeler',
-      value: stats?.activeProjects || 0,
-      icon: CheckCircle,
-      color: 'bg-pink-500',
-      textColor: 'text-pink-600'
-    },
-  ] : [
-    {
-      title: 'Toplam Proje',
-      value: stats?.totalProjects || 0,
-      icon: Building2,
-      color: 'bg-blue-500',
-      textColor: 'text-blue-600'
-    },
-    {
-      title: 'Aktif Proje',
-      value: stats?.activeProjects || 0,
-      icon: CheckCircle,
-      color: 'bg-green-500',
-      textColor: 'text-green-600'
-    },
-    {
-      title: 'Toplam Gelir',
-      value: `₺${(stats?.totalIncome || 0).toLocaleString('tr-TR')}`,
-      icon: Wallet,
-      color: 'bg-purple-500',
-      textColor: 'text-purple-600'
-    },
-    {
-      title: 'Toplam Ödeme',
-      value: `₺${(stats?.totalPayments || 0).toLocaleString('tr-TR')}`,
-      icon: FileText,
-      color: 'bg-indigo-500',
-      textColor: 'text-indigo-600'
-    },
-    {
-      title: 'Bekleyen Ödeme',
-      value: stats?.pendingPayments || 0,
-      icon: AlertTriangle,
-      color: 'bg-yellow-500',
-      textColor: 'text-yellow-600'
-    },
-    {
-      title: 'Toplam Bakiye',
-      value: `₺${(stats?.totalBalance || 0).toLocaleString('tr-TR')}`,
-      icon: PiggyBank,
-      color: 'bg-pink-500',
-      textColor: 'text-pink-600'
-    },
-  ]
-
-  // Use directly without filtering
-  const visibleStats = statCards
-
   return (
     <DashboardLayout user={user}>
-      <div className="space-y-6">
-        {/* Welcome Section */}
-        <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-slate-700 rounded-lg flex items-center justify-center">
-                <span className="text-base font-bold text-white">
-                  {user.full_name.charAt(0).toUpperCase()}
-                </span>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-slate-900">
-                  Hoş geldiniz, {user.full_name}
-                </h1>
-                <p className="text-sm text-slate-600">
-                  {user.role === 'admin' && 'Sistem Yöneticisi Paneli'}
-                  {user.role === 'manager' && 'Mali İşler Paneli'}
-                </p>
-              </div>
+      <div className="space-y-4">
+        {/* Compact Welcome Section */}
+        <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-full bg-navy flex items-center justify-center border-2 border-gold shadow-sm">
+              <span className="text-lg font-bold text-white">
+                {user.full_name.charAt(0).toUpperCase()}
+              </span>
             </div>
-            <div className="text-right">
-              <div className="bg-slate-50 px-3 py-2 rounded-lg border border-slate-200">
-                <p className="text-xs text-slate-600 uppercase mb-0.5">Bugün</p>
-                <p className="text-sm font-semibold text-slate-900">
-                  {new Date().toLocaleDateString('tr-TR', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                  })}
-                </p>
-              </div>
+            <div>
+              <h1 className="text-xl font-bold text-navy">
+                Hoş geldiniz, {user.full_name.split(' ')[0]}
+              </h1>
+              <p className="text-sm text-slate-500">
+                {user.role === 'admin' ? 'Sistem Yöneticisi Paneli' : 'Mali İşler Paneli'}
+              </p>
             </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <DateRangePicker
+              value={dateRange}
+              onChange={setDateRange}
+              align="right"
+            />
           </div>
         </div>
 
-        {/* TTO Dashboard (Admin and Manager) */}
+        {/* TTO Dashboard */}
         {['admin', 'manager'].includes(user.role) && dashboardMetrics && (
-          <div className="space-y-6">
+          <>
+            {/* Section Header */}
             <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-slate-900">Finansal Gösterge Tablosu</h2>
-                <p className="text-sm text-slate-600">TTO Mali Durum Özeti</p>
-              </div>
-              <DateRangePicker
-                value={dateRange}
-                onChange={setDateRange}
-                align="right"
-              />
+              <h2 className="text-lg font-bold text-navy">Finansal Gösterge Tablosu</h2>
             </div>
 
-            {/* Main 6 Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              {/* 1. Total Budget */}
-              <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-3 border border-slate-200">
-                <p className="text-xs text-slate-600 uppercase mb-1">Toplam Bütçe</p>
-                <p className="text-lg font-bold text-slate-900">
+            {/* 6 Metric Cards - Compact Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              {/* Toplam Bütçe */}
+              <div className="relative bg-white p-4 rounded-lg shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition-shadow">
+                <div className="metric-card-accent"></div>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Toplam Bütçe</p>
+                <p className="text-lg font-extrabold text-navy">
                   ₺{dashboardMetrics.total_budget.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
 
-              {/* 2. Invoiced (Kesilen Fatura) */}
-              <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-3 border border-slate-200">
-                <p className="text-xs text-slate-600 uppercase mb-1">Kesilen Fatura</p>
-                <p className="text-lg font-bold text-slate-900">
+              {/* Kesilen Fatura */}
+              <div className="relative bg-white p-4 rounded-lg shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition-shadow">
+                <div className="metric-card-accent"></div>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Kesilen Fatura</p>
+                <p className="text-lg font-extrabold text-navy">
                   ₺{dashboardMetrics.total_invoiced.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
 
-              {/* 3. Collected (Tahsil Edilen) */}
-              <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-3 border border-slate-200">
-                <p className="text-xs text-slate-600 uppercase mb-1">Tahsil Edilen</p>
-                <p className="text-lg font-bold text-emerald-600">
+              {/* Tahsil Edilen */}
+              <div className="relative bg-white p-4 rounded-lg shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition-shadow">
+                <div className="metric-card-accent"></div>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Tahsil Edilen</p>
+                <p className="text-lg font-extrabold text-navy">
                   ₺{dashboardMetrics.total_collected.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
 
-              {/* 4. Outstanding (Açık Bakiye) */}
-              <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-3 border border-slate-200">
-                <p className="text-xs text-slate-600 uppercase mb-1">Açık Bakiye</p>
-                <p className="text-lg font-bold text-orange-600">
+              {/* Açık Bakiye */}
+              <div className="relative bg-white p-4 rounded-lg shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition-shadow">
+                <div className="metric-card-accent"></div>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Açık Bakiye</p>
+                <p className="text-lg font-extrabold text-gold">
                   ₺{dashboardMetrics.total_outstanding.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
 
-              {/* 5. Remaining to Invoice (Kesilecek Fatura) */}
-              <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-3 border border-slate-200">
-                <p className="text-xs text-slate-600 uppercase mb-1">Kesilecek Fatura</p>
-                <p className="text-lg font-bold text-red-600">
+              {/* Kesilecek Fatura */}
+              <div className="relative bg-white p-4 rounded-lg shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition-shadow">
+                <div className="metric-card-accent"></div>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Kesilecek Fatura</p>
+                <p className="text-lg font-extrabold text-slate-500">
                   ₺{dashboardMetrics.remaining_to_invoice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
 
-              {/* 6. TTO Commission */}
-              <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-3 border border-slate-200">
-                <p className="text-xs text-slate-600 uppercase mb-1">TTO Payı</p>
-                <p className="text-lg font-bold text-purple-600">
+              {/* TTO Payı */}
+              <div className="relative bg-white p-4 rounded-lg shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition-shadow">
+                <div className="metric-card-accent"></div>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">TTO Payı</p>
+                <p className="text-lg font-extrabold text-gold">
                   ₺{dashboardMetrics.total_commission.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
             </div>
 
-            {/* Multi-Segment Progress Bar */}
-            <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-slate-600 uppercase mb-1">Bütçe Durumu</p>
-                    <p className="text-xl font-bold text-slate-900">
-                      ₺{dashboardMetrics.total_budget.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                </div>
-
-                {/* 3 Segmentli Progress Bar */}
-                <div className="relative w-full h-8 bg-slate-200 rounded-lg overflow-hidden">
-                  {/* Yeşil: Tahsil Edilen */}
-                  <div
-                    className="absolute h-full bg-emerald-500 transition-all duration-500"
-                    style={{
-                      width: `${dashboardMetrics.total_budget > 0 ? (dashboardMetrics.total_collected / dashboardMetrics.total_budget) * 100 : 0}%`,
-                      left: 0
-                    }}
-                    title={`Tahsil Edilen: ₺${dashboardMetrics.total_collected.toLocaleString('tr-TR')}`}
-                  />
-
-                  {/* Turuncu: Açık Bakiye (Kesilen ama tahsil edilmemiş) */}
-                  <div
-                    className="absolute h-full bg-orange-500 transition-all duration-500"
-                    style={{
-                      width: `${dashboardMetrics.total_budget > 0 ? (dashboardMetrics.total_outstanding / dashboardMetrics.total_budget) * 100 : 0}%`,
-                      left: `${dashboardMetrics.total_budget > 0 ? (dashboardMetrics.total_collected / dashboardMetrics.total_budget) * 100 : 0}%`
-                    }}
-                    title={`Açık Bakiye: ₺${dashboardMetrics.total_outstanding.toLocaleString('tr-TR')}`}
-                  />
-
-                  {/* Gri kısım zaten arka planda görünüyor (remaining) */}
-                </div>
-
-                {/* Legend */}
-                <div className="grid grid-cols-3 gap-2 text-xs">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-emerald-500 rounded"></div>
-                    <div>
-                      <div className="font-semibold text-slate-900">Tahsil Edilen</div>
-                      <div className="text-slate-600">₺{dashboardMetrics.total_collected.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-orange-500 rounded"></div>
-                    <div>
-                      <div className="font-semibold text-slate-900">Açık Bakiye</div>
-                      <div className="text-slate-600">₺{dashboardMetrics.total_outstanding.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-slate-300 rounded"></div>
-                    <div>
-                      <div className="font-semibold text-slate-900">Kesilecek</div>
-                      <div className="text-slate-600">₺{dashboardMetrics.remaining_to_invoice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-
-            {/* Year Breakdown Cards */}
-            <div>
-              <h3 className="text-base font-semibold text-slate-900 mb-3">Yıllık Dağılım</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {dashboardMetrics.year_breakdown.map((yearData) => (
-                  <div key={yearData.year} className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
-                    <h3 className="text-lg font-bold text-slate-900 mb-3">{yearData.year}</h3>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between p-2 bg-red-50 rounded border border-red-100">
-                        <span className="text-xs text-red-700 uppercase">Kesilecek</span>
-                        <span className="text-base font-bold text-red-700">
-                          ₺{yearData.remaining.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between p-2 bg-purple-50 rounded border border-purple-100">
-                        <span className="text-xs text-purple-700 uppercase">TTO Payı</span>
-                        <span className="text-base font-bold text-purple-700">
-                          ₺{yearData.commission.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Monthly Income-Expense Table */}
-            <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
-              <div className="flex items-center justify-between mb-4">
+            {/* Budget Progress Bar - Compact */}
+            <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-100">
+              <div className="flex items-center justify-between mb-3">
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">Aylık Gelir-Gider Tablosu</h3>
-                  <p className="text-xs text-slate-600 mt-0.5">12 aylık finansal özet</p>
+                  <p className="text-sm font-bold text-navy">Bütçe Durumu</p>
+                  <p className="text-xs text-slate-400">Toplam: ₺{dashboardMetrics.total_budget.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</p>
                 </div>
-                <select
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(e.target.value)}
-                  className="px-3 py-2 border border-slate-300 rounded text-sm font-semibold text-slate-900 bg-white focus:outline-none focus:ring-1 focus:ring-teal-600 focus:border-teal-600"
-                >
-                  <option value="2024">2024</option>
-                  <option value="2025">2025</option>
-                  <option value="2026">2026</option>
-                </select>
+                <div className="flex items-center gap-4 bg-slate-50 px-4 py-2 rounded-full border border-slate-100">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-navy"></div>
+                    <span className="text-[10px] font-bold text-slate-600 uppercase">Tahsil</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-gold"></div>
+                    <span className="text-[10px] font-bold text-slate-600 uppercase">Bekleyen</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-slate-200"></div>
+                    <span className="text-[10px] font-bold text-slate-600 uppercase">Kalan</span>
+                  </div>
+                </div>
               </div>
 
-              <div className="overflow-x-auto rounded border border-slate-200">
-                <table className="w-full text-sm">
+              {/* Progress Bar */}
+              <div className="w-full bg-slate-100 h-8 rounded-lg overflow-hidden flex p-1">
+                <div
+                  className="h-full bg-navy rounded-md progress-segment relative group"
+                  style={{
+                    width: `${dashboardMetrics.total_budget > 0 ? (dashboardMetrics.total_collected / dashboardMetrics.total_budget) * 100 : 0}%`
+                  }}
+                >
+                  <div className="absolute inset-0 flex items-center justify-center text-[10px] font-black text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                    {Math.round((dashboardMetrics.total_collected / dashboardMetrics.total_budget) * 100)}%
+                  </div>
+                </div>
+                <div
+                  className="h-full bg-gold rounded-md mx-0.5 progress-segment relative group"
+                  style={{
+                    width: `${dashboardMetrics.total_budget > 0 ? (dashboardMetrics.total_outstanding / dashboardMetrics.total_budget) * 100 : 0}%`
+                  }}
+                >
+                  <div className="absolute inset-0 flex items-center justify-center text-[10px] font-black text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                    {Math.round((dashboardMetrics.total_outstanding / dashboardMetrics.total_budget) * 100)}%
+                  </div>
+                </div>
+              </div>
+
+              {/* Values */}
+              <div className="grid grid-cols-3 gap-4 mt-3 pt-3 border-t border-slate-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-navy/10 flex items-center justify-center">
+                    <Wallet className="w-4 h-4 text-navy" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">Tahsilat</p>
+                    <p className="text-sm font-extrabold text-slate-900">₺{dashboardMetrics.total_collected.toLocaleString('tr-TR')}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-gold/20 flex items-center justify-center">
+                    <AlertTriangle className="w-4 h-4 text-gold" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">Bekleyen</p>
+                    <p className="text-sm font-extrabold text-slate-900">₺{dashboardMetrics.total_outstanding.toLocaleString('tr-TR')}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+                    <PiggyBank className="w-4 h-4 text-slate-500" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">Kalan</p>
+                    <p className="text-sm font-extrabold text-slate-900">₺{dashboardMetrics.remaining_to_invoice.toLocaleString('tr-TR')}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Year Breakdown Cards - Corporate Colors */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {dashboardMetrics.year_breakdown.map((yearData, index) => {
+                const colors = [
+                  { bg: 'bg-navy/5', border: 'border-navy/20', text: 'text-navy/70', accent: 'text-navy' },
+                  { bg: 'bg-gold/10', border: 'border-gold/30', text: 'text-gold', accent: 'text-gold' },
+                  { bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-500', accent: 'text-slate-700' }
+                ]
+                const color = colors[index % 3]
+
+                return (
+                  <div key={yearData.year} className={`${color.bg} ${color.border} border p-4 rounded-lg`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className={`text-lg font-black ${color.accent}`}>{yearData.year}</span>
+                      <TrendingUp className={`w-5 h-5 ${color.text}`} />
+                    </div>
+                    <div className="space-y-2">
+                      <div>
+                        <p className={`text-[10px] font-bold ${color.text} uppercase tracking-widest opacity-70`}>Kesilecek</p>
+                        <p className={`text-lg font-extrabold ${color.accent}`}>
+                          ₺{yearData.remaining.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div>
+                        <p className={`text-[10px] font-bold ${color.text} uppercase tracking-widest opacity-70`}>TTO Payı</p>
+                        <p className={`text-lg font-extrabold ${color.accent}`}>
+                          ₺{yearData.commission.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Monthly Income-Expense Table - Compact */}
+            <div className="bg-white rounded-lg shadow-sm border border-slate-100 overflow-hidden">
+              <div className="p-4 border-b border-slate-100 bg-slate-50/30 flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-navy">Aylık Gelir-Gider Tablosu</h3>
+                  <p className="text-[10px] text-slate-400 mt-0.5">12 aylık finansal özet</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(e.target.value)}
+                    className="px-3 py-1.5 border border-slate-200 rounded text-xs font-bold text-navy bg-white focus:outline-none focus:ring-1 focus:ring-gold"
+                  >
+                    <option value="2024">2024</option>
+                    <option value="2025">2025</option>
+                    <option value="2026">2026</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto custom-scrollbar">
+                <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-300 bg-slate-50">
-                      <th className="py-3 px-3 text-left font-semibold text-slate-900 sticky left-0 bg-slate-50">Kategori</th>
-                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Oca</th>
-                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Şub</th>
-                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Mar</th>
-                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Nis</th>
-                      <th className="py-3 px-2 text-center font-semibold text-slate-700">May</th>
-                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Haz</th>
-                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Tem</th>
-                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Ağu</th>
-                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Eyl</th>
-                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Eki</th>
-                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Kas</th>
-                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Ara</th>
+                    <tr className="bg-slate-50">
+                      <th className="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest border-r border-slate-100 sticky left-0 bg-slate-50 z-10">Kategori</th>
+                      {['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'].map(month => (
+                        <th key={month} className="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">{month}</th>
+                      ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200">
+                  <tbody className="divide-y divide-slate-100">
                     {/* Gelirler Row */}
-                    <tr className="hover:bg-slate-50">
-                      <td className="py-3 px-3 font-semibold text-slate-900 sticky left-0 bg-white hover:bg-slate-50">Gelirler</td>
+                    <tr className="hover:bg-slate-50/50">
+                      <td className="px-4 py-2.5 text-xs font-bold text-slate-700 border-r border-slate-100 sticky left-0 bg-white z-10">Gelirler</td>
                       {dashboardMetrics.monthly_breakdown[selectedYear]?.map((monthData, index) => (
-                        <td key={index} className="py-3 px-2 text-center text-emerald-600 font-semibold">
-                          {monthData.income > 0 ? `₺${monthData.income.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}` : '-'}
+                        <td key={index} className="px-3 py-2.5 text-xs font-medium text-navy text-center">
+                          {monthData.income > 0 ? `₺${monthData.income.toLocaleString('tr-TR')}` : '-'}
                         </td>
                       ))}
                     </tr>
 
                     {/* Giderler Row */}
-                    <tr className="hover:bg-slate-50">
-                      <td className="py-3 px-3 font-semibold text-slate-900 sticky left-0 bg-white hover:bg-slate-50">Giderler</td>
+                    <tr className="hover:bg-slate-50/50">
+                      <td className="px-4 py-2.5 text-xs font-bold text-slate-700 border-r border-slate-100 sticky left-0 bg-white z-10">Giderler</td>
                       {dashboardMetrics.monthly_breakdown[selectedYear]?.map((monthData, index) => (
-                        <td key={index} className="py-3 px-2 text-center text-red-600 font-semibold">
-                          {monthData.expense > 0 ? `-₺${monthData.expense.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}` : '-'}
+                        <td key={index} className="px-3 py-2.5 text-xs font-medium text-gold text-center">
+                          {monthData.expense > 0 ? `-₺${monthData.expense.toLocaleString('tr-TR')}` : '-'}
                         </td>
                       ))}
                     </tr>
 
-                    {/* Fark Row */}
-                    <tr className="bg-slate-100 border-t-2 border-slate-300">
-                      <td className="py-3 px-3 font-bold text-slate-900 sticky left-0 bg-slate-100">Net Kar</td>
+                    {/* Net Kar Row */}
+                    <tr className="bg-navy/5">
+                      <td className="px-4 py-2.5 text-xs font-black text-navy border-r border-slate-100 sticky left-0 bg-navy/5 z-10">Net Kar</td>
                       {dashboardMetrics.monthly_breakdown[selectedYear]?.map((monthData, index) => (
                         <td
                           key={index}
-                          className={`py-3 px-2 text-center font-bold ${
-                            monthData.difference > 0
-                              ? 'text-teal-600'
-                              : monthData.difference < 0
-                              ? 'text-red-700'
-                              : 'text-gray-500'
+                          className={`px-3 py-2.5 text-xs font-bold text-center ${
+                            monthData.difference > 0 ? 'text-navy' : monthData.difference < 0 ? 'text-gold' : 'text-slate-400'
                           }`}
                         >
-                          {monthData.difference !== 0 ? `₺${monthData.difference.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}` : '-'}
+                          {monthData.difference !== 0 ? `₺${monthData.difference.toLocaleString('tr-TR')}` : '-'}
                         </td>
                       ))}
                     </tr>
@@ -505,76 +385,56 @@ export default function DashboardPage() {
               </div>
 
               {/* Summary */}
-              <div className="mt-3 pt-3 border-t border-slate-200 grid grid-cols-3 gap-3 text-center">
+              <div className="p-4 border-t border-slate-100 grid grid-cols-3 gap-4 text-center bg-slate-50/30">
                 <div>
-                  <p className="text-xs text-slate-600 mb-1">Toplam Gelir</p>
-                  <p className="text-base font-bold text-emerald-600">
-                    ₺{(dashboardMetrics.monthly_breakdown[selectedYear]?.reduce((sum, m) => sum + m.income, 0) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                  <p className="text-[10px] text-slate-500 font-bold uppercase">Toplam Gelir</p>
+                  <p className="text-sm font-extrabold text-navy">
+                    ₺{(dashboardMetrics.monthly_breakdown[selectedYear]?.reduce((sum, m) => sum + m.income, 0) || 0).toLocaleString('tr-TR')}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-600 mb-1">Toplam Gider</p>
-                  <p className="text-base font-bold text-red-600">
-                    ₺{(dashboardMetrics.monthly_breakdown[selectedYear]?.reduce((sum, m) => sum + m.expense, 0) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                  <p className="text-[10px] text-slate-500 font-bold uppercase">Toplam Gider</p>
+                  <p className="text-sm font-extrabold text-gold">
+                    ₺{(dashboardMetrics.monthly_breakdown[selectedYear]?.reduce((sum, m) => sum + m.expense, 0) || 0).toLocaleString('tr-TR')}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-600 mb-1">Net Fark</p>
-                  <p className={`text-base font-bold ${
+                  <p className="text-[10px] text-slate-500 font-bold uppercase">Net Fark</p>
+                  <p className={`text-sm font-extrabold ${
                     (dashboardMetrics.monthly_breakdown[selectedYear]?.reduce((sum, m) => sum + m.difference, 0) || 0) > 0
-                      ? 'text-emerald-600'
-                      : 'text-red-600'
+                      ? 'text-navy' : 'text-gold'
                   }`}>
-                    ₺{(dashboardMetrics.monthly_breakdown[selectedYear]?.reduce((sum, m) => sum + m.difference, 0) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                    ₺{(dashboardMetrics.monthly_breakdown[selectedYear]?.reduce((sum, m) => sum + m.difference, 0) || 0).toLocaleString('tr-TR')}
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Monthly Payment Table */}
-            <div className="bg-white rounded-lg shadow-sm p-4 border border-slate-200">
-              <div className="flex items-center justify-between mb-4">
+            {/* Monthly Payment Table - Compact */}
+            <div className="bg-white rounded-lg shadow-sm border border-slate-100 overflow-hidden">
+              <div className="p-4 border-b border-slate-100 bg-slate-50/30 flex items-center justify-between">
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">Aylık Ödeme Talimatları</h3>
-                  <p className="text-xs text-slate-600 mt-0.5">Tamamlanan ödemelerin aylık dağılımı</p>
+                  <h3 className="text-sm font-bold text-navy">Aylık Ödeme Talimatları</h3>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Tamamlanan ödemelerin aylık dağılımı</p>
                 </div>
-                <select
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(e.target.value)}
-                  className="px-3 py-2 border border-slate-300 rounded text-sm font-semibold text-slate-900 bg-white focus:outline-none focus:ring-1 focus:ring-teal-600 focus:border-teal-600"
-                >
-                  <option value="2024">2024</option>
-                  <option value="2025">2025</option>
-                  <option value="2026">2026</option>
-                </select>
               </div>
 
-              <div className="overflow-x-auto rounded border border-slate-200">
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto custom-scrollbar">
+                <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-300 bg-slate-50">
-                      <th className="py-3 px-3 text-left font-semibold text-slate-900 sticky left-0 bg-slate-50">Kategori</th>
-                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Oca</th>
-                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Şub</th>
-                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Mar</th>
-                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Nis</th>
-                      <th className="py-3 px-2 text-center font-semibold text-slate-700">May</th>
-                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Haz</th>
-                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Tem</th>
-                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Ağu</th>
-                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Eyl</th>
-                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Eki</th>
-                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Kas</th>
-                      <th className="py-3 px-2 text-center font-semibold text-slate-700">Ara</th>
+                    <tr className="bg-slate-50">
+                      <th className="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest border-r border-slate-100 sticky left-0 bg-slate-50 z-10">Kategori</th>
+                      {['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'].map(month => (
+                        <th key={month} className="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">{month}</th>
+                      ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {/* Ödemeler Row */}
-                    <tr className="hover:bg-slate-50">
-                      <td className="py-3 px-3 font-semibold text-slate-900 sticky left-0 bg-white hover:bg-slate-50">Dağıtılan Ödemeler</td>
+                  <tbody>
+                    <tr className="hover:bg-slate-50/50">
+                      <td className="px-4 py-2.5 text-xs font-bold text-slate-700 border-r border-slate-100 sticky left-0 bg-white z-10">Dağıtılan Ödemeler</td>
                       {dashboardMetrics.monthly_breakdown[selectedYear]?.map((monthData: any, index) => (
-                        <td key={index} className="py-3 px-2 text-center text-orange-600 font-semibold">
-                          {monthData.payment > 0 ? `₺${monthData.payment.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}` : '-'}
+                        <td key={index} className="px-3 py-2.5 text-xs font-medium text-gold text-center">
+                          {monthData.payment > 0 ? `₺${monthData.payment.toLocaleString('tr-TR')}` : '-'}
                         </td>
                       ))}
                     </tr>
@@ -583,16 +443,14 @@ export default function DashboardPage() {
               </div>
 
               {/* Payment Summary */}
-              <div className="mt-3 pt-3 border-t border-slate-200 grid grid-cols-1 gap-3 text-center">
-                <div>
-                  <p className="text-xs text-slate-600 mb-1">Toplam Dağıtılan Ödeme</p>
-                  <p className="text-base font-bold text-orange-600">
-                    ₺{(dashboardMetrics.monthly_breakdown[selectedYear]?.reduce((sum: number, m: any) => sum + (m.payment || 0), 0) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-                  </p>
-                </div>
+              <div className="p-4 border-t border-slate-100 text-center bg-slate-50/30">
+                <p className="text-[10px] text-slate-500 font-bold uppercase">Toplam Dağıtılan Ödeme</p>
+                <p className="text-sm font-extrabold text-gold">
+                  ₺{(dashboardMetrics.monthly_breakdown[selectedYear]?.reduce((sum: number, m: any) => sum + (m.payment || 0), 0) || 0).toLocaleString('tr-TR')}
+                </p>
               </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     </DashboardLayout>

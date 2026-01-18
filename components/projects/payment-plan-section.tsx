@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { MoneyInput } from '@/components/ui/money-input'
-import { Calendar, Calculator, Trash2, Check } from 'lucide-react'
+import { Calendar, Calculator, Trash2, Check, Plus, AlertCircle, Sparkles } from 'lucide-react'
 
 export interface PlannedInstallment {
   id?: string
@@ -33,12 +33,9 @@ export function PaymentPlanSection({
 }: PaymentPlanSectionProps) {
   const [installmentCount, setInstallmentCount] = useState(10)
   const [paymentDay, setPaymentDay] = useState(10)
-
-  // Manuel taksit ekleme için state'ler
   const [manualCount, setManualCount] = useState(1)
   const [manualAmount, setManualAmount] = useState(0)
 
-  // Eşit taksitlere böl
   const generateEqualInstallments = () => {
     if (!budget || budget <= 0 || !startDate || installmentCount < 1) return
 
@@ -51,12 +48,9 @@ export function PaymentPlanSection({
     for (let i = 0; i < installmentCount; i++) {
       const date = new Date(start)
       date.setMonth(date.getMonth() + i)
-
-      // Ayın son gününü kontrol et
       const lastDayOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
       date.setDate(Math.min(paymentDay, lastDayOfMonth))
 
-      // Son taksitte kalan tutarı ekle
       const amount = i === installmentCount - 1
         ? Math.round((baseAmount + remainder) * 100) / 100
         : baseAmount
@@ -72,7 +66,6 @@ export function PaymentPlanSection({
     onInstallmentsChange(newInstallments)
   }
 
-  // Manuel taksit ekle (sabit tutar, belirtilen sayıda)
   const generateManualInstallments = () => {
     if (!startDate || manualCount < 1 || manualAmount <= 0) return
 
@@ -82,7 +75,6 @@ export function PaymentPlanSection({
       ? new Date(installments[existingCount - 1].planned_date)
       : new Date(startDate)
 
-    // Mevcut taksitlerin açıklamalarını güncelle
     const updatedExisting = installments.map((inst, i) => {
       let newDescription = inst.description
       if (inst.description?.match(/^Taksit \d+/)) {
@@ -91,16 +83,12 @@ export function PaymentPlanSection({
       return { ...inst, description: newDescription }
     })
 
-    // Yeni taksitleri oluştur
     const newInstallments: PlannedInstallment[] = []
     for (let i = 0; i < manualCount; i++) {
       const date = new Date(start)
       date.setMonth(date.getMonth() + i + 1)
-
-      // Ay sonu kontrolü
       const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
-      const day = Math.min(paymentDay, lastDay)
-      date.setDate(day)
+      date.setDate(Math.min(paymentDay, lastDay))
 
       newInstallments.push({
         installment_number: existingCount + i + 1,
@@ -113,21 +101,17 @@ export function PaymentPlanSection({
     onInstallmentsChange([...updatedExisting, ...newInstallments])
   }
 
-  // Tek taksit güncelle
   const updateInstallment = (index: number, field: keyof PlannedInstallment, value: string | number) => {
     const updated = [...installments]
     updated[index] = { ...updated[index], [field]: value }
     onInstallmentsChange(updated)
   }
 
-  // Taksit sil
   const removeInstallment = (index: number) => {
     const updated = installments.filter((_, i) => i !== index)
     const totalCount = updated.length
-    // Sıra numaralarını ve açıklamaları yeniden düzenle
     const renumbered = updated.map((inst, i) => {
       const newNumber = i + 1
-      // Eğer açıklama "Taksit X" veya "Taksit X/Y" formatındaysa güncelle
       let newDescription = inst.description
       if (inst.description?.match(/^Taksit \d+/)) {
         newDescription = `Taksit ${newNumber}/${totalCount}`
@@ -141,7 +125,6 @@ export function PaymentPlanSection({
     onInstallmentsChange(renumbered)
   }
 
-  // Yeni taksit ekle
   const addInstallment = () => {
     const lastInstallment = installments[installments.length - 1]
     let newDate = startDate
@@ -160,7 +143,6 @@ export function PaymentPlanSection({
       description: `Taksit ${newTotalCount}/${newTotalCount}`
     }
 
-    // Tüm mevcut taksitlerin açıklamalarını da güncelle (X/Y formatında)
     const updatedInstallments = installments.map((inst, i) => {
       let newDescription = inst.description
       if (inst.description?.match(/^Taksit \d+/)) {
@@ -172,163 +154,160 @@ export function PaymentPlanSection({
     onInstallmentsChange([...updatedInstallments, newInstallment])
   }
 
-  // Toplam hesapla
   const total = installments.reduce((sum, inst) => sum + (inst.planned_amount || 0), 0)
   const difference = budget - total
   const isBalanced = Math.abs(difference) < 0.01
-  const isUnder = difference > 0.01  // Bütçenin altında (kısmi taksitlendirme - OK)
-  const isOver = difference < -0.01   // Bütçeyi aşmış (HATA)
+  const isUnder = difference > 0.01
+  const isOver = difference < -0.01
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
-          <Calendar className="h-5 w-5 text-teal-600" />
-          Ödeme Planı
-          <span className="text-xs font-normal text-gray-500">(Sadece kontrol amaçlı)</span>
-        </h2>
-        {!readOnly && (
-          <button
-            type="button"
-            onClick={() => onEnabledChange(!enabled)}
-            className="flex items-center cursor-pointer focus:outline-none"
-          >
-            <div className={`relative w-11 h-6 rounded-full transition-colors ${enabled ? 'bg-teal-600' : 'bg-gray-200'}`}>
-              <div className={`absolute top-[2px] start-[2px] bg-white border-gray-300 border rounded-full h-5 w-5 transition-transform ${enabled ? 'translate-x-full border-white' : ''}`}></div>
-            </div>
-            <span className="ms-3 text-sm font-medium text-gray-700">
-              {enabled ? 'Aktif' : 'Pasif'}
-            </span>
-          </button>
-        )}
-      </div>
-
-      {enabled && (
-        <>
-          {/* Otomatik bölme ayarları */}
+    <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="h-1 w-full bg-gradient-to-r from-navy to-gold" />
+      <div className="p-5">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-bold text-navy flex items-center gap-2">
+            <Calendar className="w-5 h-5" />
+            Ödeme Planı
+            <span className="text-xs font-normal text-slate-400">(Kontrol amaçlı)</span>
+          </h2>
           {!readOnly && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Taksit Sayısı
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="120"
-                  value={installmentCount}
-                  onChange={(e) => setInstallmentCount(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Ödeme Günü
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="31"
-                  value={paymentDay}
-                  onChange={(e) => setPaymentDay(Math.min(31, Math.max(1, parseInt(e.target.value) || 1)))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm"
-                />
-                <p className="text-xs text-gray-500 mt-1">Her ayın {paymentDay}. günü</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  &nbsp;
-                </label>
-                <button
-                  type="button"
-                  onClick={generateEqualInstallments}
-                  disabled={!budget || budget <= 0 || !startDate}
-                  className="w-full px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm font-medium transition-colors"
-                >
-                  <Calculator className="h-4 w-4" />
-                  Eşit Taksitlere Böl
-                </button>
-              </div>
-            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={enabled}
+                onChange={() => onEnabledChange(!enabled)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-gold/30 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold"></div>
+              <span className="ms-2 text-sm font-medium text-slate-600">
+                {enabled ? 'Aktif' : 'Pasif'}
+              </span>
+            </label>
           )}
+        </div>
 
-          {/* Manuel taksit ekleme */}
-          {!readOnly && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Taksit Sayısı
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="50"
-                  value={manualCount}
-                  onChange={(e) => setManualCount(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
-                />
+        {enabled && (
+          <>
+            {/* Otomatik Bölme */}
+            {!readOnly && (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4 p-4 bg-gradient-to-br from-navy/5 to-gold/5 rounded-xl border border-navy/10">
+                <div className="md:col-span-4 flex items-center gap-2 mb-1">
+                  <Sparkles className="w-4 h-4 text-gold" />
+                  <span className="text-xs font-bold text-navy uppercase tracking-wider">Otomatik Taksitlendirme</span>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Taksit Sayısı</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="120"
+                    value={installmentCount}
+                    onChange={(e) => setInstallmentCount(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all outline-none text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Ödeme Günü</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={paymentDay}
+                    onChange={(e) => setPaymentDay(Math.min(31, Math.max(1, parseInt(e.target.value) || 1)))}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all outline-none text-sm"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">&nbsp;</label>
+                  <button
+                    type="button"
+                    onClick={generateEqualInstallments}
+                    disabled={!budget || budget <= 0 || !startDate}
+                    className="w-full px-4 py-2 bg-navy text-white rounded-lg hover:bg-navy/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm font-semibold transition-all shadow-sm"
+                  >
+                    <Calculator className="w-4 h-4" />
+                    Eşit Taksitlere Böl
+                  </button>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Taksit Tutarı (₺)
-                </label>
-                <MoneyInput
-                  value={manualAmount.toString()}
-                  onChange={(val) => setManualAmount(parseFloat(val) || 0)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  &nbsp;
-                </label>
-                <button
-                  type="button"
-                  onClick={generateManualInstallments}
-                  disabled={!startDate || manualCount < 1 || manualAmount <= 0}
-                  className="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm font-medium transition-colors"
-                >
-                  + Manuel Taksit Ekle
-                </button>
-              </div>
-            </div>
-          )}
+            )}
 
-          {/* Taksit listesi */}
-          {installments.length > 0 && (
-            <div className="space-y-2">
-              {/* Başlık */}
-              <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-500 px-2 py-1 border-b">
-                <div className="col-span-1">#</div>
-                <div className="col-span-3">Tutar (₺)</div>
-                <div className="col-span-3">Tarih</div>
-                <div className="col-span-3">Açıklama</div>
-                <div className="col-span-2 text-center">İşlem</div>
+            {/* Manuel Ekleme */}
+            {!readOnly && (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="md:col-span-4 flex items-center gap-2 mb-1">
+                  <Plus className="w-4 h-4 text-slate-500" />
+                  <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Manuel Taksit Ekle</span>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Adet</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="50"
+                    value={manualCount}
+                    onChange={(e) => setManualCount(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all outline-none text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Tutar (₺)</label>
+                  <MoneyInput
+                    value={manualAmount.toString()}
+                    onChange={(val) => setManualAmount(parseFloat(val) || 0)}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all outline-none text-sm"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">&nbsp;</label>
+                  <button
+                    type="button"
+                    onClick={generateManualInstallments}
+                    disabled={!startDate || manualCount < 1 || manualAmount <= 0}
+                    className="w-full px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 hover:border-gold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm font-semibold transition-all"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Taksit Ekle
+                  </button>
+                </div>
               </div>
+            )}
 
-              {/* Taksitler */}
-              <div className="max-h-[400px] overflow-y-auto space-y-1">
-                {installments.map((inst, index) => {
-                  const isEditable = !readOnly
+            {/* Taksit Listesi */}
+            {installments.length > 0 && (
+              <div className="space-y-2">
+                {/* Başlık */}
+                <div className="grid grid-cols-12 gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider px-3 py-2 bg-slate-50 rounded-lg">
+                  <div className="col-span-1">#</div>
+                  <div className="col-span-3">Tutar</div>
+                  <div className="col-span-3">Tarih</div>
+                  <div className="col-span-4">Açıklama</div>
+                  <div className="col-span-1"></div>
+                </div>
 
-                  return (
+                {/* Taksitler */}
+                <div className="max-h-[300px] overflow-y-auto space-y-1">
+                  {installments.map((inst, index) => (
                     <div
                       key={index}
-                      className="grid grid-cols-12 gap-2 items-center p-2 rounded-lg transition-colors bg-gray-50 hover:bg-gray-100"
+                      className="grid grid-cols-12 gap-2 items-center p-2 rounded-lg bg-white border border-slate-100 hover:border-gold/30 transition-all"
                     >
-                      <div className="col-span-1 text-sm font-medium text-gray-600">
-                        {inst.installment_number}
+                      <div className="col-span-1">
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-navy/10 text-navy text-xs font-bold">
+                          {inst.installment_number}
+                        </span>
                       </div>
                       <div className="col-span-3">
                         <MoneyInput
                           value={inst.planned_amount.toString()}
                           onChange={(val) => updateInstallment(index, 'planned_amount', parseFloat(val) || 0)}
-                          disabled={!isEditable}
-                          className={`w-full px-2 py-1.5 border rounded-md text-sm ${
-                            isEditable
-                              ? 'border-gray-300 focus:outline-none focus:ring-2 focus:ring-teal-500'
-                              : 'border-transparent bg-transparent'
-                          }`}
+                          disabled={readOnly}
+                          className={`w-full px-2 py-1.5 rounded-lg text-sm ${
+                            !readOnly
+                              ? 'bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-gold/30 focus:border-gold focus:bg-white'
+                              : 'bg-transparent border-transparent'
+                          } transition-all outline-none`}
                         />
                       </div>
                       <div className="col-span-3">
@@ -336,117 +315,126 @@ export function PaymentPlanSection({
                           type="date"
                           value={inst.planned_date}
                           onChange={(e) => updateInstallment(index, 'planned_date', e.target.value)}
-                          disabled={!isEditable}
-                          className={`w-full px-2 py-1.5 border rounded-md text-sm ${
-                            isEditable
-                              ? 'border-gray-300 focus:outline-none focus:ring-2 focus:ring-teal-500'
-                              : 'border-transparent bg-transparent'
-                          }`}
+                          disabled={readOnly}
+                          className={`w-full px-2 py-1.5 rounded-lg text-sm ${
+                            !readOnly
+                              ? 'bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-gold/30 focus:border-gold focus:bg-white'
+                              : 'bg-transparent border-transparent'
+                          } transition-all outline-none`}
                         />
                       </div>
-                      <div className="col-span-3">
+                      <div className="col-span-4">
                         <input
                           type="text"
                           value={inst.description || ''}
                           onChange={(e) => updateInstallment(index, 'description', e.target.value)}
-                          disabled={!isEditable}
+                          disabled={readOnly}
                           placeholder="Açıklama..."
-                          className={`w-full px-2 py-1.5 border rounded-md text-sm ${
-                            isEditable
-                              ? 'border-gray-300 focus:outline-none focus:ring-2 focus:ring-teal-500'
-                              : 'border-transparent bg-transparent'
-                          }`}
+                          className={`w-full px-2 py-1.5 rounded-lg text-sm ${
+                            !readOnly
+                              ? 'bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-gold/30 focus:border-gold focus:bg-white'
+                              : 'bg-transparent border-transparent'
+                          } transition-all outline-none`}
                         />
                       </div>
-                      <div className="col-span-2 flex items-center justify-center gap-1">
-                        {isEditable ? (
+                      <div className="col-span-1 flex justify-center">
+                        {!readOnly && (
                           <button
                             type="button"
                             onClick={() => removeInstallment(index)}
-                            className="p-1 text-red-500 hover:bg-red-50 rounded transition-colors"
-                            title="Taksiti sil"
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
-                        ) : null}
+                        )}
                       </div>
                     </div>
-                  )
-                })}
-              </div>
-
-              {/* Yeni taksit ekle butonu */}
-              {!readOnly && (
-                <button
-                  type="button"
-                  onClick={addInstallment}
-                  className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-teal-500 hover:text-teal-600 transition-colors text-sm"
-                >
-                  + Yeni Taksit Ekle
-                </button>
-              )}
-
-              {/* Toplam ve uyarı */}
-              <div className={`flex flex-wrap items-center justify-between p-3 rounded-lg mt-4 ${
-                isOver ? 'bg-red-50 border border-red-200' : isBalanced ? 'bg-green-50 border border-green-200' : 'bg-slate-50 border border-slate-200'
-              }`}>
-                <div className="flex items-center gap-4">
-                  <div>
-                    <span className="text-sm text-gray-600">Toplam: </span>
-                    <span className="text-lg font-bold text-gray-900">
-                      {total.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-                    </span>
-                  </div>
-                  <div className="text-gray-400">|</div>
-                  <div>
-                    <span className="text-sm text-gray-600">Bütçe: </span>
-                    <span className="font-medium text-gray-700">
-                      {budget.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-                    </span>
-                  </div>
+                  ))}
                 </div>
 
-                {isOver && (
-                  <div className="text-sm font-medium text-red-700">
-                    Bütçe aşımı: {Math.abs(difference).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-                  </div>
+                {/* Yeni Taksit Ekle */}
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={addInstallment}
+                    className="w-full py-2.5 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 hover:border-gold hover:text-gold transition-all text-sm font-medium"
+                  >
+                    + Yeni Taksit Ekle
+                  </button>
                 )}
 
-                {isUnder && (
-                  <div className="text-sm text-slate-600">
-                    Kalan {Math.abs(difference).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺ sonradan eklenebilir
+                {/* Toplam ve Uyarı */}
+                <div className={`flex flex-wrap items-center justify-between p-4 rounded-xl mt-3 ${
+                  isOver
+                    ? 'bg-red-50 border border-red-200'
+                    : isBalanced
+                      ? 'bg-emerald-50 border border-emerald-200'
+                      : 'bg-slate-50 border border-slate-200'
+                }`}>
+                  <div className="flex items-center gap-6">
+                    <div>
+                      <span className="text-xs font-semibold text-slate-500 uppercase">Toplam</span>
+                      <p className="text-lg font-bold text-navy">
+                        ₺{total.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="h-8 w-px bg-slate-200"></div>
+                    <div>
+                      <span className="text-xs font-semibold text-slate-500 uppercase">Bütçe</span>
+                      <p className="text-lg font-bold text-slate-600">
+                        ₺{budget.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
                   </div>
-                )}
 
-                {isBalanced && (
-                  <div className="flex items-center gap-1 text-green-700 text-sm font-medium">
-                    <Check className="h-4 w-4" />
-                    Dengeli
-                  </div>
-                )}
+                  {isOver && (
+                    <div className="flex items-center gap-2 text-red-700">
+                      <AlertCircle className="w-4 h-4" />
+                      <span className="text-sm font-semibold">
+                        Bütçe aşımı: ₺{Math.abs(difference).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  )}
+
+                  {isUnder && (
+                    <div className="text-sm text-slate-500">
+                      Kalan ₺{Math.abs(difference).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} sonradan eklenebilir
+                    </div>
+                  )}
+
+                  {isBalanced && (
+                    <div className="flex items-center gap-1.5 text-emerald-700">
+                      <Check className="w-5 h-5" />
+                      <span className="text-sm font-bold">Dengeli</span>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Taksit yoksa bilgi mesajı */}
-          {installments.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              <Calendar className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-              <p className="text-sm">Henüz taksit eklenmedi.</p>
-              <p className="text-xs text-gray-400 mt-1">
-                Yukarıdan "Eşit Taksitlere Böl" butonuna tıklayın veya manuel taksit ekleyin.
-              </p>
-            </div>
-          )}
-        </>
-      )}
+            {/* Taksit Yok */}
+            {installments.length === 0 && (
+              <div className="text-center py-10">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Calendar className="w-8 h-8 text-slate-300" />
+                </div>
+                <p className="text-sm font-medium text-slate-500">Henüz taksit eklenmedi</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  "Eşit Taksitlere Böl" veya "Manuel Taksit Ekle" butonlarını kullanın
+                </p>
+              </div>
+            )}
+          </>
+        )}
 
-      {/* Kapalı durumda bilgi */}
-      {!enabled && (
-        <p className="text-sm text-gray-500">
-          Ödeme planı oluşturmak için toggle'ı aktif hale getirin.
-        </p>
-      )}
-    </div>
+        {/* Pasif Durumu */}
+        {!enabled && (
+          <div className="flex items-center gap-3 py-4 text-slate-400">
+            <Calendar className="w-5 h-5" />
+            <p className="text-sm">Ödeme planı oluşturmak için toggle'ı aktif hale getirin.</p>
+          </div>
+        )}
+      </div>
+    </section>
   )
 }
