@@ -45,6 +45,14 @@ const fetchWithAuth = async (url: string) => {
     headers: { 'Authorization': `Bearer ${token}` }
   })
 
+  // 401 hatası - session expired
+  if (response.status === 401) {
+    if (isBrowser) {
+      window.dispatchEvent(new CustomEvent('auth:unauthorized'))
+    }
+    throw new Error('Unauthorized')
+  }
+
   if (!response.ok) throw new Error('API error')
   return response.json()
 }

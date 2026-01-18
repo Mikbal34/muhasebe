@@ -104,6 +104,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setSession(newSession)
           setUser(newSession?.user || null)
           hadActiveSession = true
+          // localStorage token'ı güncelle - API çağrılarının yeni token'ı kullanması için
+          if (newSession?.access_token) {
+            localStorage.setItem('token', newSession.access_token)
+            console.log('Token refreshed and localStorage updated')
+          }
           break
 
         case 'USER_UPDATED':
