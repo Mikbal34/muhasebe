@@ -118,7 +118,7 @@ export default function LoginPage() {
 
           {/* Alt Başlık */}
           <h1 className="font-heading text-navy text-xl md:text-2xl tracking-tight">
-            Gelir Dağıtım Sistemi
+            TTO Proje Takip Sistemi
           </h1>
         </div>
 

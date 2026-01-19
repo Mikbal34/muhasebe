@@ -237,13 +237,25 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div
-                  className="h-full bg-gold rounded-md mx-0.5 progress-segment relative group"
+                  className="h-full bg-gold rounded-md mx-0.5 progress-segment relative group cursor-pointer hover:opacity-80 transition-opacity"
                   style={{
                     width: `${dashboardMetrics.total_budget > 0 ? (dashboardMetrics.total_outstanding / dashboardMetrics.total_budget) * 100 : 0}%`
                   }}
+                  onClick={() => router.push('/dashboard/outstanding')}
+                  title="Açık Bakiyeleri Görüntüle"
                 >
                   <div className="absolute inset-0 flex items-center justify-center text-[10px] font-black text-white opacity-0 group-hover:opacity-100 transition-opacity">
                     {Math.round((dashboardMetrics.total_outstanding / dashboardMetrics.total_budget) * 100)}%
+                  </div>
+                </div>
+                {/* Kalan (Kesilecek Fatura) - Gri kısım */}
+                <div
+                  className="h-full bg-slate-200 rounded-md mx-0.5 progress-segment relative group cursor-pointer hover:bg-slate-300 transition-colors flex-1"
+                  onClick={() => router.push('/dashboard/remaining')}
+                  title="Kesilecek Faturaları Görüntüle"
+                >
+                  <div className="absolute inset-0 flex items-center justify-center text-[10px] font-black text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {Math.round((dashboardMetrics.remaining_to_invoice / dashboardMetrics.total_budget) * 100)}%
                   </div>
                 </div>
               </div>
@@ -259,7 +271,11 @@ export default function DashboardPage() {
                     <p className="text-sm font-extrabold text-slate-900">₺{dashboardMetrics.total_collected.toLocaleString('tr-TR')}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div
+                  className="flex items-center gap-2 cursor-pointer hover:bg-gold/10 p-2 -m-2 rounded-lg transition-colors"
+                  onClick={() => router.push('/dashboard/outstanding')}
+                  title="Açık Bakiyeleri Görüntüle"
+                >
                   <div className="w-8 h-8 rounded-lg bg-gold/20 flex items-center justify-center">
                     <AlertTriangle className="w-4 h-4 text-gold" />
                   </div>
@@ -268,7 +284,11 @@ export default function DashboardPage() {
                     <p className="text-sm font-extrabold text-slate-900">₺{dashboardMetrics.total_outstanding.toLocaleString('tr-TR')}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div
+                  className="flex items-center gap-2 cursor-pointer hover:bg-slate-200 p-2 -m-2 rounded-lg transition-colors"
+                  onClick={() => router.push('/dashboard/remaining')}
+                  title="Kesilecek Faturaları Görüntüle"
+                >
                   <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
                     <PiggyBank className="w-4 h-4 text-slate-500" />
                   </div>
@@ -410,46 +430,6 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Monthly Payment Table - Compact */}
-            <div className="bg-white rounded-lg shadow-sm border border-slate-100 overflow-hidden">
-              <div className="p-4 border-b border-slate-100 bg-slate-50/30 flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-navy">Aylık Ödeme Talimatları</h3>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Tamamlanan ödemelerin aylık dağılımı</p>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto custom-scrollbar">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50">
-                      <th className="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest border-r border-slate-100 sticky left-0 bg-slate-50 z-10">Kategori</th>
-                      {['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'].map(month => (
-                        <th key={month} className="px-3 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">{month}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="hover:bg-slate-50/50">
-                      <td className="px-4 py-2.5 text-xs font-bold text-slate-700 border-r border-slate-100 sticky left-0 bg-white z-10">Dağıtılan Ödemeler</td>
-                      {dashboardMetrics.monthly_breakdown[selectedYear]?.map((monthData: any, index) => (
-                        <td key={index} className="px-3 py-2.5 text-xs font-medium text-gold text-center">
-                          {monthData.payment > 0 ? `₺${monthData.payment.toLocaleString('tr-TR')}` : '-'}
-                        </td>
-                      ))}
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Payment Summary */}
-              <div className="p-4 border-t border-slate-100 text-center bg-slate-50/30">
-                <p className="text-[10px] text-slate-500 font-bold uppercase">Toplam Dağıtılan Ödeme</p>
-                <p className="text-sm font-extrabold text-gold">
-                  ₺{(dashboardMetrics.monthly_breakdown[selectedYear]?.reduce((sum: number, m: any) => sum + (m.payment || 0), 0) || 0).toLocaleString('tr-TR')}
-                </p>
-              </div>
-            </div>
           </>
         )}
       </div>

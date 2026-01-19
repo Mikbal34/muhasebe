@@ -65,7 +65,7 @@ export default function HomePage() {
 
         {/* Başlık */}
         <h1 className="font-heading text-navy text-2xl md:text-3xl tracking-tight mb-10">
-          Gelir Dağıtım Sistemi
+          TTO Proje Takip Sistemi
         </h1>
 
         {/* Giriş Butonu */}
