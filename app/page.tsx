@@ -65,7 +65,7 @@ export default function HomePage() {
 
         {/* Başlık */}
         <h1 className="font-heading text-navy text-2xl md:text-3xl tracking-tight mb-10">
-          TTO Proje Takip Sistemi
+          Proje Yönetim Sistemi
         </h1>
 
         {/* Giriş Butonu */}
@@ -80,7 +80,7 @@ export default function HomePage() {
         {/* Footer */}
         <div className="mt-16">
           <p className="text-[11px] text-gray-400 uppercase tracking-[0.15em] leading-relaxed">
-            © 2024 Yıldız Teknik Üniversitesi<br />
+            © 2026 Yıldız Teknik Üniversitesi<br />
             Teknoloji Transfer Ofisi A.Ş.
           </p>
         </div>

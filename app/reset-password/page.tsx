@@ -357,7 +357,7 @@ function ResetPasswordContent() {
         {/* Footer */}
         <div className="mt-12 text-center">
           <p className="text-[11px] text-gray-400 uppercase tracking-[0.2em] leading-relaxed">
-            © 2024 Yıldız Teknik Üniversitesi<br />
+            © 2026 Yıldız Teknik Üniversitesi<br />
             Teknoloji Transfer Ofisi A.Ş.
           </p>
         </div>

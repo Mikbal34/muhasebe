@@ -118,7 +118,7 @@ export default function LoginPage() {
 
           {/* Alt Başlık */}
           <h1 className="font-heading text-navy text-xl md:text-2xl tracking-tight">
-            TTO Proje Takip Sistemi
+            Proje Yönetim Sistemi
           </h1>
         </div>
 
@@ -241,7 +241,7 @@ export default function LoginPage() {
         {/* Footer */}
         <div className="mt-12 text-center">
           <p className="text-[11px] text-gray-400 uppercase tracking-[0.2em] leading-relaxed">
-            © 2024 Yıldız Teknik Üniversitesi<br />
+            © 2026 Yıldız Teknik Üniversitesi<br />
             Teknoloji Transfer Ofisi A.Ş.
           </p>
         </div>
