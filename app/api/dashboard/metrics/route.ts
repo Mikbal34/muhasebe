@@ -1,71 +1,6 @@
 import { NextRequest } from 'next/server'
 import { apiResponse, withAuth } from '@/lib/middleware/auth'
 
-// Mock data for 2025 (presentation purposes)
-const MOCK_DATA_2025 = {
-  // Ana metrikler
-  total_budget: 113861050.00,
-  total_invoiced: 100884473.50,
-  total_collected: 89421125.46,
-  total_outstanding: 11463348.04,
-  remaining_to_invoice: 12776576.50,
-  total_commission: 21552581.40,
-  total_commission_collected: 21552581.40,
-  total_payments: 34200000,
-  active_project_count: 25,
-  progress_percentage: 88.76,
-  collection_percentage: 88.64,
-
-  // Yıllık breakdown
-  year_breakdown: [
-    { year: '2023', invoiced: 58149110.93, commission: 8772366.64, remaining: 0 },
-    { year: '2024', invoiced: 78667902.68, commission: 11800185.40, remaining: 0 },
-    { year: '2025', invoiced: 113661050.00, commission: 21552581.40, remaining: 12776576.50 },
-  ],
-
-  // Aylık breakdown (2025)
-  monthly_breakdown: {
-    '2023': Array.from({ length: 12 }, (_, i) => ({
-      month: i + 1,
-      income: 0,
-      expense: 0,
-      payment: 0,
-      difference: 0,
-    })),
-    '2024': Array.from({ length: 12 }, (_, i) => ({
-      month: i + 1,
-      income: 0,
-      expense: 0,
-      payment: 0,
-      difference: 0,
-    })),
-    '2025': [
-      { month: 1, income: 5609012, expense: 3028095.48, payment: 0, difference: 2580916.52 },
-      { month: 2, income: 3707616.18, expense: 3003320, payment: 0, difference: 704296.18 },
-      { month: 3, income: 11102944.79, expense: 6595300, payment: 0, difference: 4507644.79 },
-      { month: 4, income: 7077563.99, expense: 7131380, payment: 0, difference: -53816.01 },
-      { month: 5, income: 6915203.42, expense: 5282018.36, payment: 0, difference: 1633185.06 },
-      { month: 6, income: 8324639.23, expense: 7649840, payment: 0, difference: 674799.23 },
-      { month: 7, income: 11710272.83, expense: 5462498.2, payment: 0, difference: 6247774.63 },
-      { month: 8, income: 4950356.25, expense: 4245513, payment: 0, difference: 704843.25 },
-      { month: 9, income: 5853250.77, expense: 7590411.5, payment: 0, difference: -1737160.73 },
-      { month: 10, income: 4716844.6, expense: 6223774.75, payment: 0, difference: -1506930.15 },
-      { month: 11, income: 5598248.4, expense: 4446109, payment: 0, difference: 1152139.4 },
-      { month: 12, income: 13855173, expense: 7025990.48, payment: 0, difference: 6829182.52 },
-    ],
-    '2026': Array.from({ length: 12 }, (_, i) => ({
-      month: i + 1,
-      income: 0,
-      expense: 0,
-      payment: 0,
-      difference: 0,
-    })),
-  },
-
-  all_years: ['2025', '2024', '2023'],
-  filters: { startDate: '2025-01-01', endDate: '2025-12-31' },
-}
-
 // GET /api/dashboard/metrics - Get comprehensive dashboard metrics for TTO
 export async function GET(request: NextRequest) {
   return withAuth(request, async (req, ctx) => {
@@ -81,13 +16,6 @@ export async function GET(request: NextRequest) {
       const endDate = url.searchParams.get('endDate')
 
       console.log('Dashboard metrics - Date filters:', { startDate, endDate })
-
-      // Mock data kontrolü - 2025 yılı için (sunum amaçlı)
-      const is2025Filter = startDate === '2025-01-01' && endDate === '2025-12-31'
-      if (is2025Filter) {
-        console.log('Returning mock data for 2025')
-        return apiResponse.success(MOCK_DATA_2025)
-      }
 
       // 1. Get total budget from projects (filtered by start_date if provided)
       let projectsQuery = ctx.supabase
