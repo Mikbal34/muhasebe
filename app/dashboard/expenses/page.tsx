@@ -17,7 +17,8 @@ import {
   Download,
   FolderOpen,
   Wallet,
-  BarChart3
+  BarChart3,
+  Upload
 } from 'lucide-react'
 import { StatCardSkeleton, AccordionGroupSkeleton, Skeleton } from '@/components/ui/skeleton'
 import { useExpenses, useInvalidateExpenses, DateRange } from '@/hooks/use-expenses'
@@ -251,6 +252,14 @@ export default function ExpensesPage() {
                 <Download className="w-5 h-5" />
                 {exporting ? 'İndiriliyor...' : 'Dışa Aktar'}
               </button>
+
+              <Link
+                href="/dashboard/expenses/import"
+                className="flex items-center gap-2 px-5 h-11 border-2 border-gold/50 rounded-lg text-gold font-bold text-sm hover:bg-gold/5 transition-all"
+              >
+                <Upload className="w-5 h-5" />
+                Toplu Gider Ekle
+              </Link>
 
               <Link
                 href="/dashboard/expenses/new"
