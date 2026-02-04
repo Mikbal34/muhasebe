@@ -125,6 +125,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       if (body.sent_to_referee !== undefined) updateData.sent_to_referee = body.sent_to_referee
       if (body.referee_approved !== undefined) updateData.referee_approved = body.referee_approved
       if (body.referee_approval_date !== undefined) updateData.referee_approval_date = body.referee_approval_date
+      if (body.referee_approval_document_path !== undefined) updateData.referee_approval_document_path = body.referee_approval_document_path
       if (body.has_withholding_tax !== undefined) updateData.has_withholding_tax = body.has_withholding_tax
       if (body.withholding_tax_rate !== undefined) updateData.withholding_tax_rate = body.has_withholding_tax ? body.withholding_tax_rate : 0
 

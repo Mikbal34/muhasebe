@@ -65,6 +65,7 @@ export const createProjectSchema = z.object({
   sent_to_referee: z.boolean().default(false),
   referee_approved: z.boolean().default(false),
   referee_approval_date: z.string().nullable().optional(),
+  referee_approval_document_path: z.string().nullable().optional(),
   has_assignment_permission: z.boolean().default(false),
   assignment_document_path: z.string().nullable().optional(),
   has_withholding_tax: z.boolean().default(false),

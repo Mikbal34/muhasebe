@@ -203,6 +203,7 @@ export async function POST(request: NextRequest) {
       sent_to_referee = false,
       referee_approved = false,
       referee_approval_date,
+      referee_approval_document_path,
       has_withholding_tax = false,
       withholding_tax_rate = 0,
       payment_plan
@@ -231,6 +232,7 @@ export async function POST(request: NextRequest) {
           sent_to_referee,
           referee_approved,
           referee_approval_date: referee_approval_date || null,
+          referee_approval_document_path: referee_approval_document_path || null,
           has_withholding_tax,
           withholding_tax_rate: has_withholding_tax ? withholding_tax_rate : 0,
           created_by: ctx.user.id

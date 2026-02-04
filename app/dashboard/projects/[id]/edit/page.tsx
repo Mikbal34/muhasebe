@@ -111,15 +111,18 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
     has_assignment_permission: false,
     sent_to_referee: false,
     referee_approved: false,
-    referee_approval_date: ''
+    referee_approval_date: '',
+    referee_approval_document_path: ''
   })
 
   const [representatives, setRepresentatives] = useState<ProjectRepresentative[]>([])
   const [contractFile, setContractFile] = useState<File | null>(null)
   const [assignmentFile, setAssignmentFile] = useState<File | null>(null)
+  const [refereeApprovalFile, setRefereeApprovalFile] = useState<File | null>(null)
   const [uploadingContract, setUploadingContract] = useState(false)
   const [selectedPersonId, setSelectedPersonId] = useState('')
   const [uploadingAssignment, setUploadingAssignment] = useState(false)
+  const [uploadingRefereeApproval, setUploadingRefereeApproval] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   // Payment plan state
@@ -185,7 +188,8 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
           has_assignment_permission: projectData.has_assignment_permission || false,
           sent_to_referee: projectData.sent_to_referee || false,
           referee_approved: projectData.referee_approved || false,
-          referee_approval_date: projectData.referee_approval_date ? projectData.referee_approval_date.split('T')[0] : ''
+          referee_approval_date: projectData.referee_approval_date ? projectData.referee_approval_date.split('T')[0] : '',
+          referee_approval_document_path: projectData.referee_approval_document_path || ''
         })
 
         setRepresentatives(projectData.representatives.map((rep: any) => {
@@ -365,6 +369,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
     try {
       let uploadedContractPath = project?.contract_path || null
       let uploadedAssignmentPath = project?.assignment_document_path || null
+      let uploadedRefereeApprovalPath = (project as any)?.referee_approval_document_path || null
 
       if (contractFile) {
         setUploadingContract(true)
@@ -385,6 +390,18 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
 
         if (!uploadedAssignmentPath) {
           setErrors({ submit: 'Görevlendirme belgesi yüklenirken bir hata oluştu' })
+          setSaving(false)
+          return
+        }
+      }
+
+      if (formData.referee_approved && refereeApprovalFile) {
+        setUploadingRefereeApproval(true)
+        uploadedRefereeApprovalPath = await handleFileUpload(refereeApprovalFile)
+        setUploadingRefereeApproval(false)
+
+        if (!uploadedRefereeApprovalPath) {
+          setErrors({ submit: 'Hakem onay belgesi yüklenirken bir hata oluştu' })
           setSaving(false)
           return
         }
@@ -414,6 +431,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
           sent_to_referee: formData.sent_to_referee,
           referee_approved: formData.referee_approved,
           referee_approval_date: formData.referee_approved && formData.referee_approval_date ? formData.referee_approval_date : null,
+          referee_approval_document_path: uploadedRefereeApprovalPath,
           representatives: representatives.map(rep => ({
             user_id: rep.user_id,
             personnel_id: rep.personnel_id,
@@ -869,6 +887,81 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
                       <span className="text-sm text-slate-700">Hakem onayı alındı</span>
                     </label>
                   </div>
+
+                  {/* Mevcut Hakem Onay Belgesi */}
+                  {formData.referee_approved && (project as any)?.referee_approval_document_path && !refereeApprovalFile && (
+                    <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-emerald-600" />
+                          <span className="text-xs font-medium text-emerald-700">Hakem onay belgesi yüklü</span>
+                        </div>
+                        <a
+                          href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/contracts/${(project as any).referee_approval_document_path}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700"
+                        >
+                          <Download className="w-3 h-3" />
+                          İndir
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Hakem Onay Belgesi Upload */}
+                  {formData.referee_approved && (
+                    <div className="mt-4">
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
+                        {(project as any)?.referee_approval_document_path ? 'Yeni Hakem Onay Belgesi (PDF)' : 'Hakem Onay Belgesi (PDF)'}
+                      </label>
+                      <div
+                        className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-all ${
+                          refereeApprovalFile ? 'border-gold bg-gold/5' : 'border-slate-200 hover:border-gold hover:bg-gold/5'
+                        }`}
+                        onClick={() => document.getElementById('referee-approval-upload')?.click()}
+                      >
+                        <input
+                          id="referee-approval-upload"
+                          type="file"
+                          accept=".pdf"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              if (file.type !== 'application/pdf') {
+                                setErrors({ ...errors, refereeApprovalFile: 'Sadece PDF' })
+                                return
+                              }
+                              setRefereeApprovalFile(file)
+                              setErrors({ ...errors, refereeApprovalFile: '' })
+                            }
+                          }}
+                        />
+                        {refereeApprovalFile ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <FileText className="w-5 h-5 text-emerald-500" />
+                            <span className="text-sm font-medium text-navy truncate max-w-[200px]">{refereeApprovalFile.name}</span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setRefereeApprovalFile(null)
+                              }}
+                              className="text-slate-400 hover:text-red-600"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="text-slate-400">
+                            <Upload className="w-8 h-8 mx-auto mb-2" />
+                            <p className="text-xs">Hakem onay belgesi yükle</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />

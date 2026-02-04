@@ -176,6 +176,7 @@ export interface Database {
           referee_approval_date: string | null
           has_assignment_permission: boolean
           assignment_document_path: string | null
+          referee_approval_document_path: string | null
           total_commission_due: number
           total_commission_collected: number
           contract_date: string | null
@@ -202,6 +203,7 @@ export interface Database {
           referee_approval_date?: string | null
           has_assignment_permission?: boolean
           assignment_document_path?: string | null
+          referee_approval_document_path?: string | null
           total_commission_due?: number
           total_commission_collected?: number
           contract_date?: string | null
@@ -228,6 +230,7 @@ export interface Database {
           referee_approval_date?: string | null
           has_assignment_permission?: boolean
           assignment_document_path?: string | null
+          referee_approval_document_path?: string | null
           total_commission_due?: number
           total_commission_collected?: number
           contract_date?: string | null
