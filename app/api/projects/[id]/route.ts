@@ -149,6 +149,39 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         return apiResponse.error('Failed to update project', updateError.message, 500)
       }
 
+      // Update representatives if provided
+      if (body.representatives && Array.isArray(body.representatives)) {
+        // Delete existing representatives
+        const { error: deleteRepError } = await ctx.supabase
+          .from('project_representatives')
+          .delete()
+          .eq('project_id', id)
+
+        if (deleteRepError) {
+          console.error('Delete representatives error:', deleteRepError)
+          // Continue anyway, don't fail the whole update
+        }
+
+        // Insert new representatives
+        if (body.representatives.length > 0) {
+          const newRepresentatives = body.representatives.map((rep: any) => ({
+            project_id: id,
+            user_id: rep.user_id || null,
+            personnel_id: rep.personnel_id || null,
+            role: rep.role
+          }))
+
+          const { error: insertRepError } = await ctx.supabase
+            .from('project_representatives')
+            .insert(newRepresentatives)
+
+          if (insertRepError) {
+            console.error('Insert representatives error:', insertRepError)
+            return apiResponse.error('Failed to update representatives', insertRepError.message, 500)
+          }
+        }
+      }
+
       // Sync auto expenses for referee payment and stamp duty
       const finalRefereePayment = body.referee_payment ?? (existingProject as any).referee_payment ?? 0
       const finalRefereePayer = body.referee_payer ?? (existingProject as any).referee_payer

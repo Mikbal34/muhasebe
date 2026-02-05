@@ -1,104 +1,52 @@
 import { NextRequest } from 'next/server'
-import { withAuth, apiResponse } from '@/lib/middleware/auth'
+import { apiResponse } from '@/lib/middleware/auth'
+import { createAdminClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
-  return withAuth(request, async (req, ctx) => {
-    try {
-      const { supabase, user } = ctx
-
-      // Get full user profile
-      const { data: profile, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-
-      if (error) {
-        console.error('Profile fetch error:', error)
-        return apiResponse.error('Profile not found', error.message, 404)
-      }
-
-      return apiResponse.success({ profile })
-    } catch (error: any) {
-      console.error('GET /api/auth/profile error:', error)
-      return apiResponse.error('Internal server error', error.message, 500)
+  try {
+    const authHeader = request.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return apiResponse.error('Unauthorized', 'No token provided', 401)
     }
-  })
-}
 
-export async function PUT(request: NextRequest) {
-  return withAuth(request, async (req, ctx) => {
-    try {
-      const { supabase, user } = ctx
-      const body = await request.json()
+    const token = authHeader.substring(7)
+    const supabase = await createAdminClient()
 
-      const { full_name, email, phone, iban } = body
+    // Token'dan user'ı al
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token)
 
-      // Validate required fields
-      if (!full_name || !email) {
-        return apiResponse.error('Validation failed', 'Full name and email are required', 400)
-      }
-
-      // Email validation
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (!emailRegex.test(email)) {
-        return apiResponse.error('Validation failed', 'Invalid email format', 400)
-      }
-
-      // Phone validation (optional)
-      if (phone) {
-        const phoneRegex = /^(\+90|0)?[1-9]\d{9}$/
-        if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
-          return apiResponse.error('Validation failed', 'Invalid phone number format', 400)
-        }
-      }
-
-      // IBAN validation (optional)
-      if (iban) {
-        const ibanRegex = /^TR\d{24}$/
-        if (!ibanRegex.test(iban.replace(/\s/g, ''))) {
-          return apiResponse.error('Validation failed', 'Invalid IBAN format', 400)
-        }
-      }
-
-      // Update user profile
-      const { data: updatedProfile, error } = await (supabase as any)
-        .from('users')
-        .update({
-          full_name: full_name.trim(),
-          email: email.trim(),
-          phone: phone ? phone.trim() : null,
-          iban: iban ? iban.replace(/\s/g, '') : null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id)
-        .select()
-        .single()
-
-      if (error) {
-        console.error('Profile update error:', error)
-        return apiResponse.error('Profile update failed', error.message, 500)
-      }
-
-      // Also update auth email if changed
-      if (email !== user.email) {
-        const { error: authError } = await supabase.auth.updateUser({
-          email: email.trim()
-        })
-
-        if (authError) {
-          console.error('Auth email update error:', authError)
-          // Don't fail the request, just log the error
-        }
-      }
-
-      return apiResponse.success(
-        { profile: updatedProfile },
-        'Profile updated successfully'
-      )
-    } catch (error: any) {
-      console.error('PUT /api/auth/profile error:', error)
-      return apiResponse.error('Internal server error', error.message, 500)
+    if (userError || !user) {
+      return apiResponse.error('Unauthorized', 'Invalid token', 401)
     }
-  })
+
+    // Profile'ı getir
+    const { data: profile, error: profileError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError || !profile) {
+      return apiResponse.error('Profile not found', 'User profile could not be loaded', 404)
+    }
+
+    if (!profile.is_active) {
+      return apiResponse.error('Account disabled', 'Your account has been disabled', 403)
+    }
+
+    return apiResponse.success({
+      user: {
+        id: profile.id,
+        email: profile.email,
+        full_name: profile.full_name,
+        role: profile.role,
+        phone: profile.phone,
+        iban: profile.iban,
+        is_active: profile.is_active,
+      }
+    })
+  } catch (error: any) {
+    console.error('Profile API error:', error)
+    return apiResponse.error('Internal server error', error.message, 500)
+  }
 }

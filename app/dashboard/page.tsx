@@ -49,54 +49,42 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const checkSession = async () => {
-      // Önce Supabase session'ı kontrol et
+      // Client-side Supabase session'ı kontrol et
       const { data: { session } } = await supabase.auth.getSession()
 
       if (session) {
-        // Session varsa localStorage'ı güncelle ve kullanıcıyı ayarla
-        localStorage.setItem('token', session.access_token)
-        localStorage.setItem('user', JSON.stringify(session.user))
-        setUser(session.user as unknown as User)
-        return
-      }
+        // localStorage'dan user bilgisini al
+        const userData = localStorage.getItem('user')
+        if (userData) {
+          try {
+            setUser(JSON.parse(userData))
+            // Token'ı da güncelle (refresh olmuş olabilir)
+            localStorage.setItem('token', session.access_token)
+            return
+          } catch (err) {
+            // JSON parse hatası - profile'dan al
+          }
+        }
 
-      // Session yoksa localStorage'dan restore etmeyi dene
-      const savedSession = localStorage.getItem('supabase_session')
-      if (savedSession) {
+        // User yoksa profile API'den al
         try {
-          const parsed = JSON.parse(savedSession)
-          const { data, error } = await supabase.auth.setSession({
-            access_token: parsed.access_token,
-            refresh_token: parsed.refresh_token,
+          const response = await fetch('/api/auth/profile', {
+            headers: { 'Authorization': `Bearer ${session.access_token}` }
           })
-          if (data.session) {
-            localStorage.setItem('token', data.session.access_token)
-            localStorage.setItem('user', JSON.stringify(data.session.user))
-            // Session'ı da güncelle (yeni token'lar olabilir)
-            localStorage.setItem('supabase_session', JSON.stringify(data.session))
-            setUser(data.session.user as unknown as User)
+          const data = await response.json()
+          if (data.success) {
+            localStorage.setItem('user', JSON.stringify(data.data.user))
+            localStorage.setItem('token', session.access_token)
+            setUser(data.data.user)
             return
           }
         } catch (err) {
-          console.error('Session restore failed:', err)
+          console.error('Profile fetch failed:', err)
         }
       }
 
-      // localStorage'dan user data kontrolü (fallback)
-      const token = localStorage.getItem('token')
-      const userData = localStorage.getItem('user')
-
-      if (!token || !userData) {
-        router.push('/login')
-        return
-      }
-
-      try {
-        const parsedUser = JSON.parse(userData)
-        setUser(parsedUser)
-      } catch (err) {
-        router.push('/login')
-      }
+      // Session yoksa login'e yönlendir
+      router.push('/login')
     }
 
     checkSession()

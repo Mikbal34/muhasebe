@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, AlertCircle, User, Lock, ArrowRight } from 'lucide-react'
 import Image from 'next/image'
 import { LoadingSplash } from '@/components/ui/loading-splash'
+import { supabase } from '@/lib/supabase/client'
 
 // YTÜ Yıldız Logosu - Orijinal 12 Köşeli Yıldız
 function StarLogo({ className = '' }: { className?: string }) {
@@ -73,33 +74,50 @@ export default function LoginPage() {
     setError('')
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
+      // Doğrudan client-side Supabase ile login
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       })
 
-      const data = await response.json()
-
-      if (data.success) {
-        // Beni hatırla - email'i kaydet veya sil
-        if (rememberMe) {
-          localStorage.setItem('rememberedEmail', email)
-          // Session'ı da kaydet ki sekme kapatılınca kalıcı olsun
-          localStorage.setItem('supabase_session', JSON.stringify(data.data.session))
-        } else {
-          localStorage.removeItem('rememberedEmail')
-          localStorage.removeItem('supabase_session')
-        }
-
-        localStorage.setItem('token', data.data.session.access_token)
-        localStorage.setItem('user', JSON.stringify(data.data.user))
-        setShowSplash(true) // Show splash animation before navigating
-      } else {
-        setError(data.message || 'Giriş başarısız')
+      if (authError) {
+        setError(authError.message === 'Invalid login credentials'
+          ? 'Geçersiz e-posta veya şifre'
+          : authError.message)
+        return
       }
+
+      if (!authData.session) {
+        setError('Giriş başarısız')
+        return
+      }
+
+      // User profile'ı API'den al (rate limit ve validation için)
+      const response = await fetch('/api/auth/profile', {
+        headers: {
+          'Authorization': `Bearer ${authData.session.access_token}`
+        }
+      })
+      const profileData = await response.json()
+
+      if (!profileData.success) {
+        setError(profileData.message || 'Profil yüklenemedi')
+        await supabase.auth.signOut()
+        return
+      }
+
+      // Beni hatırla - email'i kaydet
+      if (rememberMe) {
+        localStorage.setItem('rememberedEmail', email)
+      } else {
+        localStorage.removeItem('rememberedEmail')
+      }
+
+      // localStorage'a user bilgisi kaydet (eski kod uyumluluğu)
+      localStorage.setItem('token', authData.session.access_token)
+      localStorage.setItem('user', JSON.stringify(profileData.data.user))
+
+      setShowSplash(true) // Show splash animation before navigating
     } catch (err) {
       setError('Bir hata oluştu. Lütfen tekrar deneyin.')
     } finally {
