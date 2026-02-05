@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import { NotificationBell } from '@/components/ui/notification'
 import { Logo } from '@/components/ui/logo'
+import { supabase } from '@/lib/supabase/client'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -170,18 +171,28 @@ export default function DashboardLayout({ children, user: propUser }: DashboardL
 
   const handleLogout = async () => {
     try {
-      const response = await fetch('/api/auth/logout', {
+      // Supabase oturumunu sonlandır
+      await supabase.auth.signOut()
+
+      // API logout
+      await fetch('/api/auth/logout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
       })
 
-      if (response.ok) {
-        window.location.href = '/login'
-      }
+      // localStorage temizle (rememberedEmail hariç - sadece email için)
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      localStorage.removeItem('supabase_session')
+      localStorage.removeItem('supabase-auth-token')
+
+      window.location.href = '/login'
     } catch (error) {
       console.error('Logout failed:', error)
+      // Hata olsa bile login'e yönlendir
+      window.location.href = '/login'
     }
   }
 

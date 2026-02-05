@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, AlertCircle, User, Lock, ArrowRight } from 'lucide-react'
@@ -58,6 +58,15 @@ export default function LoginPage() {
   const [showSplash, setShowSplash] = useState(false)
   const router = useRouter()
 
+  // Beni hatırla - sayfa yüklendiğinde kontrol et
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('rememberedEmail')
+    if (savedEmail) {
+      setEmail(savedEmail)
+      setRememberMe(true)
+    }
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -75,6 +84,16 @@ export default function LoginPage() {
       const data = await response.json()
 
       if (data.success) {
+        // Beni hatırla - email'i kaydet veya sil
+        if (rememberMe) {
+          localStorage.setItem('rememberedEmail', email)
+          // Session'ı da kaydet ki sekme kapatılınca kalıcı olsun
+          localStorage.setItem('supabase_session', JSON.stringify(data.data.session))
+        } else {
+          localStorage.removeItem('rememberedEmail')
+          localStorage.removeItem('supabase_session')
+        }
+
         localStorage.setItem('token', data.data.session.access_token)
         localStorage.setItem('user', JSON.stringify(data.data.user))
         setShowSplash(true) // Show splash animation before navigating

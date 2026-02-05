@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import DashboardLayout from '@/components/layout/dashboard-layout'
+import { supabase } from '@/lib/supabase/client'
 import {
   Building2,
   Wallet,
@@ -47,20 +48,58 @@ export default function DashboardPage() {
   const { data: cashFlowData, isLoading: cashFlowLoading } = useCashFlow(cashFlowPeriod)
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    const userData = localStorage.getItem('user')
+    const checkSession = async () => {
+      // Önce Supabase session'ı kontrol et
+      const { data: { session } } = await supabase.auth.getSession()
 
-    if (!token || !userData) {
-      router.push('/login')
-      return
+      if (session) {
+        // Session varsa localStorage'ı güncelle ve kullanıcıyı ayarla
+        localStorage.setItem('token', session.access_token)
+        localStorage.setItem('user', JSON.stringify(session.user))
+        setUser(session.user as unknown as User)
+        return
+      }
+
+      // Session yoksa localStorage'dan restore etmeyi dene
+      const savedSession = localStorage.getItem('supabase_session')
+      if (savedSession) {
+        try {
+          const parsed = JSON.parse(savedSession)
+          const { data, error } = await supabase.auth.setSession({
+            access_token: parsed.access_token,
+            refresh_token: parsed.refresh_token,
+          })
+          if (data.session) {
+            localStorage.setItem('token', data.session.access_token)
+            localStorage.setItem('user', JSON.stringify(data.session.user))
+            // Session'ı da güncelle (yeni token'lar olabilir)
+            localStorage.setItem('supabase_session', JSON.stringify(data.session))
+            setUser(data.session.user as unknown as User)
+            return
+          }
+        } catch (err) {
+          console.error('Session restore failed:', err)
+        }
+      }
+
+      // localStorage'dan user data kontrolü (fallback)
+      const token = localStorage.getItem('token')
+      const userData = localStorage.getItem('user')
+
+      if (!token || !userData) {
+        router.push('/login')
+        return
+      }
+
+      try {
+        const parsedUser = JSON.parse(userData)
+        setUser(parsedUser)
+      } catch (err) {
+        router.push('/login')
+      }
     }
 
-    try {
-      const parsedUser = JSON.parse(userData)
-      setUser(parsedUser)
-    } catch (err) {
-      router.push('/login')
-    }
+    checkSession()
   }, [router])
 
   const handleCashFlowPeriodChange = (newPeriod: CashFlowPeriod) => {
@@ -302,7 +341,9 @@ export default function DashboardPage() {
 
             {/* Year Breakdown Cards - Corporate Colors */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {dashboardMetrics.year_breakdown.map((yearData, index) => {
+              {dashboardMetrics.year_breakdown
+                .filter(yearData => ['2024', '2025', '2026'].includes(yearData.year))
+                .map((yearData, index) => {
                 const colors = [
                   { bg: 'bg-navy/5', border: 'border-navy/20', text: 'text-navy/70', accent: 'text-navy' },
                   { bg: 'bg-gold/10', border: 'border-gold/30', text: 'text-gold', accent: 'text-gold' },
