@@ -57,16 +57,27 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showSplash, setShowSplash] = useState(false)
+  const [checkingSession, setCheckingSession] = useState(true)
   const router = useRouter()
 
-  // Beni hatırla - sayfa yüklendiğinde kontrol et
+  // Session kontrolü - zaten giriş yapmışsa dashboard'a yönlendir
   useEffect(() => {
-    const savedEmail = localStorage.getItem('rememberedEmail')
-    if (savedEmail) {
-      setEmail(savedEmail)
-      setRememberMe(true)
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        router.replace('/dashboard')
+      } else {
+        setCheckingSession(false)
+        // Beni hatırla - email'i kontrol et
+        const savedEmail = localStorage.getItem('rememberedEmail')
+        if (savedEmail) {
+          setEmail(savedEmail)
+          setRememberMe(true)
+        }
+      }
     }
-  }, [])
+    checkSession()
+  }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -123,6 +134,15 @@ export default function LoginPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Session kontrolü yapılırken loading göster
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[radial-gradient(circle_at_center,_#ffffff_0%,_#f7f3e9_100%)]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-navy"></div>
+      </div>
+    )
   }
 
   return (
