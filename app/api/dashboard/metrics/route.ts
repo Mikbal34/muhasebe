@@ -148,57 +148,39 @@ export async function GET(request: NextRequest) {
       // Calculate total payments
       const totalPayments = payments?.reduce((sum, p) => sum + (p.total_amount || 0), 0) || 0
 
-      // 5. Group data by year
-      const yearData: Record<string, { invoiced: number; commission: number; remaining: number; planned: number }> = {}
+      // 5. Group data by year — projects tablosundan (start_date yılına göre)
+      const yearData: Record<string, { budget: number; received: number; commission: number; remaining: number }> = {}
 
-      // Process incomes by year
-      // Planlanan (gross_amount) ve tahsil edilen (collected_amount > 0) ayrımı yap
-      incomes?.forEach((income) => {
-        if (income.income_date) {
-          const year = new Date(income.income_date).getFullYear().toString()
+      // Projeleri start_date yılına göre grupla
+      allProjects?.forEach((project: any) => {
+        if (project.start_date) {
+          const year = new Date(project.start_date).getFullYear().toString()
           if (!yearData[year]) {
-            yearData[year] = { invoiced: 0, commission: 0, remaining: 0, planned: 0 }
+            yearData[year] = { budget: 0, received: 0, commission: 0, remaining: 0 }
           }
-          // Planlanan tutar (tüm gelir kayıtları)
-          yearData[year].planned += income.gross_amount || 0
-          // Faturalanan tutar (sadece tahsil edilenler)
-          if ((income as any).collected_amount > 0) {
-            yearData[year].invoiced += income.gross_amount || 0
-          }
+          yearData[year].budget += project.budget || 0
+          yearData[year].received += project.total_received || 0
+          yearData[year].commission += project.total_commission_due || 0
         }
       })
 
-      // Process commissions by year (using created_at)
-      commissions?.forEach((commission: any) => {
-        if (commission.created_at) {
-          const year = new Date(commission.created_at).getFullYear().toString()
-          if (!yearData[year]) {
-            yearData[year] = { invoiced: 0, commission: 0, remaining: 0, planned: 0 }
-          }
-          yearData[year].commission += commission.amount || 0
-        }
-      })
-
-      // Calculate remaining for each year based on income_date
-      // Kesilecek fatura = O yılda planlanan - O yılda tahsil edilen
+      // Her yıl için kalan bütçeyi hesapla
       Object.keys(yearData).forEach((year) => {
-        yearData[year].remaining = yearData[year].planned - yearData[year].invoiced
+        yearData[year].remaining = yearData[year].budget - yearData[year].received
       })
 
-      // 6. Format year breakdown for years with data (dynamically determined)
-      // Get all unique years from yearData, sorted descending
-      const allDataYears = Object.keys(yearData).sort().reverse()
-
-      // If no data, default to current year and previous 2 years
+      // 6. Format year breakdown — son 3 yıl + veri olan yıllar
       const currentYear = new Date().getFullYear()
       const defaultYears = [currentYear, currentYear - 1, currentYear - 2].map(String)
+      const allDataYears = Object.keys(yearData).sort().reverse()
 
-      // Use years from data if available, otherwise use defaults
-      const years = allDataYears.length > 0 ? allDataYears : defaultYears
+      // Varsayılan yıllar + veri olan yılları birleştir, sırala
+      const yearsSet = new Set([...defaultYears, ...allDataYears])
+      const years = Array.from(yearsSet).sort().reverse()
 
       const yearBreakdown = years.map((year) => ({
         year,
-        invoiced: yearData[year]?.invoiced || 0,
+        invoiced: yearData[year]?.received || 0,
         commission: yearData[year]?.commission || 0,
         remaining: yearData[year]?.remaining || 0,
       }))
@@ -280,8 +262,8 @@ export async function GET(request: NextRequest) {
         // Monthly breakdown by year
         monthly_breakdown: monthlyBreakdown,
 
-        // All available years (for future expansion)
-        all_years: Object.keys(yearData).sort().reverse(),
+        // All available years
+        all_years: years,
 
         // Applied filters
         filters: {
