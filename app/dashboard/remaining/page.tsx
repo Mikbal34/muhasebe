@@ -1,19 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import {
   ArrowLeft,
   PiggyBank,
   Building2,
-  TrendingUp,
   Search,
   Calendar,
   Receipt,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  AlertTriangle
 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface User {
   id: string
@@ -22,183 +23,85 @@ interface User {
   role: 'admin' | 'manager'
 }
 
-// Mock Data - Kesilecek faturası olan projeler
-const MOCK_REMAINING_DATA = {
-  total: 12776576.50,
-  projectCount: 12,
-  projects: [
-    {
-      id: '1',
-      code: 'TTO-2024-042',
-      name: 'Yapay Zeka Destekli Kalite Kontrol Sistemi',
-      company: 'ABC Teknoloji A.Ş.',
-      budget: 2500000,
-      invoiced: 1800000,
-      remaining: 700000,
-      progress: 72,
-      plannedInvoices: [
-        { description: 'Final Teslim Ödemesi', amount: 400000, plannedDate: '2025-03-31' },
-        { description: 'Garanti Dönemi Başlangıç', amount: 300000, plannedDate: '2025-06-30' },
-      ]
-    },
-    {
-      id: '2',
-      code: 'TTO-2024-038',
-      name: 'Akıllı Şehir IoT Altyapısı Projesi',
-      company: 'SmartCity Solutions',
-      budget: 5000000,
-      invoiced: 3500000,
-      remaining: 1500000,
-      progress: 70,
-      plannedInvoices: [
-        { description: 'Dashboard Geliştirme', amount: 750000, plannedDate: '2025-04-15' },
-        { description: 'Final Entegrasyon', amount: 750000, plannedDate: '2025-07-30' },
-      ]
-    },
-    {
-      id: '3',
-      code: 'TTO-2024-051',
-      name: 'Biyomedikal Görüntüleme Cihazı Geliştirme',
-      company: 'MedTech İnovasyon',
-      budget: 8000000,
-      invoiced: 6000000,
-      remaining: 2000000,
-      progress: 75,
-      plannedInvoices: [
-        { description: 'FDA Başvuru Süreci', amount: 1000000, plannedDate: '2025-05-20' },
-        { description: 'Seri Üretim Hazırlık', amount: 1000000, plannedDate: '2025-09-15' },
-      ]
-    },
-    {
-      id: '4',
-      code: 'TTO-2024-029',
-      name: 'Enerji Verimliliği Optimizasyon Yazılımı',
-      company: 'GreenEnergy Tech',
-      budget: 1800000,
-      invoiced: 1400000,
-      remaining: 400000,
-      progress: 78,
-      plannedInvoices: [
-        { description: 'Deployment ve Eğitim', amount: 400000, plannedDate: '2025-02-28' },
-      ]
-    },
-    {
-      id: '5',
-      code: 'TTO-2025-003',
-      name: 'Otonom Araç Simülasyon Platformu',
-      company: 'AutoDrive Systems',
-      budget: 12000000,
-      invoiced: 8000000,
-      remaining: 4000000,
-      progress: 67,
-      plannedInvoices: [
-        { description: 'VR Entegrasyonu', amount: 1500000, plannedDate: '2025-08-10' },
-        { description: 'Yapay Zeka Modülleri', amount: 1500000, plannedDate: '2025-11-20' },
-        { description: 'Final Kabul', amount: 1000000, plannedDate: '2026-02-15' },
-      ]
-    },
-    {
-      id: '6',
-      code: 'TTO-2024-067',
-      name: 'Blockchain Tabanlı Tedarik Zinciri',
-      company: 'ChainLogistics',
-      budget: 3200000,
-      invoiced: 2400000,
-      remaining: 800000,
-      progress: 75,
-      plannedInvoices: [
-        { description: 'Canlıya Geçiş', amount: 500000, plannedDate: '2025-03-15' },
-        { description: 'Destek Paketi', amount: 300000, plannedDate: '2025-06-30' },
-      ]
-    },
-    {
-      id: '7',
-      code: 'TTO-2024-055',
-      name: 'Kuantum Hesaplama Araştırma Projesi',
-      company: 'QuantumLab Türkiye',
-      budget: 15000000,
-      invoiced: 10000000,
-      remaining: 5000000,
-      progress: 67,
-      plannedInvoices: [
-        { description: 'Araştırma Faz 3', amount: 2500000, plannedDate: '2025-04-30' },
-        { description: 'Prototip Geliştirme', amount: 2500000, plannedDate: '2025-10-15' },
-      ]
-    },
-    {
-      id: '8',
-      code: 'TTO-2024-044',
-      name: 'Tarımsal Drone Teknolojileri',
-      company: 'AgroTech Innovations',
-      budget: 2200000,
-      invoiced: 1600000,
-      remaining: 600000,
-      progress: 73,
-      plannedInvoices: [
-        { description: 'Sertifikasyon', amount: 300000, plannedDate: '2025-02-15' },
-        { description: 'Ticari Lansman', amount: 300000, plannedDate: '2025-05-01' },
-      ]
-    },
-    {
-      id: '9',
-      code: 'TTO-2025-008',
-      name: 'Nanoteknoloji Malzeme Araştırması',
-      company: 'NanoMaterials Inc.',
-      budget: 6500000,
-      invoiced: 5723423.50,
-      remaining: 776576.50,
-      progress: 88,
-      plannedInvoices: [
-        { description: 'Patent Başvuruları', amount: 400000, plannedDate: '2025-03-20' },
-        { description: 'Lisanslama', amount: 376576.50, plannedDate: '2025-06-15' },
-      ]
-    },
-    {
-      id: '10',
-      code: 'TTO-2024-072',
-      name: 'Siber Güvenlik Platformu',
-      company: 'SecureNet Systems',
-      budget: 4000000,
-      invoiced: 3500000,
-      remaining: 500000,
-      progress: 87.5,
-      plannedInvoices: [
-        { description: 'Penetrasyon Testi', amount: 250000, plannedDate: '2025-02-28' },
-        { description: 'Final Denetim', amount: 250000, plannedDate: '2025-04-15' },
-      ]
-    },
-    {
-      id: '11',
-      code: 'TTO-2025-001',
-      name: 'Yenilenebilir Enerji Depolama Sistemi',
-      company: 'EnergyStore Tech',
-      budget: 9000000,
-      invoiced: 8500000,
-      remaining: 500000,
-      progress: 94,
-      plannedInvoices: [
-        { description: 'Performans Garantisi', amount: 500000, plannedDate: '2025-03-31' },
-      ]
-    },
-    {
-      id: '12',
-      code: 'TTO-2024-060',
-      name: 'Akıllı Fabrika Otomasyon Sistemi',
-      company: 'Industry 4.0 Solutions',
-      budget: 7500000,
-      invoiced: 7500000,
-      remaining: 0,
-      progress: 100,
-      plannedInvoices: []
-    },
-  ].filter(p => p.remaining > 0)
+interface PlannedInvoice {
+  id: string
+  description: string
+  amount: number
+  plannedDate: string
+}
+
+interface Project {
+  id: string
+  code: string
+  name: string
+  company: string
+  budget: number
+  invoiced: number
+  remaining: number
+  progress: number
+  plannedInvoices: PlannedInvoice[]
+}
+
+interface RemainingData {
+  total: number
+  projectCount: number
+  totalPlannedCount: number
+  projects: Project[]
 }
 
 export default function RemainingPage() {
   const router = useRouter()
-  const [user] = useState<User>({ id: '1', full_name: 'Demo Kullanıcı', email: 'demo@tto.com', role: 'admin' })
+  const [user, setUser] = useState<User | null>(null)
+  const [data, setData] = useState<RemainingData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set())
   const [searchTerm, setSearchTerm] = useState('')
+
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    const userData = localStorage.getItem('user')
+
+    if (!token || !userData) {
+      router.push('/login')
+      return
+    }
+
+    try {
+      setUser(JSON.parse(userData))
+    } catch (err) {
+      router.push('/login')
+      return
+    }
+
+    // Fetch remaining data
+    const fetchData = async () => {
+      try {
+        const response = await fetch('/api/dashboard/remaining', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch data')
+        }
+
+        const result = await response.json()
+        if (result.success) {
+          setData(result.data)
+        } else {
+          throw new Error(result.message || 'Failed to fetch data')
+        }
+      } catch (err: any) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [router])
 
   const toggleProject = (projectId: string) => {
     const newExpanded = new Set(expandedProjects)
@@ -210,15 +113,94 @@ export default function RemainingPage() {
     setExpandedProjects(newExpanded)
   }
 
-  const filteredProjects = MOCK_REMAINING_DATA.projects.filter(project =>
+  const filteredProjects = data?.projects.filter(project =>
     project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     project.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
     project.company.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  ) || []
 
-  const totalPlannedCount = MOCK_REMAINING_DATA.projects.reduce(
-    (sum, p) => sum + p.plannedInvoices.length, 0
-  )
+  if (loading || !user) {
+    return (
+      <DashboardLayout user={user || { id: '', full_name: 'Yükleniyor...', email: '', role: 'manager' }}>
+        <div className="space-y-6">
+          {/* Header Skeleton */}
+          <div className="flex items-center gap-4">
+            <Skeleton className="w-10 h-10 rounded-lg" />
+            <div>
+              <Skeleton className="h-8 w-48 mb-2" />
+              <Skeleton className="h-4 w-64" />
+            </div>
+          </div>
+
+          {/* Stats Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-xl border overflow-hidden">
+                <Skeleton className="h-1 w-full" />
+                <div className="p-5">
+                  <Skeleton className="h-4 w-32 mb-3" />
+                  <Skeleton className="h-8 w-40" />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Search Skeleton */}
+          <div className="bg-white rounded-xl border p-4">
+            <Skeleton className="h-10 w-full" />
+          </div>
+
+          {/* Projects Skeleton */}
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white rounded-xl border p-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <Skeleton className="w-10 h-10 rounded-lg" />
+                  <div>
+                    <Skeleton className="h-5 w-48 mb-2" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                </div>
+                <Skeleton className="h-8 w-32" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  if (error) {
+    return (
+      <DashboardLayout user={user}>
+        <div className="space-y-6">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5 text-slate-600" />
+            </button>
+            <div>
+              <h1 className="text-2xl font-black text-navy">Kesilecek Faturalar</h1>
+            </div>
+          </div>
+
+          <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
+            <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-bold text-red-700 mb-2">Veri Yüklenemedi</h3>
+            <p className="text-red-600">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Tekrar Dene
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
 
   return (
     <DashboardLayout user={user}>
@@ -233,7 +215,7 @@ export default function RemainingPage() {
           </button>
           <div>
             <h1 className="text-2xl font-black text-navy">Kesilecek Faturalar</h1>
-            <p className="text-sm text-slate-500">Henüz faturalandırılmamış proje bütçeleri</p>
+            <p className="text-sm text-slate-500">Henüz faturalandırılmamıs proje bütceleri</p>
           </div>
         </div>
 
@@ -248,7 +230,7 @@ export default function RemainingPage() {
                 <PiggyBank className="w-5 h-5 text-slate-500" />
               </div>
               <p className="text-2xl font-black text-slate-700">
-                ₺{MOCK_REMAINING_DATA.total.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                ₺{(data?.total || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
               </p>
             </div>
           </div>
@@ -261,7 +243,7 @@ export default function RemainingPage() {
                 <p className="text-slate-500 font-semibold text-sm">Proje Sayısı</p>
                 <Building2 className="w-5 h-5 text-navy" />
               </div>
-              <p className="text-2xl font-black text-navy">{MOCK_REMAINING_DATA.projectCount}</p>
+              <p className="text-2xl font-black text-navy">{data?.projectCount || 0}</p>
               <p className="text-xs text-slate-400 mt-1">Fatura bekleyen proje</p>
             </div>
           </div>
@@ -274,7 +256,7 @@ export default function RemainingPage() {
                 <p className="text-slate-500 font-semibold text-sm">Planlanan Fatura</p>
                 <Receipt className="w-5 h-5 text-emerald-500" />
               </div>
-              <p className="text-2xl font-black text-emerald-600">{totalPlannedCount}</p>
+              <p className="text-2xl font-black text-emerald-600">{data?.totalPlannedCount || 0}</p>
               <p className="text-xs text-slate-400 mt-1">Kesilecek fatura adedi</p>
             </div>
           </div>
@@ -332,7 +314,7 @@ export default function RemainingPage() {
                         <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-navy rounded-full"
-                            style={{ width: `${project.progress}%` }}
+                            style={{ width: `${Math.min(project.progress, 100)}%` }}
                           />
                         </div>
                         <span className="text-xs font-bold text-slate-500">{project.progress}%</span>
@@ -359,7 +341,7 @@ export default function RemainingPage() {
                   {/* Summary */}
                   <div className="p-4 grid grid-cols-3 gap-4 border-b border-slate-100">
                     <div>
-                      <p className="text-[10px] text-slate-400 uppercase font-bold">Toplam Bütçe</p>
+                      <p className="text-[10px] text-slate-400 uppercase font-bold">Toplam Bütce</p>
                       <p className="text-sm font-bold text-slate-700">₺{project.budget.toLocaleString('tr-TR')}</p>
                     </div>
                     <div>
@@ -377,9 +359,9 @@ export default function RemainingPage() {
                     <div className="p-4">
                       <p className="text-xs font-bold text-slate-500 uppercase mb-3">Planlanan Faturalar</p>
                       <div className="space-y-2">
-                        {project.plannedInvoices.map((invoice, idx) => (
+                        {project.plannedInvoices.map((invoice) => (
                           <div
-                            key={idx}
+                            key={invoice.id}
                             className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-100"
                           >
                             <div className="flex items-center gap-3">
@@ -387,10 +369,10 @@ export default function RemainingPage() {
                                 <Receipt className="w-4 h-4 text-emerald-500" />
                               </div>
                               <div>
-                                <p className="text-sm font-medium text-slate-700">{invoice.description}</p>
+                                <p className="text-sm font-medium text-slate-700">{invoice.description || 'Planlanan Fatura'}</p>
                                 <div className="flex items-center gap-1 text-xs text-slate-400">
                                   <Calendar className="w-3 h-3" />
-                                  <span>Planlanan: {new Date(invoice.plannedDate).toLocaleDateString('tr-TR')}</span>
+                                  <span>Planlanan: {invoice.plannedDate ? new Date(invoice.plannedDate).toLocaleDateString('tr-TR') : '-'}</span>
                                 </div>
                               </div>
                             </div>
@@ -413,13 +395,19 @@ export default function RemainingPage() {
         </div>
 
         {/* Empty State */}
-        {filteredProjects.length === 0 && (
+        {filteredProjects.length === 0 && !loading && (
           <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-16 text-center">
             <div className="w-16 h-16 mx-auto mb-4 bg-slate-100 rounded-full flex items-center justify-center">
               <Search className="w-8 h-8 text-slate-400" />
             </div>
-            <h3 className="text-lg font-bold text-slate-700 mb-2">Sonuç Bulunamadı</h3>
-            <p className="text-slate-500">Arama kriterlerinize uygun proje bulunamadı.</p>
+            <h3 className="text-lg font-bold text-slate-700 mb-2">
+              {searchTerm ? 'Sonuc Bulunamadı' : 'Kesilecek Fatura Yok'}
+            </h3>
+            <p className="text-slate-500">
+              {searchTerm
+                ? 'Arama kriterlerinize uygun proje bulunamadı.'
+                : 'Tüm projeler için faturalar kesilmis durumda.'}
+            </p>
           </div>
         )}
       </div>

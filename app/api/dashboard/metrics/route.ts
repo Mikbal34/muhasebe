@@ -17,10 +17,11 @@ export async function GET(request: NextRequest) {
 
       console.log('Dashboard metrics - Date filters:', { startDate, endDate })
 
-      // 1. Get total budget from projects (filtered by start_date if provided)
+      // 1. Get all projects (filtered by start_date if provided)
+      // Ana metrikler (bütçe, tahsilat, kalan) projects tablosundan okunur
       let projectsQuery = ctx.supabase
         .from('projects')
-        .select('budget, status, start_date, total_commission_due')
+        .select('budget, total_received, status, start_date, total_commission_due')
 
       // Filter projects by start_date
       if (startDate) {
@@ -39,16 +40,20 @@ export async function GET(request: NextRequest) {
 
       console.log('Filtered projects count:', allProjects?.length || 0)
 
-      // Total budget includes filtered projects (active + completed)
+      // Ana metrikler projects tablosundan
       const totalBudget = allProjects?.reduce((sum, p) => sum + (p.budget || 0), 0) || 0
-
-      // Total commission due from projects (Excel'den gelen alınması gereken komisyon)
+      const totalCollected = allProjects?.reduce((sum, p) => sum + (p.total_received || 0), 0) || 0
       const totalCommissionDue = allProjects?.reduce((sum, p) => sum + (p.total_commission_due || 0), 0) || 0
 
       // 2. Get active project count (only active ones from filtered)
       const activeProjectCount = allProjects?.filter(p => p.status === 'active').length || 0
 
-      // 3. Get all incomes with income_date for year grouping
+      // Türetilmiş metrikler
+      const totalInvoiced = totalCollected // Tahsil edilen = faturalanan (projects bazlı)
+      const totalOutstanding = 0 // Projects bazlı açık bakiye yok
+      const remainingToInvoice = totalBudget - totalCollected
+
+      // 3. Get all incomes with income_date for year/month breakdowns
       let incomesQuery = ctx.supabase
         .from('incomes')
         .select('gross_amount, collected_amount, income_date')
@@ -69,18 +74,6 @@ export async function GET(request: NextRequest) {
       }
 
       console.log('Filtered incomes count:', incomes?.length || 0)
-
-      // Calculate total invoiced (kesilen fatura)
-      const totalInvoiced = incomes?.reduce((sum, i) => sum + (i.gross_amount || 0), 0) || 0
-
-      // Calculate total collected (tahsil edilen)
-      const totalCollected = incomes?.reduce((sum, i) => sum + (i.collected_amount || 0), 0) || 0
-
-      // Calculate total outstanding (açık bakiye)
-      const totalOutstanding = totalInvoiced - totalCollected
-
-      // Calculate remaining to invoice (kesilecek fatura)
-      const remainingToInvoice = totalBudget - totalInvoiced
 
       // 4. Get all commissions with created_at for year grouping
       let commissionsQuery = ctx.supabase
@@ -192,8 +185,17 @@ export async function GET(request: NextRequest) {
         yearData[year].remaining = yearData[year].planned - yearData[year].invoiced
       })
 
-      // 6. Format year breakdown for specific years (2024, 2025, 2026)
-      const years = ['2024', '2025', '2026']
+      // 6. Format year breakdown for years with data (dynamically determined)
+      // Get all unique years from yearData, sorted descending
+      const allDataYears = Object.keys(yearData).sort().reverse()
+
+      // If no data, default to current year and previous 2 years
+      const currentYear = new Date().getFullYear()
+      const defaultYears = [currentYear, currentYear - 1, currentYear - 2].map(String)
+
+      // Use years from data if available, otherwise use defaults
+      const years = allDataYears.length > 0 ? allDataYears : defaultYears
+
       const yearBreakdown = years.map((year) => ({
         year,
         invoiced: yearData[year]?.invoiced || 0,
@@ -268,9 +270,9 @@ export async function GET(request: NextRequest) {
         total_payments: totalPayments,
         active_project_count: activeProjectCount,
 
-        // Progress percentage
-        progress_percentage: totalBudget > 0 ? (totalInvoiced / totalBudget) * 100 : 0,
-        collection_percentage: totalInvoiced > 0 ? (totalCollected / totalInvoiced) * 100 : 0,
+        // Progress percentage (projects bazlı)
+        progress_percentage: totalBudget > 0 ? (totalCollected / totalBudget) * 100 : 0,
+        collection_percentage: totalBudget > 0 ? (totalCollected / totalBudget) * 100 : 0,
 
         // Year breakdown
         year_breakdown: yearBreakdown,

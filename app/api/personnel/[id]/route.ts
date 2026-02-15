@@ -10,6 +10,12 @@ const updatePersonnelSchema = z.object({
   tc_no: z.string().length(11).nullable().optional(),
   notes: z.string().nullable().optional(),
   is_active: z.boolean().optional(),
+  title: z.string().nullable().optional(),
+  gender: z.string().nullable().optional(),
+  start_date: z.string().nullable().optional(),
+  faculty: z.string().nullable().optional(),
+  department: z.string().nullable().optional(),
+  university: z.string().nullable().optional(),
 })
 
 // GET: Get single personnel
@@ -140,6 +146,12 @@ export async function PUT(
       if (body.tc_no !== undefined) updateData.tc_no = body.tc_no || null
       if (body.notes !== undefined) updateData.notes = body.notes || null
       if (body.is_active !== undefined) updateData.is_active = body.is_active
+      if (body.title !== undefined) updateData.title = body.title || null
+      if (body.gender !== undefined) updateData.gender = body.gender || null
+      if (body.start_date !== undefined) updateData.start_date = body.start_date || null
+      if (body.faculty !== undefined) updateData.faculty = body.faculty || null
+      if (body.department !== undefined) updateData.department = body.department || null
+      if (body.university !== undefined) updateData.university = body.university || null
 
       if (Object.keys(updateData).length === 0) {
         return apiResponse.error('No updates provided', 'Güncellenecek alan yok', 400)

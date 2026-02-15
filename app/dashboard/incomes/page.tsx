@@ -30,7 +30,8 @@ import {
   Rocket,
   FlaskConical,
   Cpu,
-  FolderOpen
+  FolderOpen,
+  FileSpreadsheet
 } from 'lucide-react'
 import { StatCardSkeleton, AccordionGroupSkeleton, Skeleton } from '@/components/ui/skeleton'
 import { useIncomes, useInvalidateIncomes, DateRange } from '@/hooks/use-incomes'
@@ -288,6 +289,16 @@ export default function IncomesPage() {
                         Yeni Gelir
                       </Link>
                       <Link
+                        href="/dashboard/incomes/import"
+                        className="flex items-center gap-3 w-full px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors border-t border-slate-100"
+                        onClick={() => setActionDropdownOpen(false)}
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                          <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                        </div>
+                        Toplu Gelir Ekle
+                      </Link>
+                      <Link
                         href="/dashboard/balances/allocate"
                         className="flex items-center gap-3 w-full px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors border-t border-slate-100"
                         onClick={() => setActionDropdownOpen(false)}
@@ -306,78 +317,78 @@ export default function IncomesPage() {
         </div>
 
         {/* KPI Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Brüt Toplam */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 relative overflow-hidden">
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 relative overflow-hidden">
             <div className="h-0.5 w-full bg-gradient-to-r from-navy to-gold absolute top-0 left-0" />
-            <div className="flex justify-between items-start mb-4">
-              <p className="text-slate-500 text-sm font-bold uppercase tracking-wider">Brüt Toplam</p>
-              <div className="w-10 h-10 rounded-xl bg-navy/10 flex items-center justify-center">
-                <Wallet className="w-5 h-5 text-navy" />
+            <div className="flex justify-between items-start mb-2">
+              <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Brüt Toplam</p>
+              <div className="w-8 h-8 rounded-lg bg-navy/10 flex items-center justify-center">
+                <Wallet className="w-4 h-4 text-navy" />
               </div>
             </div>
-            <p className="text-3xl font-black text-navy">
-              ₺{totalStats.totalGross.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+            <p className="text-xl font-black text-navy truncate">
+              ₺{totalStats.totalGross.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}
             </p>
-            <div className="mt-2 flex items-center text-xs text-navy font-bold">
-              <TrendingUp className="w-3.5 h-3.5 mr-1" />
+            <div className="mt-1 flex items-center text-[11px] text-navy font-bold">
+              <TrendingUp className="w-3 h-3 mr-1" />
               <span>{totalStats.count} gelir kaydı</span>
             </div>
           </div>
 
           {/* KDV Toplamı */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 relative overflow-hidden">
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 relative overflow-hidden">
             <div className="h-0.5 w-full bg-gradient-to-r from-navy to-gold absolute top-0 left-0" />
-            <div className="flex justify-between items-start mb-4">
-              <p className="text-slate-500 text-sm font-bold uppercase tracking-wider">KDV Toplamı</p>
-              <div className="w-10 h-10 rounded-xl bg-navy/10 flex items-center justify-center">
-                <Percent className="w-5 h-5 text-navy" />
+            <div className="flex justify-between items-start mb-2">
+              <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">KDV Toplamı</p>
+              <div className="w-8 h-8 rounded-lg bg-navy/10 flex items-center justify-center">
+                <Percent className="w-4 h-4 text-navy" />
               </div>
             </div>
-            <p className="text-3xl font-black text-navy">
-              ₺{totalStats.totalVat.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+            <p className="text-xl font-black text-navy truncate">
+              ₺{totalStats.totalVat.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}
             </p>
-            <p className="mt-2 text-xs text-slate-400 font-medium">
+            <p className="mt-1 text-[11px] text-slate-400 font-medium">
               Toplam {projectGroups.length} projeden
             </p>
           </div>
 
           {/* Tahsil Edilen */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 relative overflow-hidden">
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 relative overflow-hidden">
             <div className="h-0.5 w-full bg-gradient-to-r from-navy to-gold absolute top-0 left-0" />
-            <div className="flex justify-between items-start mb-4">
-              <p className="text-slate-500 text-sm font-bold uppercase tracking-wider">Tahsil Edilen</p>
-              <div className="w-10 h-10 rounded-xl bg-navy/10 flex items-center justify-center">
-                <CheckCircle className="w-5 h-5 text-navy" />
+            <div className="flex justify-between items-start mb-2">
+              <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Tahsil Edilen</p>
+              <div className="w-8 h-8 rounded-lg bg-navy/10 flex items-center justify-center">
+                <CheckCircle className="w-4 h-4 text-navy" />
               </div>
             </div>
-            <p className="text-3xl font-black text-navy">
-              ₺{totalStats.totalCollected.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+            <p className="text-xl font-black text-navy truncate">
+              ₺{totalStats.totalCollected.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}
             </p>
-            <div className="mt-3 w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+            <div className="mt-2 w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
               <div
                 className="bg-navy h-full transition-all duration-500"
                 style={{ width: `${collectionPercentage}%` }}
               />
             </div>
-            <p className="mt-1.5 text-xs text-slate-400 font-medium">%{collectionPercentage} tahsil oranı</p>
+            <p className="mt-1 text-[11px] text-slate-400 font-medium">%{collectionPercentage} tahsil oranı</p>
           </div>
 
           {/* Tahsil Bekleyen */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 relative overflow-hidden">
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 relative overflow-hidden">
             <div className="h-0.5 w-full bg-gradient-to-r from-navy to-gold absolute top-0 left-0" />
-            <div className="flex justify-between items-start mb-4">
-              <p className="text-slate-500 text-sm font-bold uppercase tracking-wider">Tahsil Bekleyen</p>
-              <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center">
-                <Clock className="w-5 h-5 text-gold" />
+            <div className="flex justify-between items-start mb-2">
+              <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Tahsil Bekleyen</p>
+              <div className="w-8 h-8 rounded-lg bg-gold/10 flex items-center justify-center">
+                <Clock className="w-4 h-4 text-gold" />
               </div>
             </div>
-            <p className="text-3xl font-black text-gold">
-              ₺{totalOutstanding.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+            <p className="text-xl font-black text-gold truncate">
+              ₺{totalOutstanding.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}
             </p>
             {delayedIncomesCount > 0 && (
-              <p className="mt-2 text-xs text-gold/80 font-bold italic">
-                {delayedIncomesCount} Gecikmiş işlem mevcut
+              <p className="mt-1 text-[11px] text-gold/80 font-bold italic">
+                {delayedIncomesCount} Gecikmiş işlem
               </p>
             )}
           </div>

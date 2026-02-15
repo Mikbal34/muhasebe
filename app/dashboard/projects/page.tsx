@@ -417,7 +417,7 @@ export default function ProjectsPage() {
                 <CheckCircle className="w-5 h-5 text-navy/40 group-hover:text-navy transition-colors" />
               </div>
               <p className="text-xl font-black text-slate-900">
-                ₺309.492.930,87
+                ₺{stats.totalCollected.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
               </p>
               <div className="flex items-center gap-1 text-emerald-600 text-xs font-bold mt-2">
                 <TrendingUp className="w-3.5 h-3.5" />

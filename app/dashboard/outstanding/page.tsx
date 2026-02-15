@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import {
@@ -11,8 +11,10 @@ import {
   ChevronDown,
   ChevronUp,
   Search,
-  FileText
+  FileText,
+  Loader2
 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface User {
   id: string
@@ -21,142 +23,86 @@ interface User {
   role: 'admin' | 'manager'
 }
 
-// Mock Data - Açık bakiyesi olan projeler
-const MOCK_OUTSTANDING_DATA = {
-  total: 11463348.04,
-  projectCount: 8,
-  projects: [
-    {
-      id: '1',
-      code: 'TTO-2024-042',
-      name: 'Yapay Zeka Destekli Kalite Kontrol Sistemi',
-      company: 'ABC Teknoloji A.Ş.',
-      budget: 2500000,
-      invoiced: 1800000,
-      collected: 1200000,
-      outstanding: 600000,
-      incomes: [
-        { id: '1', description: 'Başlangıç Ödemesi', date: '2024-03-15', gross: 500000, collected: 500000, outstanding: 0 },
-        { id: '2', description: 'Ara Ödeme 1 - Faz 1 Teslim', date: '2024-06-20', gross: 400000, collected: 400000, outstanding: 0 },
-        { id: '3', description: 'Ara Ödeme 2 - Faz 2 Teslim', date: '2024-09-10', gross: 500000, collected: 300000, outstanding: 200000 },
-        { id: '4', description: 'Ara Ödeme 3 - Test Aşaması', date: '2024-12-05', gross: 400000, collected: 0, outstanding: 400000 },
-      ]
-    },
-    {
-      id: '2',
-      code: 'TTO-2024-038',
-      name: 'Akıllı Şehir IoT Altyapısı Projesi',
-      company: 'SmartCity Solutions',
-      budget: 5000000,
-      invoiced: 3500000,
-      collected: 2200000,
-      outstanding: 1300000,
-      incomes: [
-        { id: '5', description: 'Proje Başlangıç', date: '2024-02-01', gross: 1000000, collected: 1000000, outstanding: 0 },
-        { id: '6', description: 'Sensör Altyapısı Teslimi', date: '2024-05-15', gross: 1200000, collected: 1200000, outstanding: 0 },
-        { id: '7', description: 'Veri Merkezi Kurulumu', date: '2024-08-20', gross: 800000, collected: 0, outstanding: 800000 },
-        { id: '8', description: 'Yazılım Entegrasyonu', date: '2024-11-10', gross: 500000, collected: 0, outstanding: 500000 },
-      ]
-    },
-    {
-      id: '3',
-      code: 'TTO-2024-051',
-      name: 'Biyomedikal Görüntüleme Cihazı Geliştirme',
-      company: 'MedTech İnovasyon',
-      budget: 8000000,
-      invoiced: 6000000,
-      collected: 3500000,
-      outstanding: 2500000,
-      incomes: [
-        { id: '9', description: 'Ar-Ge Başlangıç Fonu', date: '2024-01-10', gross: 2000000, collected: 2000000, outstanding: 0 },
-        { id: '10', description: 'Prototip Geliştirme', date: '2024-04-25', gross: 1500000, collected: 1500000, outstanding: 0 },
-        { id: '11', description: 'Klinik Test Aşaması', date: '2024-07-30', gross: 1500000, collected: 0, outstanding: 1500000 },
-        { id: '12', description: 'Sertifikasyon Süreci', date: '2024-10-15', gross: 1000000, collected: 0, outstanding: 1000000 },
-      ]
-    },
-    {
-      id: '4',
-      code: 'TTO-2024-029',
-      name: 'Enerji Verimliliği Optimizasyon Yazılımı',
-      company: 'GreenEnergy Tech',
-      budget: 1800000,
-      invoiced: 1400000,
-      collected: 900000,
-      outstanding: 500000,
-      incomes: [
-        { id: '13', description: 'Analiz ve Tasarım', date: '2024-03-01', gross: 400000, collected: 400000, outstanding: 0 },
-        { id: '14', description: 'Yazılım Geliştirme Faz 1', date: '2024-06-15', gross: 500000, collected: 500000, outstanding: 0 },
-        { id: '15', description: 'Yazılım Geliştirme Faz 2', date: '2024-09-20', gross: 500000, collected: 0, outstanding: 500000 },
-      ]
-    },
-    {
-      id: '5',
-      code: 'TTO-2025-003',
-      name: 'Otonom Araç Simülasyon Platformu',
-      company: 'AutoDrive Systems',
-      budget: 12000000,
-      invoiced: 8000000,
-      collected: 4500000,
-      outstanding: 3500000,
-      incomes: [
-        { id: '16', description: 'Proje Lansman Ödemesi', date: '2025-01-05', gross: 3000000, collected: 3000000, outstanding: 0 },
-        { id: '17', description: 'Simülasyon Motoru Geliştirme', date: '2025-03-20', gross: 2500000, collected: 1500000, outstanding: 1000000 },
-        { id: '18', description: 'Sensör Entegrasyonu', date: '2025-06-10', gross: 2500000, collected: 0, outstanding: 2500000 },
-      ]
-    },
-    {
-      id: '6',
-      code: 'TTO-2024-067',
-      name: 'Blockchain Tabanlı Tedarik Zinciri',
-      company: 'ChainLogistics',
-      budget: 3200000,
-      invoiced: 2400000,
-      collected: 1600000,
-      outstanding: 800000,
-      incomes: [
-        { id: '19', description: 'Konsept ve Mimari', date: '2024-04-10', gross: 800000, collected: 800000, outstanding: 0 },
-        { id: '20', description: 'Smart Contract Geliştirme', date: '2024-07-25', gross: 800000, collected: 800000, outstanding: 0 },
-        { id: '21', description: 'Pilot Uygulama', date: '2024-10-30', gross: 800000, collected: 0, outstanding: 800000 },
-      ]
-    },
-    {
-      id: '7',
-      code: 'TTO-2024-055',
-      name: 'Kuantum Hesaplama Araştırma Projesi',
-      company: 'QuantumLab Türkiye',
-      budget: 15000000,
-      invoiced: 10000000,
-      collected: 8000000,
-      outstanding: 2000000,
-      incomes: [
-        { id: '22', description: 'Laboratuvar Kurulumu', date: '2024-02-15', gross: 5000000, collected: 5000000, outstanding: 0 },
-        { id: '23', description: 'Araştırma Faz 1', date: '2024-06-30', gross: 3000000, collected: 3000000, outstanding: 0 },
-        { id: '24', description: 'Araştırma Faz 2', date: '2024-11-15', gross: 2000000, collected: 0, outstanding: 2000000 },
-      ]
-    },
-    {
-      id: '8',
-      code: 'TTO-2024-044',
-      name: 'Tarımsal Drone Teknolojileri',
-      company: 'AgroTech Innovations',
-      budget: 2200000,
-      invoiced: 1600000,
-      collected: 1336651.96,
-      outstanding: 263348.04,
-      incomes: [
-        { id: '25', description: 'Drone Tasarımı', date: '2024-03-20', gross: 600000, collected: 600000, outstanding: 0 },
-        { id: '26', description: 'Yazılım Geliştirme', date: '2024-06-25', gross: 500000, collected: 500000, outstanding: 0 },
-        { id: '27', description: 'Saha Testleri', date: '2024-09-30', gross: 500000, collected: 236651.96, outstanding: 263348.04 },
-      ]
-    },
-  ]
+interface Income {
+  id: string
+  description: string
+  date: string
+  gross: number
+  collected: number
+  outstanding: number
+}
+
+interface Project {
+  id: string
+  code: string
+  name: string
+  company: string
+  budget: number
+  invoiced: number
+  collected: number
+  outstanding: number
+  incomes: Income[]
+}
+
+interface OutstandingData {
+  total: number
+  projectCount: number
+  projects: Project[]
 }
 
 export default function OutstandingPage() {
   const router = useRouter()
-  const [user] = useState<User>({ id: '1', full_name: 'Demo Kullanıcı', email: 'demo@tto.com', role: 'admin' })
+  const [user, setUser] = useState<User | null>(null)
+  const [data, setData] = useState<OutstandingData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set())
   const [searchTerm, setSearchTerm] = useState('')
+
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    const userData = localStorage.getItem('user')
+
+    if (!token || !userData) {
+      router.push('/login')
+      return
+    }
+
+    try {
+      setUser(JSON.parse(userData))
+    } catch (err) {
+      router.push('/login')
+      return
+    }
+
+    // Fetch outstanding data
+    const fetchData = async () => {
+      try {
+        const response = await fetch('/api/dashboard/outstanding', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch data')
+        }
+
+        const result = await response.json()
+        if (result.success) {
+          setData(result.data)
+        } else {
+          throw new Error(result.message || 'Failed to fetch data')
+        }
+      } catch (err: any) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [router])
 
   const toggleProject = (projectId: string) => {
     const newExpanded = new Set(expandedProjects)
@@ -168,13 +114,98 @@ export default function OutstandingPage() {
     setExpandedProjects(newExpanded)
   }
 
-  const filteredProjects = MOCK_OUTSTANDING_DATA.projects.filter(project =>
+  const filteredProjects = data?.projects.filter(project =>
     project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     project.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
     project.company.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  ) || []
 
-  const maxOutstanding = Math.max(...MOCK_OUTSTANDING_DATA.projects.map(p => p.outstanding))
+  const maxOutstanding = data?.projects.length
+    ? Math.max(...data.projects.map(p => p.outstanding))
+    : 0
+
+  if (loading || !user) {
+    return (
+      <DashboardLayout user={user || { id: '', full_name: 'Yükleniyor...', email: '', role: 'manager' }}>
+        <div className="space-y-6">
+          {/* Header Skeleton */}
+          <div className="flex items-center gap-4">
+            <Skeleton className="w-10 h-10 rounded-lg" />
+            <div>
+              <Skeleton className="h-8 w-48 mb-2" />
+              <Skeleton className="h-4 w-64" />
+            </div>
+          </div>
+
+          {/* Stats Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-xl border overflow-hidden">
+                <Skeleton className="h-1 w-full" />
+                <div className="p-5">
+                  <Skeleton className="h-4 w-32 mb-3" />
+                  <Skeleton className="h-8 w-40" />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Search Skeleton */}
+          <div className="bg-white rounded-xl border p-4">
+            <Skeleton className="h-10 w-full" />
+          </div>
+
+          {/* Projects Skeleton */}
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white rounded-xl border p-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <Skeleton className="w-10 h-10 rounded-lg" />
+                  <div>
+                    <Skeleton className="h-5 w-48 mb-2" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                </div>
+                <Skeleton className="h-8 w-32" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  if (error) {
+    return (
+      <DashboardLayout user={user}>
+        <div className="space-y-6">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5 text-slate-600" />
+            </button>
+            <div>
+              <h1 className="text-2xl font-black text-navy">Acık Bakiyeler</h1>
+            </div>
+          </div>
+
+          <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
+            <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-bold text-red-700 mb-2">Veri Yüklenemedi</h3>
+            <p className="text-red-600">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Tekrar Dene
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
 
   return (
     <DashboardLayout user={user}>
@@ -188,23 +219,23 @@ export default function OutstandingPage() {
             <ArrowLeft className="w-5 h-5 text-slate-600" />
           </button>
           <div>
-            <h1 className="text-2xl font-black text-navy">Açık Bakiyeler</h1>
-            <p className="text-sm text-slate-500">Henüz tahsil edilmemiş fatura tutarları</p>
+            <h1 className="text-2xl font-black text-navy">Acık Bakiyeler</h1>
+            <p className="text-sm text-slate-500">Henüz tahsil edilmemis fatura tutarları</p>
           </div>
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Toplam Açık Bakiye */}
+          {/* Toplam Acık Bakiye */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
             <div className="h-1 bg-gradient-to-r from-gold to-gold/50"></div>
             <div className="p-5">
               <div className="flex justify-between items-start mb-3">
-                <p className="text-slate-500 font-semibold text-sm">Toplam Açık Bakiye</p>
+                <p className="text-slate-500 font-semibold text-sm">Toplam Acık Bakiye</p>
                 <AlertTriangle className="w-5 h-5 text-gold" />
               </div>
               <p className="text-2xl font-black text-gold">
-                ₺{MOCK_OUTSTANDING_DATA.total.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                ₺{(data?.total || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
               </p>
             </div>
           </div>
@@ -217,8 +248,8 @@ export default function OutstandingPage() {
                 <p className="text-slate-500 font-semibold text-sm">Proje Sayısı</p>
                 <Building2 className="w-5 h-5 text-navy" />
               </div>
-              <p className="text-2xl font-black text-navy">{MOCK_OUTSTANDING_DATA.projectCount}</p>
-              <p className="text-xs text-slate-400 mt-1">Açık bakiyesi olan proje</p>
+              <p className="text-2xl font-black text-navy">{data?.projectCount || 0}</p>
+              <p className="text-xs text-slate-400 mt-1">Acık bakiyesi olan proje</p>
             </div>
           </div>
 
@@ -283,7 +314,7 @@ export default function OutstandingPage() {
                 </div>
                 <div className="flex items-center gap-6">
                   <div className="text-right">
-                    <p className="text-xs text-slate-400 uppercase font-bold">Açık Bakiye</p>
+                    <p className="text-xs text-slate-400 uppercase font-bold">Acık Bakiye</p>
                     <p className="text-lg font-black text-gold">
                       ₺{project.outstanding.toLocaleString('tr-TR')}
                     </p>
@@ -302,7 +333,7 @@ export default function OutstandingPage() {
                   {/* Summary Bar */}
                   <div className="p-4 grid grid-cols-4 gap-4 border-b border-slate-100">
                     <div>
-                      <p className="text-[10px] text-slate-400 uppercase font-bold">Bütçe</p>
+                      <p className="text-[10px] text-slate-400 uppercase font-bold">Bütce</p>
                       <p className="text-sm font-bold text-slate-700">₺{project.budget.toLocaleString('tr-TR')}</p>
                     </div>
                     <div>
@@ -314,53 +345,59 @@ export default function OutstandingPage() {
                       <p className="text-sm font-bold text-emerald-600">₺{project.collected.toLocaleString('tr-TR')}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-400 uppercase font-bold">Açık Bakiye</p>
+                      <p className="text-[10px] text-slate-400 uppercase font-bold">Acık Bakiye</p>
                       <p className="text-sm font-bold text-gold">₺{project.outstanding.toLocaleString('tr-TR')}</p>
                     </div>
                   </div>
 
                   {/* Income Records */}
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="bg-slate-100/50">
-                          <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase">Açıklama</th>
-                          <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase">Tarih</th>
-                          <th className="px-4 py-3 text-right text-[10px] font-bold text-slate-500 uppercase">Brüt Tutar</th>
-                          <th className="px-4 py-3 text-right text-[10px] font-bold text-slate-500 uppercase">Tahsil Edilen</th>
-                          <th className="px-4 py-3 text-right text-[10px] font-bold text-slate-500 uppercase">Bekleyen</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {project.incomes.map((income) => (
-                          <tr key={income.id} className="hover:bg-white transition-colors">
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-2">
-                                <FileText className="w-4 h-4 text-slate-400" />
-                                <span className="text-sm text-slate-700">{income.description}</span>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 text-sm text-slate-600">
-                              {new Date(income.date).toLocaleDateString('tr-TR')}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-right font-medium text-slate-700">
-                              ₺{income.gross.toLocaleString('tr-TR')}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-right font-medium text-emerald-600">
-                              ₺{income.collected.toLocaleString('tr-TR')}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-right font-bold">
-                              {income.outstanding > 0 ? (
-                                <span className="text-gold">₺{income.outstanding.toLocaleString('tr-TR')}</span>
-                              ) : (
-                                <span className="text-slate-400">-</span>
-                              )}
-                            </td>
+                  {project.incomes.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="bg-slate-100/50">
+                            <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase">Acıklama</th>
+                            <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase">Tarih</th>
+                            <th className="px-4 py-3 text-right text-[10px] font-bold text-slate-500 uppercase">Brüt Tutar</th>
+                            <th className="px-4 py-3 text-right text-[10px] font-bold text-slate-500 uppercase">Tahsil Edilen</th>
+                            <th className="px-4 py-3 text-right text-[10px] font-bold text-slate-500 uppercase">Bekleyen</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {project.incomes.map((income) => (
+                            <tr key={income.id} className="hover:bg-white transition-colors">
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-2">
+                                  <FileText className="w-4 h-4 text-slate-400" />
+                                  <span className="text-sm text-slate-700">{income.description || '-'}</span>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-slate-600">
+                                {income.date ? new Date(income.date).toLocaleDateString('tr-TR') : '-'}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-right font-medium text-slate-700">
+                                ₺{income.gross.toLocaleString('tr-TR')}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-right font-medium text-emerald-600">
+                                ₺{income.collected.toLocaleString('tr-TR')}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-right font-bold">
+                                {income.outstanding > 0 ? (
+                                  <span className="text-gold">₺{income.outstanding.toLocaleString('tr-TR')}</span>
+                                ) : (
+                                  <span className="text-slate-400">-</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="p-8 text-center text-slate-400">
+                      <p className="text-sm">Gelir kaydı bulunamadı</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -368,13 +405,19 @@ export default function OutstandingPage() {
         </div>
 
         {/* Empty State */}
-        {filteredProjects.length === 0 && (
+        {filteredProjects.length === 0 && !loading && (
           <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-16 text-center">
             <div className="w-16 h-16 mx-auto mb-4 bg-slate-100 rounded-full flex items-center justify-center">
               <Search className="w-8 h-8 text-slate-400" />
             </div>
-            <h3 className="text-lg font-bold text-slate-700 mb-2">Sonuç Bulunamadı</h3>
-            <p className="text-slate-500">Arama kriterlerinize uygun proje bulunamadı.</p>
+            <h3 className="text-lg font-bold text-slate-700 mb-2">
+              {searchTerm ? 'Sonuc Bulunamadı' : 'Acık Bakiye Yok'}
+            </h3>
+            <p className="text-slate-500">
+              {searchTerm
+                ? 'Arama kriterlerinize uygun proje bulunamadı.'
+                : 'Tüm faturalar tahsil edilmis durumda.'}
+            </p>
           </div>
         )}
       </div>
