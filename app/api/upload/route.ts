@@ -84,6 +84,8 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData()
     const file = formData.get('file') as File | null
     const bucketParam = formData.get('bucket') as string || 'contracts'
+    const projectId = formData.get('project_id') as string | null
+    const category = formData.get('category') as string | null
 
     // Validate bucket against whitelist
     if (!ALLOWED_BUCKETS.includes(bucketParam as AllowedBucket)) {
@@ -133,7 +135,19 @@ export async function POST(request: NextRequest) {
 
     // Generate unique filename with sanitized extension
     const fileExt = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin'
-    const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`
+    const sanitizedOriginalName = file.name
+      .replace(/\.[^/.]+$/, '') // remove extension
+      .replace(/[^a-zA-Z0-9_\-\u00C0-\u024F\u0400-\u04FF\u00E0-\u00FC]/g, '_') // keep alphanumeric + accented chars
+      .substring(0, 100) // limit length
+
+    // If project_id and category provided, use structured path
+    const allowedCategories = ['sozlesme', 'gorevlendirme', 'hakem_onay', 'ek_sozlesme']
+    let fileName: string
+    if (projectId && category && allowedCategories.includes(category)) {
+      fileName = `${projectId}/${category}/${Date.now()}_${sanitizedOriginalName}.${fileExt}`
+    } else {
+      fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`
+    }
 
     // Upload to Supabase Storage using admin client (bypasses RLS)
     const { error: uploadError } = await adminSupabase.storage

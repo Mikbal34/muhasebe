@@ -24,7 +24,8 @@ import {
   Info,
   Save,
   Download,
-  Edit3
+  Edit3,
+  File
 } from 'lucide-react'
 import { MoneyInput } from '@/components/ui/money-input'
 import { supabase } from '@/lib/supabase/client'
@@ -124,6 +125,15 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
   const [uploadingAssignment, setUploadingAssignment] = useState(false)
   const [uploadingRefereeApproval, setUploadingRefereeApproval] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [existingDocuments, setExistingDocuments] = useState<Record<string, Array<{
+    name: string
+    path: string
+    size: number
+    created_at: string
+    download_url: string
+    category: string
+    category_label: string
+  }>>>({})
 
   // Payment plan state
   const [hasPaymentPlan, setHasPaymentPlan] = useState(false)
@@ -234,6 +244,19 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
         } catch (err) {
           console.error('Failed to fetch installments:', err)
         }
+
+        // Fetch existing documents from Storage
+        try {
+          const docsResponse = await fetch(`/api/projects/${params.id}/documents`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+          const docsData = await docsResponse.json()
+          if (docsData.success) {
+            setExistingDocuments(docsData.data.categories || {})
+          }
+        } catch (err) {
+          console.error('Failed to fetch documents:', err)
+        }
       } else {
         console.error('Project not found or failed to load:', data)
         alert('Proje yüklenirken bir hata oluştu: ' + (data.error || 'Bilinmeyen hata'))
@@ -323,7 +346,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
     }
   }
 
-  const handleFileUpload = async (file: File, bucket: string = 'contracts'): Promise<string | null> => {
+  const handleFileUpload = async (file: File, bucket: string = 'contracts', category?: string): Promise<string | null> => {
     try {
       const token = localStorage.getItem('token')
       if (!token) {
@@ -331,16 +354,20 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
         return null
       }
 
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('bucket', bucket)
+      const uploadFormData = new FormData()
+      uploadFormData.append('file', file)
+      uploadFormData.append('bucket', bucket)
+      if (category && params.id) {
+        uploadFormData.append('project_id', params.id as string)
+        uploadFormData.append('category', category)
+      }
 
       const response = await fetch('/api/upload', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
         },
-        body: formData
+        body: uploadFormData
       })
 
       const data = await response.json()
@@ -373,7 +400,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
 
       if (contractFile) {
         setUploadingContract(true)
-        uploadedContractPath = await handleFileUpload(contractFile)
+        uploadedContractPath = await handleFileUpload(contractFile, 'contracts', 'sozlesme')
         setUploadingContract(false)
 
         if (!uploadedContractPath) {
@@ -385,7 +412,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
 
       if (formData.has_assignment_permission && assignmentFile) {
         setUploadingAssignment(true)
-        uploadedAssignmentPath = await handleFileUpload(assignmentFile)
+        uploadedAssignmentPath = await handleFileUpload(assignmentFile, 'contracts', 'gorevlendirme')
         setUploadingAssignment(false)
 
         if (!uploadedAssignmentPath) {
@@ -397,7 +424,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
 
       if (formData.referee_approved && refereeApprovalFile) {
         setUploadingRefereeApproval(true)
-        uploadedRefereeApprovalPath = await handleFileUpload(refereeApprovalFile)
+        uploadedRefereeApprovalPath = await handleFileUpload(refereeApprovalFile, 'contracts', 'hakem_onay')
         setUploadingRefereeApproval(false)
 
         if (!uploadedRefereeApprovalPath) {
@@ -888,8 +915,44 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
                     </label>
                   </div>
 
-                  {/* Mevcut Hakem Onay Belgesi */}
-                  {formData.referee_approved && (project as any)?.referee_approval_document_path && !refereeApprovalFile && (
+                  {/* Mevcut Hakem Onay Belgeleri (Storage) */}
+                  {formData.referee_approved && existingDocuments.hakem_onay && existingDocuments.hakem_onay.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                        Mevcut Hakem Onay Belgeleri
+                        <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-600 text-[10px] font-bold rounded-full">
+                          {existingDocuments.hakem_onay.length}
+                        </span>
+                      </p>
+                      {existingDocuments.hakem_onay.map((file, idx) => (
+                        <div key={idx} className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <FileText className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                              <span className="text-xs font-medium text-emerald-700 truncate">{file.name}</span>
+                              {file.size > 0 && (
+                                <span className="text-[10px] text-emerald-500 flex-shrink-0">
+                                  {file.size < 1024 * 1024
+                                    ? `${Math.round(file.size / 1024)} KB`
+                                    : `${(file.size / (1024 * 1024)).toFixed(1)} MB`}
+                                </span>
+                              )}
+                            </div>
+                            <a
+                              href={file.download_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 flex-shrink-0"
+                            >
+                              <Download className="w-3 h-3" />
+                            </a>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {/* Fallback: Mevcut Hakem Onay Belgesi from DB */}
+                  {formData.referee_approved && (!existingDocuments.hakem_onay || existingDocuments.hakem_onay.length === 0) && (project as any)?.referee_approval_document_path && !refereeApprovalFile && (
                     <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -995,8 +1058,44 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
                     Belgeler
                   </h2>
 
-                  {/* Mevcut Sözleşme */}
-                  {project?.contract_path && !contractFile && (
+                  {/* Mevcut Sözleşmeler (Storage) */}
+                  {existingDocuments.sozlesme && existingDocuments.sozlesme.length > 0 && (
+                    <div className="mb-4 space-y-2">
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                        Mevcut Sözleşmeler
+                        <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-600 text-[10px] font-bold rounded-full">
+                          {existingDocuments.sozlesme.length}
+                        </span>
+                      </p>
+                      {existingDocuments.sozlesme.map((file, idx) => (
+                        <div key={idx} className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <FileText className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                              <span className="text-xs font-medium text-emerald-700 truncate">{file.name}</span>
+                              {file.size > 0 && (
+                                <span className="text-[10px] text-emerald-500 flex-shrink-0">
+                                  {file.size < 1024 * 1024
+                                    ? `${Math.round(file.size / 1024)} KB`
+                                    : `${(file.size / (1024 * 1024)).toFixed(1)} MB`}
+                                </span>
+                              )}
+                            </div>
+                            <a
+                              href={file.download_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 flex-shrink-0"
+                            >
+                              <Download className="w-3 h-3" />
+                            </a>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {/* Fallback: Mevcut Sözleşme from DB */}
+                  {(!existingDocuments.sozlesme || existingDocuments.sozlesme.length === 0) && project?.contract_path && !contractFile && (
                     <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -1081,8 +1180,44 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
                     </label>
                   </div>
 
-                  {/* Mevcut Görevlendirme Belgesi */}
-                  {formData.has_assignment_permission && project?.assignment_document_path && !assignmentFile && (
+                  {/* Mevcut Görevlendirme Belgeleri (Storage) */}
+                  {formData.has_assignment_permission && existingDocuments.gorevlendirme && existingDocuments.gorevlendirme.length > 0 && (
+                    <div className="mb-4 space-y-2">
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                        Mevcut Görevlendirme Belgeleri
+                        <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-600 text-[10px] font-bold rounded-full">
+                          {existingDocuments.gorevlendirme.length}
+                        </span>
+                      </p>
+                      {existingDocuments.gorevlendirme.map((file, idx) => (
+                        <div key={idx} className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <FileText className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                              <span className="text-xs font-medium text-emerald-700 truncate">{file.name}</span>
+                              {file.size > 0 && (
+                                <span className="text-[10px] text-emerald-500 flex-shrink-0">
+                                  {file.size < 1024 * 1024
+                                    ? `${Math.round(file.size / 1024)} KB`
+                                    : `${(file.size / (1024 * 1024)).toFixed(1)} MB`}
+                                </span>
+                              )}
+                            </div>
+                            <a
+                              href={file.download_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 flex-shrink-0"
+                            >
+                              <Download className="w-3 h-3" />
+                            </a>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {/* Fallback: Mevcut Görevlendirme from DB */}
+                  {formData.has_assignment_permission && (!existingDocuments.gorevlendirme || existingDocuments.gorevlendirme.length === 0) && project?.assignment_document_path && !assignmentFile && (
                     <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -1104,7 +1239,7 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
 
                   {/* Görevlendirme Belgesi Upload */}
                   {formData.has_assignment_permission && (
-                    <div>
+                    <div className="mb-4">
                       <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
                         {project?.assignment_document_path ? 'Yeni Görevlendirme Yazısı' : 'Görevlendirme Yazısı'}
                       </label>
@@ -1153,6 +1288,80 @@ export default function EditProjectPage({ params }: { params: { id: string } }) 
                           </div>
                         )}
                       </div>
+                    </div>
+                  )}
+
+                  {/* Ek Sözleşme Belgeleri (Storage) */}
+                  {existingDocuments.ek_sozlesme && existingDocuments.ek_sozlesme.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-slate-200 space-y-2">
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                        Ek Sözleşme Belgeleri
+                        <span className="px-1.5 py-0.5 bg-purple-100 text-purple-600 text-[10px] font-bold rounded-full">
+                          {existingDocuments.ek_sozlesme.length}
+                        </span>
+                      </p>
+                      {existingDocuments.ek_sozlesme.map((file, idx) => (
+                        <div key={idx} className="p-2.5 bg-purple-50 border border-purple-200 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <FileText className="w-4 h-4 text-purple-600 flex-shrink-0" />
+                              <span className="text-xs font-medium text-purple-700 truncate">{file.name}</span>
+                              {file.size > 0 && (
+                                <span className="text-[10px] text-purple-500 flex-shrink-0">
+                                  {file.size < 1024 * 1024
+                                    ? `${Math.round(file.size / 1024)} KB`
+                                    : `${(file.size / (1024 * 1024)).toFixed(1)} MB`}
+                                </span>
+                              )}
+                            </div>
+                            <a
+                              href={file.download_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-700 flex-shrink-0"
+                            >
+                              <Download className="w-3 h-3" />
+                            </a>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Diğer Belgeler (Storage) */}
+                  {existingDocuments.diger && existingDocuments.diger.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-slate-200 space-y-2">
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                        Diğer Belgeler
+                        <span className="px-1.5 py-0.5 bg-slate-200 text-slate-600 text-[10px] font-bold rounded-full">
+                          {existingDocuments.diger.length}
+                        </span>
+                      </p>
+                      {existingDocuments.diger.map((file, idx) => (
+                        <div key={idx} className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <File className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                              <span className="text-xs font-medium text-slate-700 truncate">{file.name}</span>
+                              {file.size > 0 && (
+                                <span className="text-[10px] text-slate-400 flex-shrink-0">
+                                  {file.size < 1024 * 1024
+                                    ? `${Math.round(file.size / 1024)} KB`
+                                    : `${(file.size / (1024 * 1024)).toFixed(1)} MB`}
+                                </span>
+                              )}
+                            </div>
+                            <a
+                              href={file.download_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 flex-shrink-0"
+                            >
+                              <Download className="w-3 h-3" />
+                            </a>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>

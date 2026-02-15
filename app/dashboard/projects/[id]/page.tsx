@@ -128,6 +128,16 @@ export default function ProjectDetailPage() {
   const [cancelling, setCancelling] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
   const [activating, setActivating] = useState(false)
+  const [documents, setDocuments] = useState<Record<string, Array<{
+    name: string
+    path: string
+    size: number
+    created_at: string
+    download_url: string
+    category: string
+    category_label: string
+  }>>>({})
+  const [documentsLoading, setDocumentsLoading] = useState(false)
   const router = useRouter()
   const params = useParams()
 
@@ -143,6 +153,7 @@ export default function ProjectDetailPage() {
     try {
       setUser(JSON.parse(userData))
       fetchProject(token, params.id as string)
+      fetchDocuments(token, params.id as string)
     } catch (err) {
       router.push('/login')
     }
@@ -165,6 +176,23 @@ export default function ProjectDetailPage() {
       router.push('/dashboard/projects')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchDocuments = async (token: string, projectId: string) => {
+    setDocumentsLoading(true)
+    try {
+      const response = await fetch(`/api/projects/${projectId}/documents`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const data = await response.json()
+      if (data.success) {
+        setDocuments(data.data.categories || {})
+      }
+    } catch (err) {
+      console.error('Failed to fetch documents:', err)
+    } finally {
+      setDocumentsLoading(false)
     }
   }
 
@@ -814,44 +842,65 @@ export default function ProjectDetailPage() {
                   İlgili Belgeler
                 </h3>
 
-                <div className="space-y-3">
-                  {project.contract_path && (
-                    <a
-                      href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/contracts/${project.contract_path}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-navy/5 transition-all group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <FileText className="w-5 h-5 text-red-500" />
-                        <span className="text-sm font-semibold text-slate-700">Sözleşme.pdf</span>
+                {documentsLoading ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="animate-pulse flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                        <div className="w-5 h-5 bg-slate-200 rounded" />
+                        <div className="flex-1">
+                          <div className="h-4 bg-slate-200 rounded w-3/4" />
+                        </div>
+                        <div className="w-4 h-4 bg-slate-200 rounded" />
                       </div>
-                      <Download className="w-4 h-4 text-slate-400 group-hover:text-navy transition-colors" />
-                    </a>
-                  )}
-
-                  {project.assignment_document_path && (
-                    <a
-                      href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/contracts/${project.assignment_document_path}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-navy/5 transition-all group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <FileText className="w-5 h-5 text-blue-500" />
-                        <span className="text-sm font-semibold text-slate-700">Görevlendirme Yazısı.pdf</span>
+                    ))}
+                  </div>
+                ) : Object.keys(documents).length > 0 ? (
+                  <div className="space-y-4">
+                    {Object.entries(documents).map(([category, files]) => (
+                      <div key={category}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                            {files[0]?.category_label || category}
+                          </span>
+                          <span className="px-1.5 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold rounded-full">
+                            {files.length}
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          {files.map((file, idx) => (
+                            <a
+                              key={idx}
+                              href={file.download_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-navy/5 transition-all group"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <FileText className="w-5 h-5 text-red-500 flex-shrink-0" />
+                                <div className="min-w-0">
+                                  <p className="text-sm font-semibold text-slate-700 truncate">{file.name}</p>
+                                  {file.size > 0 && (
+                                    <p className="text-[10px] text-slate-400">
+                                      {file.size < 1024 * 1024
+                                        ? `${Math.round(file.size / 1024)} KB`
+                                        : `${(file.size / (1024 * 1024)).toFixed(1)} MB`}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                              <Download className="w-4 h-4 text-slate-400 group-hover:text-navy transition-colors flex-shrink-0" />
+                            </a>
+                          ))}
+                        </div>
                       </div>
-                      <Download className="w-4 h-4 text-slate-400 group-hover:text-navy transition-colors" />
-                    </a>
-                  )}
-
-                  {!project.contract_path && !project.assignment_document_path && (
-                    <div className="text-center py-6">
-                      <File className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                      <p className="text-sm text-slate-400">Henüz belge yok</p>
-                    </div>
-                  )}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-6">
+                    <File className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                    <p className="text-sm text-slate-400">Henüz belge yok</p>
+                  </div>
+                )}
               </div>
             </section>
 
