@@ -22,6 +22,11 @@ export const metadata: Metadata = {
   description: 'Akademik projelerden gelen gelirleri kaydedin, KDV ve şirket komisyonunu otomatik hesaplayın, net tutarları proje temsilcilerine dağıtın.',
 }
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+}
+
 export default function RootLayout({
   children,
 }: {
