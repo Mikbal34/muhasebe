@@ -124,10 +124,6 @@ export default function LoginPage() {
         localStorage.removeItem('rememberedEmail')
       }
 
-      // localStorage'a user bilgisi kaydet (eski kod uyumluluğu)
-      localStorage.setItem('token', authData.session.access_token)
-      localStorage.setItem('user', JSON.stringify(profileData.data.user))
-
       setShowSplash(true) // Show splash animation before navigating
     } catch (err) {
       setError('Bir hata oluştu. Lütfen tekrar deneyin.')
@@ -211,6 +207,7 @@ export default function LoginPage() {
                 <div className="relative group">
                   <input
                     type="email"
+                    name="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -232,6 +229,7 @@ export default function LoginPage() {
                 <div className="relative group">
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    name="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required

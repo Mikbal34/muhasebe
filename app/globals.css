@@ -82,6 +82,9 @@
   }
   body {
     @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
   /* Scroll anchor'ı devre dışı bırak - içerik değiştiğinde scroll sıçramasını önler */
   * {
