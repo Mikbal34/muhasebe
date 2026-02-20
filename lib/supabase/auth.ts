@@ -121,11 +121,10 @@ export const authClient = {
       throw new Error('Not authenticated')
     }
 
-    // Supabase type inference issue with custom update types - using type assertion
     const { data, error } = await supabase
       .from('users')
-      // @ts-expect-error - Database Update type not being correctly inferred
-      .update(updates)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .update(updates as any)
       .eq('id', session.user.id)
       .select()
       .single()
