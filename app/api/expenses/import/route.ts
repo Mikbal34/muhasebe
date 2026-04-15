@@ -276,7 +276,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Validate projects and prepare insert data
-      const expensesToInsert: Array<{
+      type ExpenseInsert = {
         expense_type: 'genel' | 'proje'
         project_id: string | null
         amount: number
@@ -285,7 +285,9 @@ export async function POST(request: NextRequest) {
         is_tto_expense: boolean
         expense_share_type: 'shared' | 'client' | null
         created_by: string
-      }> = []
+      }
+      const expensesToInsert: ExpenseInsert[] = []
+      const insertRowNumbers: number[] = []
 
       for (const row of validRows) {
         if (row.expense_type === 'proje' && row.project_code) {
@@ -300,11 +302,11 @@ export async function POST(request: NextRequest) {
             continue
           }
 
-          if (project.status !== 'active') {
+          if (project.status === 'cancelled') {
             errors.push({
               row: row.rowNumber,
               column: 'Proje Kodu',
-              message: `Proje aktif değil: ${row.project_code}`
+              message: `Proje iptal edilmiş: ${row.project_code}`
             })
             continue
           }
@@ -319,6 +321,7 @@ export async function POST(request: NextRequest) {
             expense_share_type: row.is_tto_expense ? null : row.expense_share_type,
             created_by: ctx.user.id
           })
+          insertRowNumbers.push(row.rowNumber)
         } else {
           expensesToInsert.push({
             expense_type: 'genel',
@@ -330,6 +333,7 @@ export async function POST(request: NextRequest) {
             expense_share_type: null,
             created_by: ctx.user.id
           })
+          insertRowNumbers.push(row.rowNumber)
         }
       }
 
@@ -342,42 +346,87 @@ export async function POST(request: NextRequest) {
         }, { status: 400 })
       }
 
-      // Insert expenses
-      const { data: insertedExpenses, error: insertError } = await (ctx.supabase as any)
-        .from('expenses')
-        .insert(expensesToInsert)
-        .select('id')
+      // Insert expenses one by one to be resilient against single-row trigger failures
+      const insertedIds: string[] = []
+      let importedTotal = 0
 
-      if (insertError) {
-        console.error('Expense insert error:', insertError)
-        return apiResponse.error('Giderler aktarılamadı', insertError.message, 500)
+      for (let i = 0; i < expensesToInsert.length; i++) {
+        const payload = expensesToInsert[i]
+        const rowNumber = insertRowNumbers[i] ?? i + 2
+
+        const { data: inserted, error: insertError } = await (ctx.supabase as any)
+          .from('expenses')
+          .insert(payload)
+          .select('id')
+          .single()
+
+        if (insertError) {
+          console.error(`Expense insert error (row ${rowNumber}):`, insertError)
+          const detail = [
+            insertError.message,
+            insertError.details,
+            insertError.hint,
+            insertError.code ? `code: ${insertError.code}` : null
+          ].filter(Boolean).join(' | ')
+          errors.push({
+            row: rowNumber,
+            column: 'DB',
+            message: detail || 'Bilinmeyen veritabanı hatası'
+          })
+          continue
+        }
+
+        insertedIds.push(inserted.id)
+        importedTotal += payload.amount
       }
 
-      // Create audit log for bulk import
-      await (ctx.supabase as any).rpc('create_audit_log', {
-        p_user_id: ctx.user.id,
-        p_action: 'BULK_IMPORT',
-        p_entity_type: 'expense',
-        p_entity_id: insertedExpenses?.[0]?.id || null,
-        p_new_values: {
-          imported_count: expensesToInsert.length,
-          total_amount: expensesToInsert.reduce((sum, e) => sum + e.amount, 0)
-        }
-      })
+      // If nothing was inserted, return error
+      if (insertedIds.length === 0) {
+        return NextResponse.json({
+          success: false,
+          error: 'Giderler aktarılamadı',
+          data: { errors }
+        }, { status: 500 })
+      }
 
-      const totalAmount = expensesToInsert.reduce((sum, e) => sum + e.amount, 0)
+      // Create audit log for bulk import (non-fatal)
+      try {
+        await (ctx.supabase as any).rpc('create_audit_log', {
+          p_user_id: ctx.user.id,
+          p_action: 'BULK_IMPORT',
+          p_entity_type: 'expense',
+          p_entity_id: insertedIds[0] || null,
+          p_new_values: {
+            imported_count: insertedIds.length,
+            total_amount: importedTotal
+          }
+        })
+      } catch (auditErr) {
+        console.error('Audit log error (non-fatal):', auditErr)
+      }
 
       return apiResponse.success(
         {
-          imported: expensesToInsert.length,
-          total_amount: totalAmount,
+          imported: insertedIds.length,
+          total_amount: importedTotal,
           errors: errors.length > 0 ? errors : undefined
         },
-        `${expensesToInsert.length} gider başarıyla aktarıldı (Toplam: ₺${totalAmount.toLocaleString('tr-TR')})`
+        `${insertedIds.length} gider başarıyla aktarıldı (Toplam: ₺${importedTotal.toLocaleString('tr-TR')})`
       )
     } catch (error: any) {
       console.error('Expense import error:', error)
-      return apiResponse.error('İçe aktarma başarısız', error.message, 500)
+      return NextResponse.json({
+        success: false,
+        error: 'İçe aktarma başarısız',
+        message: error?.message || 'Unknown error',
+        data: {
+          errors: [{
+            row: 0,
+            column: 'EXCEPTION',
+            message: `${error?.message || 'Unknown'}${error?.stack ? ' | ' + error.stack.split('\n').slice(0, 3).join(' ') : ''}`
+          }]
+        }
+      }, { status: 500 })
     }
   })
 }
