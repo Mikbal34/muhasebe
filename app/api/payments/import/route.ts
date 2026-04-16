@@ -72,6 +72,92 @@ function normalizeNameTr(name: string): string {
   return name.toLocaleLowerCase('tr-TR').trim().replace(/\s+/g, ' ')
 }
 
+function levenshtein(a: string, b: string): number {
+  const m = a.length, n = b.length
+  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0))
+  for (let i = 0; i <= m; i++) dp[i][0] = i
+  for (let j = 0; j <= n; j++) dp[0][j] = j
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1])
+    }
+  }
+  return dp[m][n]
+}
+
+function nameSimilarity(a: string, b: string): number {
+  const maxLen = Math.max(a.length, b.length)
+  if (maxLen === 0) return 1
+  return 1 - levenshtein(a, b) / maxLen
+}
+
+function tokenSubsetMatch(query: string, target: string): boolean {
+  const qTokens = query.split(' ').filter(Boolean)
+  const tTokens = target.split(' ').filter(Boolean)
+  const matched = qTokens.filter(qt => tTokens.some(tt => tt === qt || nameSimilarity(qt, tt) >= 0.8))
+  return matched.length >= qTokens.length - 1 && matched.length >= Math.ceil(qTokens.length * 0.6)
+}
+
+function findFuzzyMatch(
+  nameKey: string,
+  allPeople: Map<string, ResolvedPerson[]>
+): { person: ResolvedPerson; exact: boolean } | { candidates: string[] } | null {
+  // 1. Exact match
+  const exact = allPeople.get(nameKey)
+  if (exact && exact.length > 0) {
+    const users = exact.filter(m => m.type === 'user')
+    return { person: users.length >= 1 ? users[0] : exact[0], exact: true }
+  }
+
+  // 2. Token subset match (handles missing surname)
+  const subsetMatches: ResolvedPerson[] = []
+  const subsetNames: string[] = []
+  const allKeys = Array.from(allPeople.keys())
+  for (const key of allKeys) {
+    const people = allPeople.get(key)!
+    if (tokenSubsetMatch(nameKey, key) || tokenSubsetMatch(key, nameKey)) {
+      const users = people.filter((p: ResolvedPerson) => p.type === 'user')
+      subsetMatches.push(users.length >= 1 ? users[0] : people[0])
+      subsetNames.push(people[0].full_name)
+    }
+  }
+  if (subsetMatches.length === 1) {
+    return { person: subsetMatches[0], exact: false }
+  }
+  if (subsetMatches.length > 1) {
+    return { candidates: subsetNames }
+  }
+
+  // 3. Similarity match (handles typos, threshold >= 85%)
+  let bestMatch: ResolvedPerson | null = null
+  let bestScore = 0
+  const simCandidates: string[] = []
+
+  for (const key of allKeys) {
+    const people = allPeople.get(key)!
+    const score = nameSimilarity(nameKey, key)
+    if (score >= 0.85) {
+      const users = people.filter((p: ResolvedPerson) => p.type === 'user')
+      simCandidates.push(people[0].full_name)
+      if (score > bestScore) {
+        bestScore = score
+        bestMatch = users.length >= 1 ? users[0] : people[0]
+      }
+    }
+  }
+
+  if (simCandidates.length === 1 && bestMatch) {
+    return { person: bestMatch, exact: false }
+  }
+  if (simCandidates.length > 1) {
+    return { candidates: simCandidates }
+  }
+
+  return null
+}
+
 // POST /api/payments/import
 export async function POST(request: NextRequest) {
   return withAuth(request, async (req, ctx) => {
@@ -228,27 +314,25 @@ export async function POST(request: NextRequest) {
           continue
         }
 
-        // Person check — users priority, pick first active match if duplicates
+        // Person check — exact first, then fuzzy (token subset + similarity)
         const nameKey = normalizeNameTr(row.person_name)
-        const matches = personLookup.get(nameKey) || []
+        const fuzzyResult = findFuzzyMatch(nameKey, personLookup)
 
-        if (matches.length === 0) {
+        if (!fuzzyResult) {
           errors.push({ row: row.rowNumber, column: 'Alıcı Adı', message: `Kişi bulunamadı: ${row.person_name}` })
           continue
         }
 
-        let person: ResolvedPerson
-        if (matches.length === 1) {
-          person = matches[0]
-        } else {
-          // Users have priority over personnel; pick first match
-          const userMatches = matches.filter(m => m.type === 'user')
-          if (userMatches.length >= 1) {
-            person = userMatches[0]
-          } else {
-            person = matches[0]
-          }
+        if ('candidates' in fuzzyResult) {
+          errors.push({
+            row: row.rowNumber,
+            column: 'Alıcı Adı',
+            message: `Birden fazla olası eşleşme: ${row.person_name} → ${fuzzyResult.candidates.join(', ')}`
+          })
+          continue
         }
+
+        const person = fuzzyResult.person
 
         validRows.push({
           ...row,
