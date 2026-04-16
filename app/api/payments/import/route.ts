@@ -266,10 +266,30 @@ export async function POST(request: NextRequest) {
       }
 
       if (validRows.length === 0) {
+        const earlyFailedRows = errors.map(e => {
+          const orig = originalRowData.get(e.row)
+          let dateStr = ''
+          const rawDate = orig?.['Ödeme Tarihi']
+          if (rawDate instanceof Date) {
+            dateStr = `${String(rawDate.getDate()).padStart(2, '0')}.${String(rawDate.getMonth() + 1).padStart(2, '0')}.${rawDate.getFullYear()}`
+          } else if (rawDate) {
+            dateStr = String(rawDate)
+          }
+          return {
+            row: e.row,
+            projeKodu: orig?.['Proje Kodu']?.toString() || '',
+            aliciAdi: orig?.['Alıcı Adı']?.toString() || '',
+            tutar: orig?.['Tutar'] ?? '',
+            aciklama: orig?.['Açıklama']?.toString() || '',
+            iban: orig?.['IBAN']?.toString() || '',
+            odemeTarihi: dateStr,
+            hata: e.message
+          }
+        })
         return NextResponse.json({
           success: false,
           error: 'Aktarılacak geçerli ödeme bulunamadı',
-          data: { errors }
+          data: { errors, failedRows: earlyFailedRows }
         }, { status: 400 })
       }
 
@@ -326,10 +346,30 @@ export async function POST(request: NextRequest) {
       }
 
       if (insertedIds.length === 0) {
+        const allFailedRows = errors.map(e => {
+          const orig = originalRowData.get(e.row)
+          let dateStr = ''
+          const rawDate = orig?.['Ödeme Tarihi']
+          if (rawDate instanceof Date) {
+            dateStr = `${String(rawDate.getDate()).padStart(2, '0')}.${String(rawDate.getMonth() + 1).padStart(2, '0')}.${rawDate.getFullYear()}`
+          } else if (rawDate) {
+            dateStr = String(rawDate)
+          }
+          return {
+            row: e.row,
+            projeKodu: orig?.['Proje Kodu']?.toString() || '',
+            aliciAdi: orig?.['Alıcı Adı']?.toString() || '',
+            tutar: orig?.['Tutar'] ?? '',
+            aciklama: orig?.['Açıklama']?.toString() || '',
+            iban: orig?.['IBAN']?.toString() || '',
+            odemeTarihi: dateStr,
+            hata: e.message
+          }
+        })
         return NextResponse.json({
           success: false,
           error: 'Ödeme talimatları oluşturulamadı',
-          data: { errors }
+          data: { errors, failedRows: allFailedRows }
         }, { status: 500 })
       }
 
@@ -349,9 +389,16 @@ export async function POST(request: NextRequest) {
         console.error('Audit log error (non-fatal):', auditErr)
       }
 
-      // Build failed rows for Excel export
-      const failedRows = errors.map(e => {
+      // Build failed rows for re-upload Excel (same format as import template)
+      const buildFailedRows = () => errors.map(e => {
         const orig = originalRowData.get(e.row)
+        let dateStr = ''
+        const rawDate = orig?.['Ödeme Tarihi']
+        if (rawDate instanceof Date) {
+          dateStr = `${String(rawDate.getDate()).padStart(2, '0')}.${String(rawDate.getMonth() + 1).padStart(2, '0')}.${rawDate.getFullYear()}`
+        } else if (rawDate) {
+          dateStr = String(rawDate)
+        }
         return {
           row: e.row,
           projeKodu: orig?.['Proje Kodu']?.toString() || '',
@@ -359,10 +406,12 @@ export async function POST(request: NextRequest) {
           tutar: orig?.['Tutar'] ?? '',
           aciklama: orig?.['Açıklama']?.toString() || '',
           iban: orig?.['IBAN']?.toString() || '',
-          odemeTarihi: orig?.['Ödeme Tarihi']?.toString() || '',
+          odemeTarihi: dateStr,
           hata: e.message
         }
       })
+
+      const failedRows = buildFailedRows()
 
       return apiResponse.success(
         {

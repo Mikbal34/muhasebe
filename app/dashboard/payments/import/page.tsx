@@ -273,6 +273,9 @@ export default function PaymentImportPage() {
         if (data.data?.errors) {
           setValidationErrors(data.data.errors)
         }
+        if (data.data?.failedRows) {
+          setImportResult({ imported: 0, total_amount: 0, errors: data.data.errors, failedRows: data.data.failedRows })
+        }
         setParseError(data.error || 'İçe aktarma başarısız')
       }
     } catch {
