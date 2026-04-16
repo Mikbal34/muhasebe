@@ -25,16 +25,6 @@ interface ResolvedPerson {
   iban: string | null
 }
 
-interface BalanceRecord {
-  id: string
-  user_id: string | null
-  personnel_id: string | null
-  project_id: string
-  available_amount: number
-  debt_amount: number
-  reserved_amount: number
-}
-
 function parseDate(value: string | number | Date | undefined): string | null {
   if (!value) return null
 
@@ -216,40 +206,12 @@ export async function POST(request: NextRequest) {
         personLookup.set(key, arr)
       }
 
-      // Fetch balances for relevant projects
-      const uniqueProjectIds = Array.from(new Set(
-        parsedRows
-          .map(r => projectMap.get(r.project_code)?.id)
-          .filter((id): id is string => !!id)
-      ))
-
-      const balanceMap = new Map<string, BalanceRecord>()
-
-      if (uniqueProjectIds.length > 0) {
-        const { data: balances } = await (ctx.supabase as any)
-          .from('balances')
-          .select('id, user_id, personnel_id, project_id, available_amount, debt_amount, reserved_amount')
-          .in('project_id', uniqueProjectIds)
-
-        for (const b of balances || []) {
-          if (b.user_id) {
-            balanceMap.set(`user:${b.user_id}:${b.project_id}`, b)
-          }
-          if (b.personnel_id) {
-            balanceMap.set(`personnel:${b.personnel_id}:${b.project_id}`, b)
-          }
-        }
-      }
-
       // Phase 4: Second-pass validation with DB data
       interface ValidRow extends ParsedRow {
         person: ResolvedPerson
         projectId: string
-        balanceId: string
       }
       const validRows: ValidRow[] = []
-      const cumulativeReservations = new Map<string, number>()
-      const liveBalances = new Map<string, { available_amount: number; reserved_amount: number }>()
 
       for (const row of parsedRows) {
         // Project check
@@ -278,49 +240,10 @@ export async function POST(request: NextRequest) {
 
         const person = matches[0]
 
-        // Balance check
-        const balanceKey = `${person.type}:${person.id}:${project.id}`
-        const balance = balanceMap.get(balanceKey)
-
-        if (!balance) {
-          errors.push({ row: row.rowNumber, column: 'Tutar', message: `Bu projede bakiye kaydı bulunamadı: ${row.person_name} - ${row.project_code}` })
-          continue
-        }
-
-        if ((balance.debt_amount || 0) > 0) {
-          errors.push({ row: row.rowNumber, column: 'Tutar', message: `Kişinin ₺${balance.debt_amount.toLocaleString('tr-TR')} borcu var` })
-          continue
-        }
-
-        // Initialize live balance tracking
-        if (!liveBalances.has(balanceKey)) {
-          liveBalances.set(balanceKey, {
-            available_amount: balance.available_amount || 0,
-            reserved_amount: balance.reserved_amount || 0
-          })
-        }
-
-        const live = liveBalances.get(balanceKey)!
-        if (row.amount > live.available_amount) {
-          const cumulative = cumulativeReservations.get(balanceKey) || 0
-          errors.push({
-            row: row.rowNumber,
-            column: 'Tutar',
-            message: `Yetersiz bakiye. Mevcut: ₺${live.available_amount.toLocaleString('tr-TR')}, İstenen: ₺${row.amount.toLocaleString('tr-TR')}${cumulative > 0 ? ` (diğer satırlardan ₺${cumulative.toLocaleString('tr-TR')} zaten ayrıldı)` : ''}`
-          })
-          continue
-        }
-
-        // Reserve in tracking
-        live.available_amount -= row.amount
-        live.reserved_amount += row.amount
-        cumulativeReservations.set(balanceKey, (cumulativeReservations.get(balanceKey) || 0) + row.amount)
-
         validRows.push({
           ...row,
           person,
-          projectId: project.id,
-          balanceId: balance.id
+          projectId: project.id
         })
       }
 
@@ -332,24 +255,12 @@ export async function POST(request: NextRequest) {
         }, { status: 400 })
       }
 
-      // Phase 5: Row-by-row insert
+      // Phase 5: Row-by-row insert (no balance reservation)
       const insertedIds: string[] = []
       let importedTotal = 0
-      // Track actual DB balance state per balanceId
-      const dbBalances = new Map<string, { available_amount: number; reserved_amount: number }>()
 
       for (const row of validRows) {
         try {
-          // Get current balance state
-          if (!dbBalances.has(row.balanceId)) {
-            const bal = balanceMap.get(`${row.person.type}:${row.person.id}:${row.projectId}`)!
-            dbBalances.set(row.balanceId, {
-              available_amount: bal.available_amount || 0,
-              reserved_amount: bal.reserved_amount || 0
-            })
-          }
-          const currentBal = dbBalances.get(row.balanceId)!
-
           // 1. Insert payment_instruction
           const { data: payment, error: paymentError } = await (ctx.supabase as any)
             .from('payment_instructions')
@@ -387,31 +298,6 @@ export async function POST(request: NextRequest) {
             errors.push({ row: row.rowNumber, column: 'DB', message: itemError.message || 'Ödeme kalemi oluşturulamadı' })
             continue
           }
-
-          // 3. Reserve balance
-          const newAvailable = currentBal.available_amount - row.amount
-          const newReserved = currentBal.reserved_amount + row.amount
-
-          const { error: balanceError } = await ctx.supabase
-            .from('balances')
-            .update({
-              available_amount: newAvailable,
-              reserved_amount: newReserved,
-              last_updated: new Date().toISOString()
-            })
-            .eq('id', row.balanceId)
-
-          if (balanceError) {
-            await (ctx.supabase as any).from('payment_instruction_items').delete().eq('instruction_id', payment.id)
-            await ctx.supabase.from('payment_instructions').delete().eq('id', payment.id)
-            console.error(`Balance update error (row ${row.rowNumber}):`, balanceError)
-            errors.push({ row: row.rowNumber, column: 'DB', message: balanceError.message || 'Bakiye güncellenemedi' })
-            continue
-          }
-
-          // Update tracked balance
-          currentBal.available_amount = newAvailable
-          currentBal.reserved_amount = newReserved
 
           insertedIds.push(payment.id)
           importedTotal += row.amount
