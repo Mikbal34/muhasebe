@@ -29,16 +29,19 @@ interface ParsedRow {
   'Gideri Ödeyen'?: string
 }
 
-function parsePayerType(value: string | undefined): { is_tto_expense: boolean; expense_share_type: 'shared' | 'client' } {
+function parsePayerType(value: string | undefined): { is_tto_expense: boolean; expense_share_type: 'shared' | 'client' } | null {
   const v = value?.toLowerCase().trim()
+  if (!v) return null
+  if (v === 'tto') {
+    return { is_tto_expense: true, expense_share_type: 'client' }
+  }
   if (v === 'ortak' || v === 'shared') {
     return { is_tto_expense: false, expense_share_type: 'shared' }
   }
   if (v === 'karşı taraf' || v === 'client' || v === 'karsi taraf') {
     return { is_tto_expense: false, expense_share_type: 'client' }
   }
-  // Varsayılan: TTO
-  return { is_tto_expense: true, expense_share_type: 'client' }
+  return null
 }
 
 function parseExpenseType(value: string | undefined): 'genel' | 'proje' | null {
@@ -229,8 +232,23 @@ export async function POST(request: NextRequest) {
         }
 
         // Gideri Ödeyen
-        const payerType = row['Gideri Ödeyen']?.toString().trim() || 'TTO'
-        const { is_tto_expense, expense_share_type } = parsePayerType(payerType)
+        const payerRaw = row['Gideri Ödeyen']?.toString().trim() || ''
+        const parsedPayer = parsePayerType(payerRaw)
+
+        // Proje gideri için Gideri Ödeyen zorunlu
+        if (expenseType === 'proje' && !parsedPayer) {
+          errors.push({
+            row: rowNumber,
+            column: 'Gideri Ödeyen',
+            message: payerRaw
+              ? `Geçersiz ödeyen değeri: "${payerRaw}". TTO, Ortak veya Karşı Taraf olmalı`
+              : 'Proje gideri için ödeyen zorunlu (TTO / Ortak / Karşı Taraf)'
+          })
+          continue
+        }
+
+        const is_tto_expense = parsedPayer?.is_tto_expense ?? true
+        const expense_share_type = parsedPayer?.expense_share_type ?? 'client'
 
         validRows.push({
           rowNumber,
@@ -239,7 +257,7 @@ export async function POST(request: NextRequest) {
           amount,
           description,
           expense_date: expenseDate,
-          payer_type: payerType,
+          payer_type: payerRaw,
           is_tto_expense: expenseType === 'genel' ? true : is_tto_expense,
           expense_share_type
         })
