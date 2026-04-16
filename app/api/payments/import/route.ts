@@ -169,6 +169,7 @@ export async function POST(request: NextRequest) {
     try {
       const formData = await request.formData()
       const file = formData.get('file') as File | null
+      const defaultStatus = (formData.get('defaultStatus')?.toString() || 'completed') as 'pending' | 'completed'
 
       if (!file) {
         return apiResponse.error('Dosya bulunamadı', undefined, 400)
@@ -232,10 +233,16 @@ export async function POST(request: NextRequest) {
         const iban = row['IBAN']?.toString().trim() || null
         const paymentDate = parseDate(row['Ödeme Tarihi'])
 
-        // Durum: "Beklemede" veya "Tamamlandı", varsayılan Tamamlandı
+        // Durum: Excel kolonu varsa onu kullan, yoksa checkbox'tan gelen defaultStatus
         const rawStatus = row['Durum']?.toString().toLocaleLowerCase('tr-TR').trim() || ''
-        const status: 'pending' | 'completed' = (rawStatus === 'beklemede' || rawStatus === 'pending')
-          ? 'pending' : 'completed'
+        let status: 'pending' | 'completed'
+        if (rawStatus === 'beklemede' || rawStatus === 'pending') {
+          status = 'pending'
+        } else if (rawStatus === 'tamamlandı' || rawStatus === 'completed') {
+          status = 'completed'
+        } else {
+          status = defaultStatus
+        }
 
         uniqueProjectCodes.add(projectCode)
         uniquePersonNames.add(normalizeNameTr(personName))

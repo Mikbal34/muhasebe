@@ -75,6 +75,7 @@ export default function PaymentImportPage() {
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<ImportResult | null>(null)
   const [parseError, setParseError] = useState<string | null>(null)
+  const [importAsCompleted, setImportAsCompleted] = useState(true)
   const router = useRouter()
   const invalidatePayments = useInvalidatePayments()
   const invalidateDashboard = useInvalidateDashboard()
@@ -255,6 +256,7 @@ export default function PaymentImportPage() {
       const token = localStorage.getItem('token')
       const formData = new FormData()
       formData.append('file', file)
+      formData.append('defaultStatus', importAsCompleted ? 'completed' : 'pending')
 
       const response = await fetch('/api/payments/import', {
         method: 'POST',
@@ -551,13 +553,31 @@ export default function PaymentImportPage() {
 
                   {/* Import Button */}
                   {validRowCount > 0 && (
-                    <div className="mt-6 flex items-center justify-between pt-4 border-t border-slate-200">
-                      <p className="text-sm text-slate-500">
-                        <span className="font-bold text-navy">{validRowCount}</span> ödeme talimatı oluşturulacak
-                        {errorRowCount > 0 && (
-                          <span className="text-red-500 ml-2">({errorRowCount} hatalı satır atlanacak)</span>
-                        )}
-                      </p>
+                    <div className="mt-6 pt-4 border-t border-slate-200 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-slate-500">
+                          <span className="font-bold text-navy">{validRowCount}</span> ödeme talimatı oluşturulacak
+                          {errorRowCount > 0 && (
+                            <span className="text-red-500 ml-2">({errorRowCount} hatalı satır atlanacak)</span>
+                          )}
+                        </p>
+                        <label className="flex items-center gap-3 cursor-pointer select-none">
+                          <div className="relative">
+                            <input
+                              type="checkbox"
+                              checked={importAsCompleted}
+                              onChange={(e) => setImportAsCompleted(e.target.checked)}
+                              className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-slate-200 peer-checked:bg-emerald-500 rounded-full transition-colors"></div>
+                            <div className="absolute left-[2px] top-[2px] w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></div>
+                          </div>
+                          <span className="text-sm font-bold text-slate-700">
+                            {importAsCompleted ? 'Tamamlandı olarak import et' : 'Beklemede olarak import et'}
+                          </span>
+                        </label>
+                      </div>
+                      <div className="flex justify-end">
                       <button
                         onClick={handleImport}
                         disabled={importing}
@@ -575,6 +595,7 @@ export default function PaymentImportPage() {
                           </>
                         )}
                       </button>
+                      </div>
                     </div>
                   )}
                 </div>
