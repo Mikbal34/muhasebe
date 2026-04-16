@@ -26,7 +26,7 @@ import {
   Upload
 } from 'lucide-react'
 import { StatCardSkeleton, AccordionGroupSkeleton, Skeleton } from '@/components/ui/skeleton'
-import { usePayments, DateRange } from '@/hooks/use-payments'
+import { usePayments, useInvalidatePayments, DateRange } from '@/hooks/use-payments'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { turkishIncludes } from '@/lib/utils/string'
 
@@ -90,6 +90,7 @@ interface PaymentInstruction {
 export default function PaymentsPage() {
   const [user, setUser] = useState<User | null>(null)
   const [exporting, setExporting] = useState(false)
+  const [bulkCompleting, setBulkCompleting] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [projectFilter, setProjectFilter] = useState<string>('')
@@ -98,6 +99,36 @@ export default function PaymentsPage() {
   const router = useRouter()
 
   const { data: payments = [], isLoading: paymentsLoading } = usePayments(dateRange)
+  const invalidatePayments = useInvalidatePayments()
+
+  const handleBulkComplete = async () => {
+    const pendingCount = payments.filter((p: any) => p.status === 'pending').length
+    if (pendingCount === 0) {
+      alert('Bekleyen ödeme talimatı bulunamadı')
+      return
+    }
+    if (!confirm(`${pendingCount} bekleyen ödeme talimatını tamamlandı olarak işaretlemek istediğinize emin misiniz?`)) return
+
+    setBulkCompleting(true)
+    try {
+      const token = localStorage.getItem('token')
+      const res = await fetch('/api/payments/bulk-complete', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (data.success) {
+        alert(`${data.data.completed} ödeme talimatı tamamlandı olarak işaretlendi`)
+        invalidatePayments()
+      } else {
+        alert(data.error || 'Toplu onay başarısız')
+      }
+    } catch {
+      alert('Toplu onay sırasında hata oluştu')
+    } finally {
+      setBulkCompleting(false)
+    }
+  }
 
   const handleExportExcel = async () => {
     setExporting(true)
@@ -319,6 +350,15 @@ export default function PaymentsPage() {
               >
                 <Download className="w-5 h-5" />
                 {exporting ? 'İndiriliyor...' : 'Dışa Aktar'}
+              </button>
+
+              <button
+                onClick={handleBulkComplete}
+                disabled={bulkCompleting}
+                className="flex items-center gap-2 px-5 h-11 border-2 border-emerald-200 rounded-lg text-emerald-700 font-bold text-sm hover:bg-emerald-50 transition-all disabled:opacity-50"
+              >
+                <CheckCircle className="w-5 h-5" />
+                {bulkCompleting ? 'İşleniyor...' : 'Toplu Onayla'}
               </button>
 
               <Link

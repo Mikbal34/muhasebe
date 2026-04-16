@@ -384,7 +384,9 @@ export async function POST(request: NextRequest) {
               recipient_personnel_id: row.person.type === 'personnel' ? row.person.id : null,
               project_id: row.projectId,
               total_amount: row.amount,
-              status: 'pending',
+              status: 'completed',
+              approved_by: ctx.user.id,
+              approved_at: new Date().toISOString(),
               notes: row.description,
               created_by: ctx.user.id
             })
