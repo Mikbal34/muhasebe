@@ -115,10 +115,13 @@ export async function POST(request: NextRequest) {
       const parsedRows: ParsedRow[] = []
       const uniqueProjectCodes = new Set<string>()
       const uniquePersonNames = new Set<string>()
+      // Keep original row data for failed rows export
+      const originalRowData = new Map<number, Record<string, any>>()
 
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i]
         const rowNumber = i + 2
+        originalRowData.set(rowNumber, row)
 
         const projectCode = row['Proje Kodu']?.toString().trim()
         if (!projectCode) {
@@ -225,7 +228,7 @@ export async function POST(request: NextRequest) {
           continue
         }
 
-        // Person check
+        // Person check — users have priority over personnel
         const nameKey = normalizeNameTr(row.person_name)
         const matches = personLookup.get(nameKey) || []
 
@@ -233,12 +236,27 @@ export async function POST(request: NextRequest) {
           errors.push({ row: row.rowNumber, column: 'Alıcı Adı', message: `Kişi bulunamadı: ${row.person_name}` })
           continue
         }
-        if (matches.length > 1) {
-          errors.push({ row: row.rowNumber, column: 'Alıcı Adı', message: `Birden fazla kişi eşleşti: ${row.person_name} (${matches.length} sonuç)` })
-          continue
-        }
 
-        const person = matches[0]
+        let person: ResolvedPerson
+        if (matches.length === 1) {
+          person = matches[0]
+        } else {
+          const userMatches = matches.filter(m => m.type === 'user')
+          if (userMatches.length === 1) {
+            person = userMatches[0]
+          } else if (userMatches.length > 1) {
+            errors.push({ row: row.rowNumber, column: 'Alıcı Adı', message: `Birden fazla kullanıcı eşleşti: ${row.person_name} (${userMatches.length} sonuç)` })
+            continue
+          } else {
+            const personnelMatches = matches.filter(m => m.type === 'personnel')
+            if (personnelMatches.length === 1) {
+              person = personnelMatches[0]
+            } else {
+              errors.push({ row: row.rowNumber, column: 'Alıcı Adı', message: `Birden fazla personel eşleşti: ${row.person_name} (${personnelMatches.length} sonuç)` })
+              continue
+            }
+          }
+        }
 
         validRows.push({
           ...row,
@@ -331,11 +349,27 @@ export async function POST(request: NextRequest) {
         console.error('Audit log error (non-fatal):', auditErr)
       }
 
+      // Build failed rows for Excel export
+      const failedRows = errors.map(e => {
+        const orig = originalRowData.get(e.row)
+        return {
+          row: e.row,
+          projeKodu: orig?.['Proje Kodu']?.toString() || '',
+          aliciAdi: orig?.['Alıcı Adı']?.toString() || '',
+          tutar: orig?.['Tutar'] ?? '',
+          aciklama: orig?.['Açıklama']?.toString() || '',
+          iban: orig?.['IBAN']?.toString() || '',
+          odemeTarihi: orig?.['Ödeme Tarihi']?.toString() || '',
+          hata: e.message
+        }
+      })
+
       return apiResponse.success(
         {
           imported: insertedIds.length,
           total_amount: importedTotal,
-          errors: errors.length > 0 ? errors : undefined
+          errors: errors.length > 0 ? errors : undefined,
+          failedRows: failedRows.length > 0 ? failedRows : undefined
         },
         `${insertedIds.length} ödeme talimatı başarıyla oluşturuldu (Toplam: ₺${importedTotal.toLocaleString('tr-TR')})`
       )

@@ -46,10 +46,22 @@ interface ValidationError {
   message: string
 }
 
+interface FailedRow {
+  row: number
+  projeKodu: string
+  aliciAdi: string
+  tutar: string | number
+  aciklama: string
+  iban: string
+  odemeTarihi: string
+  hata: string
+}
+
 interface ImportResult {
   imported: number
   total_amount: number
   errors?: ValidationError[]
+  failedRows?: FailedRow[]
 }
 
 export default function PaymentImportPage() {
@@ -555,10 +567,34 @@ export default function PaymentImportPage() {
               <div className="bg-white rounded-xl border border-red-200 shadow-sm overflow-hidden">
                 <div className="h-1 w-full bg-red-500" />
                 <div className="p-6">
-                  <h2 className="text-base font-bold text-red-700 flex items-center gap-2 mb-4">
-                    <AlertCircle className="w-5 h-5" />
-                    Hata Detayları ({validationErrors.length})
-                  </h2>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-base font-bold text-red-700 flex items-center gap-2">
+                      <AlertCircle className="w-5 h-5" />
+                      Hata Detayları ({validationErrors.length})
+                    </h2>
+                    {importResult?.failedRows && importResult.failedRows.length > 0 && (
+                      <button
+                        onClick={async () => {
+                          const XLSX = await import('xlsx')
+                          const wsData = [
+                            ['Proje Kodu', 'Alıcı Adı', 'Tutar', 'Açıklama', 'IBAN', 'Ödeme Tarihi', 'Hata'],
+                            ...importResult.failedRows!.map(r => [
+                              r.projeKodu, r.aliciAdi, r.tutar, r.aciklama, r.iban, r.odemeTarihi, r.hata
+                            ])
+                          ]
+                          const ws = XLSX.utils.aoa_to_sheet(wsData)
+                          ws['!cols'] = [{ wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 50 }, { wch: 30 }, { wch: 15 }, { wch: 50 }]
+                          const wb = XLSX.utils.book_new()
+                          XLSX.utils.book_append_sheet(wb, ws, 'Hatalı Satırlar')
+                          XLSX.writeFile(wb, 'hatali-odeme-satirlari.xlsx')
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-bold rounded-lg hover:bg-red-700 transition-all"
+                      >
+                        <Download className="w-4 h-4" />
+                        Hatalı Satırları İndir
+                      </button>
+                    )}
+                  </div>
                   <div className="space-y-2 max-h-[300px] overflow-y-auto">
                     {validationErrors.map((error, idx) => (
                       <div
