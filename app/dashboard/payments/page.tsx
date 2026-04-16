@@ -22,7 +22,8 @@ import {
   Wallet,
   CreditCard,
   TrendingUp,
-  FolderOpen
+  FolderOpen,
+  Upload
 } from 'lucide-react'
 import { StatCardSkeleton, AccordionGroupSkeleton, Skeleton } from '@/components/ui/skeleton'
 import { usePayments, DateRange } from '@/hooks/use-payments'
@@ -319,6 +320,14 @@ export default function PaymentsPage() {
                 <Download className="w-5 h-5" />
                 {exporting ? 'İndiriliyor...' : 'Dışa Aktar'}
               </button>
+
+              <Link
+                href="/dashboard/payments/import"
+                className="flex items-center gap-2 px-5 h-11 border-2 border-slate-200 rounded-lg text-navy font-bold text-sm hover:bg-slate-50 transition-all"
+              >
+                <Upload className="w-5 h-5" />
+                Toplu Import
+              </Link>
 
               <Link
                 href="/dashboard/payments/new"
