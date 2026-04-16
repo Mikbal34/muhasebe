@@ -228,7 +228,7 @@ export async function POST(request: NextRequest) {
           continue
         }
 
-        // Person check — users have priority over personnel
+        // Person check — users priority, pick first active match if duplicates
         const nameKey = normalizeNameTr(row.person_name)
         const matches = personLookup.get(nameKey) || []
 
@@ -241,20 +241,12 @@ export async function POST(request: NextRequest) {
         if (matches.length === 1) {
           person = matches[0]
         } else {
+          // Users have priority over personnel; pick first match
           const userMatches = matches.filter(m => m.type === 'user')
-          if (userMatches.length === 1) {
+          if (userMatches.length >= 1) {
             person = userMatches[0]
-          } else if (userMatches.length > 1) {
-            errors.push({ row: row.rowNumber, column: 'Alıcı Adı', message: `Birden fazla kullanıcı eşleşti: ${row.person_name} (${userMatches.length} sonuç)` })
-            continue
           } else {
-            const personnelMatches = matches.filter(m => m.type === 'personnel')
-            if (personnelMatches.length === 1) {
-              person = personnelMatches[0]
-            } else {
-              errors.push({ row: row.rowNumber, column: 'Alıcı Adı', message: `Birden fazla personel eşleşti: ${row.person_name} (${personnelMatches.length} sonuç)` })
-              continue
-            }
+            person = matches[0]
           }
         }
 
