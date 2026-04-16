@@ -10,6 +10,7 @@ interface ParsedRow {
   description: string | null
   iban: string | null
   payment_date: string | null
+  status: 'pending' | 'completed'
 }
 
 interface ValidationError {
@@ -231,6 +232,11 @@ export async function POST(request: NextRequest) {
         const iban = row['IBAN']?.toString().trim() || null
         const paymentDate = parseDate(row['Ödeme Tarihi'])
 
+        // Durum: "Beklemede" veya "Tamamlandı", varsayılan Tamamlandı
+        const rawStatus = row['Durum']?.toString().toLocaleLowerCase('tr-TR').trim() || ''
+        const status: 'pending' | 'completed' = (rawStatus === 'beklemede' || rawStatus === 'pending')
+          ? 'pending' : 'completed'
+
         uniqueProjectCodes.add(projectCode)
         uniquePersonNames.add(normalizeNameTr(personName))
 
@@ -241,7 +247,8 @@ export async function POST(request: NextRequest) {
           amount,
           description,
           iban,
-          payment_date: paymentDate
+          payment_date: paymentDate,
+          status
         })
       }
 
@@ -384,9 +391,8 @@ export async function POST(request: NextRequest) {
               recipient_personnel_id: row.person.type === 'personnel' ? row.person.id : null,
               project_id: row.projectId,
               total_amount: row.amount,
-              status: 'completed',
-              approved_by: ctx.user.id,
-              approved_at: new Date().toISOString(),
+              status: row.status,
+              ...(row.status === 'completed' ? { approved_by: ctx.user.id, approved_at: new Date().toISOString() } : {}),
               notes: row.description,
               created_by: ctx.user.id
             })

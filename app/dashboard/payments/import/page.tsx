@@ -36,6 +36,7 @@ interface PreviewRow {
   aciklama: string
   iban: string
   odemeTarihi: string
+  durum: string
   hasError: boolean
   errorMessage?: string
 }
@@ -165,6 +166,10 @@ export default function PaymentImportPage() {
           }
         }
 
+        const durumRaw = row['Durum']?.toString().trim() || ''
+        const durum = durumRaw.toLowerCase() === 'beklemede' || durumRaw.toLowerCase() === 'pending'
+          ? 'Beklemede' : 'Tamamlandı'
+
         return {
           rowNumber: index + 2,
           projeKodu: projeKodu || '-',
@@ -173,6 +178,7 @@ export default function PaymentImportPage() {
           aciklama: aciklama || '-',
           iban: iban || '-',
           odemeTarihi: odemeTarihi || 'Bugün',
+          durum,
           hasError: errors.length > 0,
           errorMessage: errors.length > 0 ? errors.join(', ') : undefined
         }
@@ -480,7 +486,8 @@ export default function PaymentImportPage() {
                           <th className="px-4 py-3 text-left">Açıklama</th>
                           <th className="px-4 py-3 text-left">IBAN</th>
                           <th className="px-4 py-3 text-left">Tarih</th>
-                          <th className="px-4 py-3 text-center">Durum</th>
+                          <th className="px-4 py-3 text-center">Statü</th>
+                          <th className="px-4 py-3 text-center">Kontrol</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
@@ -515,6 +522,15 @@ export default function PaymentImportPage() {
                             </td>
                             <td className="px-4 py-3 text-slate-500 text-xs">
                               {row.odemeTarihi}
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <span className={`px-2 py-1 rounded text-[10px] font-bold ${
+                                row.durum === 'Tamamlandı'
+                                  ? 'bg-emerald-100 text-emerald-700'
+                                  : 'bg-amber-100 text-amber-700'
+                              }`}>
+                                {row.durum}
+                              </span>
                             </td>
                             <td className="px-4 py-3 text-center">
                               {row.hasError ? (
@@ -676,6 +692,15 @@ export default function PaymentImportPage() {
                     <div>
                       <p className="font-semibold text-slate-700">Ödeme Tarihi</p>
                       <p className="text-xs text-slate-500">Varsayılan: bugün</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center flex-shrink-0">
+                      <span className="text-[10px] font-bold text-slate-500">-</span>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-700">Durum</p>
+                      <p className="text-xs text-slate-500">Tamamlandı / Beklemede (varsayılan: Tamamlandı)</p>
                     </div>
                   </div>
                 </div>
