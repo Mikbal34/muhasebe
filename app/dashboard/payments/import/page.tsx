@@ -466,9 +466,9 @@ export default function PaymentImportPage() {
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto">
+                  <div className="overflow-auto max-h-[500px] border border-slate-200 rounded-lg">
                     <table className="w-full text-sm">
-                      <thead className="bg-slate-50 text-[11px] font-black text-slate-500 uppercase tracking-widest">
+                      <thead className="bg-slate-50 text-[11px] font-black text-slate-500 uppercase tracking-widest sticky top-0 z-10">
                         <tr>
                           <th className="px-4 py-3 text-left">Satır</th>
                           <th className="px-4 py-3 text-left">Proje Kodu</th>
