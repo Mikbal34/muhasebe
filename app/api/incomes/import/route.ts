@@ -46,6 +46,13 @@ interface ValidationResult {
 function parseExcelDate(value: any): string | null {
   if (!value) return null
 
+  if (value instanceof Date) {
+    const year = value.getFullYear()
+    const month = String(value.getMonth() + 1).padStart(2, '0')
+    const day = String(value.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
   // If it's a number (Excel serial date)
   if (typeof value === 'number') {
     const date = XLSX.SSF.parse_date_code(value)
