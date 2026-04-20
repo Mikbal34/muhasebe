@@ -358,25 +358,8 @@ async function validateRows(rawData: Record<string, any>[], supabase: any): Prom
       continue
     }
 
-    // Check referee approval
-    if (!project.referee_approved) {
-      errors.push({ row: rowNumber, field: 'Proje Kodu', message: `Proje hakem onayı almamış: ${projectCode}` })
-      continue
-    }
-
-    // Budget check
+    // Track running total for this project (budget auto-expanded on import)
     const currentNewIncomes = newIncomesPerProject.get(projectCode) || 0
-    const totalWithNewIncome = project.totalIncomes + currentNewIncomes + parsed.gross_amount
-    if (totalWithNewIncome > project.budget) {
-      errors.push({
-        row: rowNumber,
-        field: 'Brüt Tutar',
-        message: `Toplam gelir bütçeyi aşıyor. Bütçe: ₺${project.budget.toLocaleString('tr-TR')}, Mevcut: ₺${(project.totalIncomes + currentNewIncomes).toLocaleString('tr-TR')}`
-      })
-      continue
-    }
-
-    // Update running total for this project
     newIncomesPerProject.set(projectCode, currentNewIncomes + parsed.gross_amount)
 
     // Use project VAT rate if not provided
@@ -397,6 +380,8 @@ async function importIncomes(
 ): Promise<{ success: string[]; failed: { row: number; error: string }[] }> {
   const success: string[] = []
   const failed: { row: number; error: string }[] = []
+
+  const addedPerProject = new Map<string, number>()
 
   for (const row of rows) {
     try {
@@ -432,9 +417,23 @@ async function importIncomes(
         continue
       }
 
+      addedPerProject.set(row.project_code, (addedPerProject.get(row.project_code) || 0) + row.gross_amount)
       success.push(income.id)
     } catch (error: any) {
       failed.push({ row: row.rowNumber, error: error.message || 'Bilinmeyen hata' })
+    }
+  }
+
+  // Bump project budget if total incomes exceed current budget
+  for (const [code, added] of Array.from(addedPerProject.entries())) {
+    const project = projectMap.get(code)
+    if (!project) continue
+    const newTotal = project.totalIncomes + added
+    if (newTotal > project.budget) {
+      await ctx.supabase
+        .from('projects')
+        .update({ budget: newTotal })
+        .eq('id', project.id)
     }
   }
 
