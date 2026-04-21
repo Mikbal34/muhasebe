@@ -11,10 +11,13 @@ const columnMap: Record<string, string> = {
   'KDV Oranı': 'vat_rate',
   'Tahsil Edilen': 'collected_amount',
   'Tahsil Tarihi': 'collection_date',
+  'Tahsil Durumu': 'collection_status',
   'Gelir Tipi': 'income_type',
   'FSMH Geliri': 'is_fsmh_income',
   'TTO Geliri': 'is_tto_income'
 }
+
+type CollectionStatus = 'invoiced' | 'partial' | 'fully_collected'
 
 interface ParsedRow {
   rowNumber: number
@@ -109,6 +112,16 @@ function parseIncomeType(value: any): 'ozel' | 'kamu' {
   return 'ozel'
 }
 
+// Parse collection status (Tahsil Durumu). Returns null for unrecognized values.
+function parseCollectionStatus(value: any): CollectionStatus | null {
+  const v = String(value ?? '').toLocaleLowerCase('tr-TR').trim()
+  if (!v) return null
+  if (['tam tahsil', 'tam', 'tahsil edildi', 'tamamlandı', 'tamamlandi', 'fully collected', 'fully_collected', 'completed'].includes(v)) return 'fully_collected'
+  if (['faturalandı', 'faturalandi', 'fatura', 'invoiced', 'beklemede', 'pending'].includes(v)) return 'invoiced'
+  if (['kısmi', 'kismi', 'partial', 'kısmi tahsil', 'kismi tahsil', 'parçalı', 'parcali', 'partially_collected'].includes(v)) return 'partial'
+  return null
+}
+
 // Parse number value
 function parseNumber(value: any): number | null {
   if (value === undefined || value === null || value === '') return null
@@ -147,6 +160,7 @@ function buildFailedRow(
     kdvOrani: orig?.['KDV Oranı'] ?? '',
     tahsilEdilen: orig?.['Tahsil Edilen'] ?? '',
     tahsilTarihi: formatDateForExport(orig?.['Tahsil Tarihi']),
+    tahsilDurumu: orig?.['Tahsil Durumu']?.toString() || '',
     gelirTipi: orig?.['Gelir Tipi']?.toString() || '',
     fsmhGeliri: orig?.['FSMH Geliri']?.toString() || '',
     ttoGeliri: orig?.['TTO Geliri']?.toString() || '',
@@ -327,6 +341,36 @@ async function validateRows(rawData: Record<string, any>[], supabase: any): Prom
     const collectionDate = parseExcelDate(mappedRow.collection_date)
     if (collectionDate) {
       parsed.collection_date = collectionDate
+    }
+
+    // Tahsil Durumu: convenience column that drives collected_amount/collection_date
+    const rawStatus = String(mappedRow.collection_status ?? '').trim()
+    if (rawStatus) {
+      const status = parseCollectionStatus(rawStatus)
+      if (status === null) {
+        errors.push({ row: rowNumber, field: 'Tahsil Durumu', message: 'Geçersiz değer. "Faturalandı", "Kısmi" veya "Tam Tahsil" olmalı' })
+        hasError = true
+      } else if (parsed.gross_amount !== undefined) {
+        if (status === 'fully_collected') {
+          parsed.collected_amount = parsed.gross_amount
+          if (!parsed.collection_date && parsed.income_date) {
+            parsed.collection_date = parsed.income_date
+          }
+        } else if (status === 'invoiced') {
+          parsed.collected_amount = 0
+          parsed.collection_date = undefined
+        } else if (status === 'partial') {
+          if (parsed.collected_amount === undefined || parsed.collected_amount <= 0) {
+            errors.push({ row: rowNumber, field: 'Tahsil Durumu', message: 'Kısmi tahsilat için "Tahsil Edilen" 0\'dan büyük olmalı' })
+            hasError = true
+          } else if (parsed.collected_amount >= parsed.gross_amount) {
+            errors.push({ row: rowNumber, field: 'Tahsil Durumu', message: 'Kısmi tahsilat için "Tahsil Edilen" brüt tutardan küçük olmalı' })
+            hasError = true
+          } else if (!parsed.collection_date && parsed.income_date) {
+            parsed.collection_date = parsed.income_date
+          }
+        }
+      }
     }
 
     parsed.income_type = parseIncomeType(mappedRow.income_type)

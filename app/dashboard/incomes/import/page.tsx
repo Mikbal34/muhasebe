@@ -65,6 +65,7 @@ interface FailedRow {
   kdvOrani: string | number
   tahsilEdilen: string | number
   tahsilTarihi: string
+  tahsilDurumu: string
   gelirTipi: string
   fsmhGeliri: string
   ttoGeliri: string
@@ -238,13 +239,13 @@ export default function ImportIncomesPage() {
   const downloadFailedRows = async (rows: FailedRow[]) => {
     const XLSX = await import('xlsx')
     const wsData = [
-      ['Proje Kodu', 'Brüt Tutar', 'Gelir Tarihi', 'Açıklama', 'KDV Oranı', 'Tahsil Edilen', 'Tahsil Tarihi', 'Gelir Tipi', 'FSMH Geliri', 'TTO Geliri', 'Hata'],
+      ['Proje Kodu', 'Brüt Tutar', 'Gelir Tarihi', 'Açıklama', 'KDV Oranı', 'Tahsil Edilen', 'Tahsil Tarihi', 'Tahsil Durumu', 'Gelir Tipi', 'FSMH Geliri', 'TTO Geliri', 'Hata'],
       ...rows.map(r => [
-        r.projeKodu, r.brutTutar, r.gelirTarihi, r.aciklama, r.kdvOrani, r.tahsilEdilen, r.tahsilTarihi, r.gelirTipi, r.fsmhGeliri, r.ttoGeliri, r.hata
+        r.projeKodu, r.brutTutar, r.gelirTarihi, r.aciklama, r.kdvOrani, r.tahsilEdilen, r.tahsilTarihi, r.tahsilDurumu, r.gelirTipi, r.fsmhGeliri, r.ttoGeliri, r.hata
       ])
     ]
     const ws = XLSX.utils.aoa_to_sheet(wsData)
-    ws['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 40 }, { wch: 10 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 50 }]
+    ws['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 40 }, { wch: 10 }, { wch: 15 }, { wch: 15 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 50 }]
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Hatalı Satırlar')
     XLSX.writeFile(wb, 'hatali-gelir-satirlari.xlsx')
@@ -662,6 +663,10 @@ export default function ImportIncomesPage() {
                     <div>
                       <p className="font-semibold text-slate-700">Tahsil Tarihi</p>
                       <p className="text-slate-500 text-xs">Son tahsil tarihi</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-700">Tahsil Durumu</p>
+                      <p className="text-slate-500 text-xs">Faturalandı / Kısmi / Tam Tahsil. "Tam Tahsil" tahsilat tutarını brüte eşitler, "Faturalandı" sıfırlar, "Kısmi" için Tahsil Edilen gerekli.</p>
                     </div>
                     <div>
                       <p className="font-semibold text-slate-700">Gelir Tipi</p>
