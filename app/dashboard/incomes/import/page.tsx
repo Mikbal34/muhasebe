@@ -56,11 +56,27 @@ interface PreviewData {
   errors: ValidationError[]
 }
 
+interface FailedRow {
+  row: number
+  projeKodu: string
+  brutTutar: string | number
+  gelirTarihi: string
+  aciklama: string
+  kdvOrani: string | number
+  tahsilEdilen: string | number
+  tahsilTarihi: string
+  gelirTipi: string
+  fsmhGeliri: string
+  ttoGeliri: string
+  hata: string
+}
+
 interface ImportResult {
   imported: number
   failed: number
   successIds: string[]
-  failures: { row: number; error: string }[]
+  failedRows?: FailedRow[]
+  errors?: ValidationError[]
 }
 
 export default function ImportIncomesPage() {
@@ -181,7 +197,7 @@ export default function ImportIncomesPage() {
   }
 
   const handleImport = async () => {
-    if (!file || !preview || preview.errorRows > 0) return
+    if (!file || !preview || preview.validRows === 0) return
 
     setImporting(true)
     setError(null)
@@ -206,6 +222,9 @@ export default function ImportIncomesPage() {
         invalidateIncomes()
         invalidateDashboard()
       } else {
+        if (data.data?.failedRows) {
+          setImportResult({ imported: 0, failed: data.data.failedRows.length, successIds: [], failedRows: data.data.failedRows, errors: data.data.errors })
+        }
         setError(data.error || 'Import işlemi başarısız')
       }
     } catch (err) {
@@ -214,6 +233,21 @@ export default function ImportIncomesPage() {
     } finally {
       setImporting(false)
     }
+  }
+
+  const downloadFailedRows = async (rows: FailedRow[]) => {
+    const XLSX = await import('xlsx')
+    const wsData = [
+      ['Proje Kodu', 'Brüt Tutar', 'Gelir Tarihi', 'Açıklama', 'KDV Oranı', 'Tahsil Edilen', 'Tahsil Tarihi', 'Gelir Tipi', 'FSMH Geliri', 'TTO Geliri', 'Hata'],
+      ...rows.map(r => [
+        r.projeKodu, r.brutTutar, r.gelirTarihi, r.aciklama, r.kdvOrani, r.tahsilEdilen, r.tahsilTarihi, r.gelirTipi, r.fsmhGeliri, r.ttoGeliri, r.hata
+      ])
+    ]
+    const ws = XLSX.utils.aoa_to_sheet(wsData)
+    ws['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 40 }, { wch: 10 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 50 }]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Hatalı Satırlar')
+    XLSX.writeFile(wb, 'hatali-gelir-satirlari.xlsx')
   }
 
   const clearFile = () => {
@@ -265,13 +299,21 @@ export default function ImportIncomesPage() {
             <div className="h-1 w-full bg-gradient-to-r from-emerald-500 to-gold" />
             <div className="p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-emerald-600" />
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${importResult.imported > 0 ? 'bg-emerald-100' : 'bg-red-100'}`}>
+                  {importResult.imported > 0 ? (
+                    <CheckCircle className="w-6 h-6 text-emerald-600" />
+                  ) : (
+                    <XCircle className="w-6 h-6 text-red-600" />
+                  )}
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-navy">Import Tamamlandı</h2>
+                  <h2 className="text-lg font-bold text-navy">
+                    {importResult.imported > 0 ? 'Import Tamamlandı' : 'Import Başarısız'}
+                  </h2>
                   <p className="text-sm text-slate-500">
-                    {importResult.imported} kayıt başarıyla oluşturuldu
+                    {importResult.imported > 0
+                      ? `${importResult.imported} kayıt başarıyla oluşturuldu${importResult.failed > 0 ? `, ${importResult.failed} satır atlandı` : ''}`
+                      : 'Hiçbir kayıt oluşturulamadı'}
                   </p>
                 </div>
               </div>
@@ -289,12 +331,21 @@ export default function ImportIncomesPage() {
                 )}
               </div>
 
-              {importResult.failures.length > 0 && (
+              {importResult.failedRows && importResult.failedRows.length > 0 && (
                 <div className="bg-red-50 p-4 rounded-lg mb-4">
-                  <p className="text-sm font-bold text-red-700 mb-2">Başarısız kayıtlar:</p>
-                  <ul className="text-sm text-red-600 space-y-1">
-                    {importResult.failures.map((f, i) => (
-                      <li key={i}>Satır {f.row}: {f.error}</li>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-bold text-red-700">Başarısız kayıtlar ({importResult.failedRows.length}):</p>
+                    <button
+                      onClick={() => downloadFailedRows(importResult.failedRows!)}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-red-600 text-white text-xs font-bold rounded-lg hover:bg-red-700 transition-all"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Hatalı Satırları İndir
+                    </button>
+                  </div>
+                  <ul className="text-sm text-red-600 space-y-1 max-h-40 overflow-y-auto">
+                    {importResult.failedRows.map((f, i) => (
+                      <li key={i}>Satır {f.row}: {f.hata}</li>
                     ))}
                   </ul>
                 </div>
@@ -498,30 +549,40 @@ export default function ImportIncomesPage() {
                     )}
 
                     {/* Import Button */}
-                    <div className="mt-6 flex justify-end gap-3">
-                      <button
-                        onClick={clearFile}
-                        className="px-4 py-2.5 border border-slate-200 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 transition-all"
-                      >
-                        İptal
-                      </button>
-                      <button
-                        onClick={handleImport}
-                        disabled={importing || preview.errorRows > 0 || preview.validRows === 0}
-                        className="flex items-center gap-2 px-6 py-2.5 bg-gold text-white font-bold rounded-lg hover:bg-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-gold/20"
-                      >
-                        {importing ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Import Ediliyor...
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle className="w-4 h-4" />
-                            {preview.validRows} Kaydı Import Et
-                          </>
-                        )}
-                      </button>
+                    <div className="mt-6 pt-4 border-t border-slate-200">
+                      <div className="flex items-center justify-between mb-4">
+                        <p className="text-sm text-slate-500">
+                          <span className="font-bold text-navy">{preview.validRows}</span> gelir kaydı oluşturulacak
+                          {preview.errorRows > 0 && (
+                            <span className="text-red-500 ml-2">({preview.errorRows} hatalı satır atlanacak)</span>
+                          )}
+                        </p>
+                      </div>
+                      <div className="flex justify-end gap-3">
+                        <button
+                          onClick={clearFile}
+                          className="px-4 py-2.5 border border-slate-200 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 transition-all"
+                        >
+                          İptal
+                        </button>
+                        <button
+                          onClick={handleImport}
+                          disabled={importing || preview.validRows === 0}
+                          className="flex items-center gap-2 px-6 py-2.5 bg-gold text-white font-bold rounded-lg hover:bg-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-gold/20"
+                        >
+                          {importing ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Import Ediliyor...
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="w-4 h-4" />
+                              {preview.validRows} Kaydı Import Et
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </section>

@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { apiResponse, withAuth } from '@/lib/middleware/auth'
 import * as XLSX from 'xlsx'
 
@@ -119,6 +119,41 @@ function parseNumber(value: any): number | null {
   return isNaN(num) ? null : num
 }
 
+function formatDateForExport(value: any): string {
+  if (!value) return ''
+  if (value instanceof Date) {
+    return `${String(value.getDate()).padStart(2, '0')}.${String(value.getMonth() + 1).padStart(2, '0')}.${value.getFullYear()}`
+  }
+  if (typeof value === 'number') {
+    const d = XLSX.SSF.parse_date_code(value)
+    if (d) {
+      return `${String(d.d).padStart(2, '0')}.${String(d.m).padStart(2, '0')}.${d.y}`
+    }
+  }
+  return String(value)
+}
+
+function buildFailedRow(
+  rowNumber: number,
+  orig: Record<string, any> | undefined,
+  errorMessage: string
+) {
+  return {
+    row: rowNumber,
+    projeKodu: orig?.['Proje Kodu']?.toString() || '',
+    brutTutar: orig?.['Brüt Tutar'] ?? '',
+    gelirTarihi: formatDateForExport(orig?.['Gelir Tarihi']),
+    aciklama: orig?.['Açıklama']?.toString() || '',
+    kdvOrani: orig?.['KDV Oranı'] ?? '',
+    tahsilEdilen: orig?.['Tahsil Edilen'] ?? '',
+    tahsilTarihi: formatDateForExport(orig?.['Tahsil Tarihi']),
+    gelirTipi: orig?.['Gelir Tipi']?.toString() || '',
+    fsmhGeliri: orig?.['FSMH Geliri']?.toString() || '',
+    ttoGeliri: orig?.['TTO Geliri']?.toString() || '',
+    hata: errorMessage
+  }
+}
+
 // POST /api/incomes/import - Import incomes from Excel
 export async function POST(request: NextRequest) {
   return withAuth(request, async (req, ctx) => {
@@ -159,6 +194,10 @@ export async function POST(request: NextRequest) {
         return apiResponse.error('Veri bulunamadı', 'Excel dosyasında veri satırı bulunamadı', 400)
       }
 
+      // Keep original row data for failed rows export
+      const originalRowData = new Map<number, Record<string, any>>()
+      rawData.forEach((row, idx) => originalRowData.set(idx + 2, row))
+
       // Parse and validate rows
       const validationResult = await validateRows(rawData, ctx.supabase)
 
@@ -176,24 +215,33 @@ export async function POST(request: NextRequest) {
         })
       }
 
-      // If there are validation errors, don't import
-      if (validationResult.errors.length > 0) {
-        return apiResponse.error(
-          'Validasyon hataları',
-          `${validationResult.errors.length} satırda hata bulundu. Önce hataları düzeltin.`,
-          400
-        )
-      }
-
-      // Import valid rows
+      // Import valid rows (even when some rows had validation errors)
       const importResults = await importIncomes(validationResult.valid, validationResult.projectMap, ctx)
+
+      // Combine validation errors + insert failures into failedRows
+      const failedRows = [
+        ...validationResult.errors.map(e => buildFailedRow(e.row, originalRowData.get(e.row), `${e.field}: ${e.message}`)),
+        ...importResults.failed.map(f => buildFailedRow(f.row, originalRowData.get(f.row), f.error))
+      ]
+
+      const totalFailed = failedRows.length
+
+      if (importResults.success.length === 0) {
+        return NextResponse.json({
+          success: false,
+          error: 'Aktarılacak geçerli gelir bulunamadı',
+          message: `${totalFailed} satırda hata bulundu`,
+          data: { failedRows, errors: validationResult.errors }
+        }, { status: 400 })
+      }
 
       return apiResponse.success({
         imported: importResults.success.length,
-        failed: importResults.failed.length,
+        failed: totalFailed,
         successIds: importResults.success,
-        failures: importResults.failed
-      }, `${importResults.success.length} gelir kaydı başarıyla oluşturuldu`)
+        failedRows: totalFailed > 0 ? failedRows : undefined,
+        errors: validationResult.errors.length > 0 ? validationResult.errors : undefined
+      }, `${importResults.success.length} gelir kaydı başarıyla oluşturuldu${totalFailed > 0 ? ` (${totalFailed} satır atlandı)` : ''}`)
 
     } catch (error: any) {
       console.error('Income import error:', error)
